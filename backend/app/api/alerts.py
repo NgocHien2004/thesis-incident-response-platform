@@ -9,7 +9,8 @@ from app.core.dependencies import get_current_user, require_roles
 from app.models.user import RoleEnum, User
 from app.services.dedup import process_alert
 from app.models.alert_group import AlertGroup
-
+from app.schemas.alert import TriageRequest, AlertTriaged
+from datetime import datetime, timezone, timedelta
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
@@ -169,3 +170,37 @@ def list_groups(
         }
         for g in groups
     ]
+
+@router.patch("/{alert_id}/triage", response_model=AlertTriaged)
+def triage_alert(
+    alert_id: int,
+    payload: TriageRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
+):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(404, "Không tìm thấy cảnh báo")
+    if alert.status not in [AlertStatus.new, AlertStatus.reviewing]:
+        raise HTTPException(400, f"Không thể triage alert ở trạng thái '{alert.status}'")
+
+    # Validate confidence
+    if not 1 <= payload.triage_confidence <= 100:
+        raise HTTPException(400, "Độ tin cậy phải từ 1 đến 100")
+
+    alert.triage_type        = payload.triage_type
+    alert.triage_severity    = payload.triage_severity
+    alert.triage_confidence  = payload.triage_confidence
+    alert.triage_assignee    = payload.triage_assignee
+    alert.triage_sla_hours   = payload.triage_sla_hours
+    alert.triage_sla_deadline = (
+        datetime.now(timezone.utc) + timedelta(hours=payload.triage_sla_hours)
+    )
+    alert.triage_note        = payload.triage_note
+    alert.triaged_by         = current_user.id
+    alert.triaged_at         = datetime.now(timezone.utc)
+    alert.status             = AlertStatus.triaged
+
+    db.commit()
+    db.refresh(alert)
+    return alert

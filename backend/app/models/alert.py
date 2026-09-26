@@ -43,3 +43,14 @@ class Alert(Base):
     created_at      = Column(DateTime, server_default=func.now())
     updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())
     group_id = Column(Integer, ForeignKey("alert_groups.id"), nullable=True)
+    
+    # Triage fields
+    triage_type         = Column(String(100), nullable=True)   # loại: malware, phishing, intrusion...
+    triage_severity     = Column(Enum(AlertSeverity), nullable=True)
+    triage_confidence   = Column(Integer, nullable=True)        # độ tin cậy 1-100
+    triage_assignee     = Column(Integer, ForeignKey("users.id"), nullable=True)
+    triage_sla_hours    = Column(Integer, nullable=True)        # SLA tính bằng giờ
+    triage_sla_deadline = Column(DateTime, nullable=True)
+    triage_note         = Column(Text, nullable=True)
+    triaged_by          = Column(Integer, ForeignKey("users.id"), nullable=True)
+    triaged_at          = Column(DateTime, nullable=True)
