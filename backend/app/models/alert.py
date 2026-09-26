@@ -54,3 +54,5 @@ class Alert(Base):
     triage_note         = Column(Text, nullable=True)
     triaged_by          = Column(Integer, ForeignKey("users.id"), nullable=True)
     triaged_at          = Column(DateTime, nullable=True)
+
+    incident_id = Column(Integer, ForeignKey("incidents.id"), nullable=True)
