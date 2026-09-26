@@ -42,3 +42,4 @@ class Alert(Base):
     created_by      = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at      = Column(DateTime, server_default=func.now())
     updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    group_id = Column(Integer, ForeignKey("alert_groups.id"), nullable=True)

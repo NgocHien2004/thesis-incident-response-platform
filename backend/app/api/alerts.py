@@ -7,6 +7,9 @@ from app.models.alert import Alert, AlertSource, AlertStatus
 from app.schemas.alert import AlertCreate, AlertOut
 from app.core.dependencies import get_current_user, require_roles
 from app.models.user import RoleEnum, User
+from app.services.dedup import process_alert
+from app.models.alert_group import AlertGroup
+
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
@@ -45,6 +48,7 @@ def create_alert(
     db.add(alert)
     db.commit()
     db.refresh(alert)
+    alert = process_alert(alert, db)
     return alert
 
 # Webhook — nhận POST từ hệ thống ngoài
@@ -67,6 +71,7 @@ def receive_webhook(
     db.add(alert)
     db.commit()
     db.refresh(alert)
+    alert = process_alert(alert, db)
     return alert
 
 # Upload CSV
@@ -97,6 +102,7 @@ def upload_csv(
     db.commit()
     for a in alerts:
         db.refresh(a)
+        alert = process_alert(alert, db)
     return alerts
 
 # Upload JSON
@@ -128,6 +134,7 @@ def upload_json(
     db.commit()
     for a in alerts:
         db.refresh(a)
+        alert = process_alert(alert, db)
     return alerts
 
 # Đóng false positive
@@ -143,3 +150,22 @@ def mark_false_positive(
     alert.status = AlertStatus.false_positive
     db.commit()
     return {"message": "Đã đánh dấu false positive"}
+
+@router.get("/groups/list")
+def list_groups(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    groups = db.query(AlertGroup).order_by(AlertGroup.last_seen.desc()).all()
+    return [
+        {
+            "id": g.id,
+            "title": g.title,
+            "ioc": g.ioc,
+            "affected_asset": g.affected_asset,
+            "alert_count": g.alert_count,
+            "first_seen": g.first_seen,
+            "last_seen": g.last_seen,
+        }
+        for g in groups
+    ]

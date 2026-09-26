@@ -8,6 +8,7 @@ from app.models.asset import Asset
 from app.api.assets import router as assets_router   
 from app.models.alert import Alert
 from app.api.alerts import router as alerts_router
+from app.models.alert_group import AlertGroup
 
 # Tạo bảng nếu chưa có
 Base.metadata.create_all(bind=engine)
