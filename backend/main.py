@@ -6,6 +6,8 @@ from app.models.user import User
 from app.api.auth import router as auth_router
 from app.models.asset import Asset         
 from app.api.assets import router as assets_router   
+from app.models.alert import Alert
+from app.api.alerts import router as alerts_router
 
 # Tạo bảng nếu chưa có
 Base.metadata.create_all(bind=engine)
@@ -21,6 +23,8 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(assets_router)
+app.include_router(alerts_router)
+
 
 @app.get("/")
 def root():
