@@ -1,8 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from database import engine
 from sqlalchemy import text
+from database import engine, Base
+from app.models.user import User
+from app.api.auth import router as auth_router
+
+# Tạo bảng nếu chưa có
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Incident Response Platform")
 
@@ -13,12 +17,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router)
+
 @app.get("/")
 def root():
     return {"status": "ok"}
-
-
-
 
 @app.get("/health/db")
 def check_db():
