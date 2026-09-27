@@ -15,6 +15,8 @@ from app.models.evidence import Evidence, ChainOfCustody
 from app.api.evidences import router as evidences_router
 from app.models.impact import ImpactAnalysis
 from app.api.impact import router as impact_router
+from app.models.containment import Containment
+from app.api.containment import router as containment_router
 
 # Tạo bảng nếu chưa có
 Base.metadata.create_all(bind=engine)
@@ -34,7 +36,7 @@ app.include_router(alerts_router)
 app.include_router(incidents_router)
 app.include_router(evidences_router)
 app.include_router(impact_router)
-
+app.include_router(containment_router)
 
 @app.get("/")
 def root():
