@@ -17,6 +17,10 @@ from app.models.impact import ImpactAnalysis
 from app.api.impact import router as impact_router
 from app.models.containment import Containment
 from app.api.containment import router as containment_router
+from app.models.recovery import RecoveryAction
+from app.api.recovery import router as recovery_router
+from app.models.communication import Communication
+from app.api.communication import router as communication_router
 
 # Tạo bảng nếu chưa có
 Base.metadata.create_all(bind=engine)
@@ -37,6 +41,8 @@ app.include_router(incidents_router)
 app.include_router(evidences_router)
 app.include_router(impact_router)
 app.include_router(containment_router)
+app.include_router(recovery_router)
+app.include_router(communication_router)
 
 @app.get("/")
 def root():
