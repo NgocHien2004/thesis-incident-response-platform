@@ -215,15 +215,28 @@ def suggest_for_alert(payload: AlertSuggestRequest):
 
     # Severity dựa trên keyword đơn giản (không dùng network features)
     severity = "medium"
-    critical_kw = ["ransomware", "data exfil", "domain controller", "lateral movement"]
-    high_kw     = ["brute force", "credential", "malware", "backdoor", "c2", "command"]
-    low_kw      = ["scan", "probe", "info gathering"]
+    critical_kw = ["ransomware", "encrypt", "locked", "data exfil"]
+    high_kw     = ["brute force", "phishing", "injection", "sql",
+                   "malware", "backdoor", "attack", "intrusion",
+                   "elevated privileges", "ddos"]
+    low_kw      = ["info", "recon"]
 
     query_lower = query.lower()
     if any(k in query_lower for k in critical_kw):
         severity = "critical"
     elif any(k in query_lower for k in high_kw):
         severity = "high"
+    elif any(k in query_lower for k in low_kw):
+        severity = "low"
+    # else: medium (default)
+
+    query_lower = query.lower()
+    if any(k in query_lower for k in critical_kw):
+        severity = "critical"
+    elif any(k in query_lower for k in high_kw):
+        severity = "high"
+    elif any(k in query_lower for k in medium_kw):
+        severity = "medium"
     elif any(k in query_lower for k in low_kw):
         severity = "low"
 

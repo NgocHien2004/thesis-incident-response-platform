@@ -1,0 +1,16 @@
+{
+  "runs": 3,
+  "total_tests": 21,
+  "triage_time": {
+    "without_ai_avg_s": 2.052,
+    "with_ai_avg_s": 4.501,
+    "ai_overhead_s": 2.449
+  },
+  "classification_accuracy": {
+    "without_ai_pct": 28.6,
+    "without_ai_correct": 6,
+    "with_ai_pct": 85.7,
+    "with_ai_correct": 18,
+    "improvement_pct": 57.1
+  }
+}
