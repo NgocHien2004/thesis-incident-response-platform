@@ -1,0 +1,41 @@
+{
+  "pr_auc": 0.9998,
+  "roc_auc": 0.9999,
+  "confusion_matrix": [
+    [
+      453719,
+      546
+    ],
+    [
+      82,
+      111229
+    ]
+  ],
+  "thresholds": {
+    "auto_close": 0.15,
+    "review": 0.5,
+    "urgent": 0.8
+  },
+  "top_features": [
+    "Destination Port",
+    "Max Packet Length",
+    "Init_Win_bytes_forward",
+    "Average Packet Size",
+    "Min Packet Length",
+    "Packet Length Std",
+    "Bwd Packet Length Min",
+    "Packet Length Variance",
+    "Init_Win_bytes_backward",
+    "Bwd Packet Length Std",
+    "Fwd Packet Length Mean",
+    "Subflow Fwd Bytes",
+    "Avg Fwd Segment Size",
+    "Avg Bwd Segment Size",
+    "Bwd Header Length",
+    "Bwd Packet Length Max",
+    "Fwd Packet Length Min",
+    "Fwd Packet Length Max",
+    "Fwd Header Length.1",
+    "Packet Length Mean"
+  ]
+}
