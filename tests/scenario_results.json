@@ -1,0 +1,30 @@
+[
+  {
+    "scenario": "phishing",
+    "incident_id": 2,
+    "total_time_s": 31.25,
+    "triage_time_s": 2.05,
+    "status": "completed"
+  },
+  {
+    "scenario": "credential_compromise",
+    "incident_id": 3,
+    "total_time_s": 28.73,
+    "triage_time_s": 2.04,
+    "status": "completed"
+  },
+  {
+    "scenario": "malware",
+    "incident_id": 4,
+    "total_time_s": 28.74,
+    "triage_time_s": 2.04,
+    "status": "completed"
+  },
+  {
+    "scenario": "web_attack",
+    "incident_id": 5,
+    "total_time_s": 28.71,
+    "triage_time_s": 2.04,
+    "status": "completed"
+  }
+]
