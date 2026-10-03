@@ -230,16 +230,6 @@ def suggest_for_alert(payload: AlertSuggestRequest):
         severity = "low"
     # else: medium (default)
 
-    query_lower = query.lower()
-    if any(k in query_lower for k in critical_kw):
-        severity = "critical"
-    elif any(k in query_lower for k in high_kw):
-        severity = "high"
-    elif any(k in query_lower for k in medium_kw):
-        severity = "medium"
-    elif any(k in query_lower for k in low_kw):
-        severity = "low"
-
     # Tóm tắt ngắn
     top_techs = ", ".join(f"{t['id']} ({t['name']})" for t in techniques[:3])
     summary = (
