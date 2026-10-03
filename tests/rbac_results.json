@@ -1,0 +1,200 @@
+{
+  "passed": 32,
+  "failed": 0,
+  "total": 32,
+  "pass_rate_pct": 100.0,
+  "details": [
+    {
+      "test": "IT xem danh sách incidents",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Stakeholder xem danh sách alerts",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Analyst xem dashboard",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "IT xem dashboard",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Stakeholder xem dashboard",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "IT tạo asset",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Analyst tạo asset",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Stakeholder tạo asset",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    },
+    {
+      "test": "IT tạo alert",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Analyst tạo alert",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Stakeholder tạo alert",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    },
+    {
+      "test": "Analyst triage alert",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "IT triage alert",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    },
+    {
+      "test": "Stakeholder triage alert",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    },
+    {
+      "test": "Analyst tạo incident",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "IT tạo incident",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    },
+    {
+      "test": "Stakeholder tạo incident",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    },
+    {
+      "test": "IT đề xuất containment",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Analyst đề xuất containment",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Stakeholder đề xuất containment",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    },
+    {
+      "test": "Analyst phê duyệt containment",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "IT phê duyệt containment",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    },
+    {
+      "test": "Stakeholder phê duyệt containment",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    },
+    {
+      "test": "IT xóa asset bị chặn",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Stakeholder xóa asset bị chặn",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Analyst xóa asset thành công",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Analyst gọi AI suggest",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "IT gọi AI suggest",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Stakeholder gọi AI suggest",
+      "expected": "allowed",
+      "actual": "allowed",
+      "pass": true
+    },
+    {
+      "test": "Unauthenticated xem incidents",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    },
+    {
+      "test": "Unauthenticated xem alerts",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    },
+    {
+      "test": "Unauthenticated xem dashboard",
+      "expected": "blocked",
+      "actual": "blocked",
+      "pass": true
+    }
+  ]
+}
