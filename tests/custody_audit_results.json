@@ -1,0 +1,98 @@
+{
+  "passed": 18,
+  "failed": 0,
+  "total": 18,
+  "pass_rate_pct": 100.0,
+  "details": [
+    {
+      "test": "Tạo bằng chứng thành công",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Hash SHA-256 tự tính đúng",
+      "pass": true,
+      "note": "expected=c26ee092445c4bec..."
+    },
+    {
+      "test": "Bằng chứng chưa bị lock lúc tạo",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chain of custody có dữ liệu",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Action đầu tiên là 'collected'",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Ghi đúng người thu thập",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Ghi đúng thời gian",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chain of custody ghi 'accessed' khi xem",
+      "pass": true,
+      "note": "actions=['collected', 'accessed']"
+    },
+    {
+      "test": "Lock thành công",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "is_locked = True sau khi lock",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chain of custody ghi 'locked'",
+      "pass": true,
+      "note": "actions=['collected', 'accessed', 'locked']"
+    },
+    {
+      "test": "Không thể lock bằng chứng đã lock",
+      "pass": true,
+      "note": "API phải trả về lỗi"
+    },
+    {
+      "test": "Hash vẫn giữ nguyên sau lock",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Nội dung vẫn giữ nguyên",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Communication log có dữ liệu",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Có đủ 3 action trong custody log",
+      "pass": true,
+      "note": "actual=['collected', 'accessed', 'locked', 'accessed']"
+    },
+    {
+      "test": "Thứ tự đúng: collected trước locked",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tất cả log có performed_by và performed_at",
+      "pass": true,
+      "note": ""
+    }
+  ]
+}
