@@ -27,17 +27,35 @@ def require_roles(*roles: RoleEnum):
         return current_user
     return checker
 
-# Shorthand dependencies cho từng role
-def require_analyst(user: User = Depends(require_roles(RoleEnum.analyst_soc))):
+# ── Shorthand dependencies ──────────────────────────────────────
+
+# Analyst/SOC only — triage, incident, analysis, postmortem, communication
+def require_analyst(user: User = Depends(
+    require_roles(RoleEnum.analyst_soc)
+)):
     return user
 
-def require_it(user: User = Depends(require_roles(RoleEnum.it_helpdesk))):
+# IT/Helpdesk only
+def require_it(user: User = Depends(
+    require_roles(RoleEnum.it_helpdesk)
+)):
     return user
 
-def require_stakeholder(user: User = Depends(require_roles(RoleEnum.stakeholder))):
+# Stakeholder only
+def require_stakeholder(user: User = Depends(
+    require_roles(RoleEnum.stakeholder)
+)):
     return user
 
-def require_analyst_or_it(user: User = Depends(
-    require_roles(RoleEnum.analyst_soc, RoleEnum.it_helpdesk)
+# IT + Analyst — upload alert, tạo asset, thu thập bằng chứng,
+# đề xuất/thực hiện containment, recovery action
+def require_it_or_analyst(user: User = Depends(
+    require_roles(RoleEnum.it_helpdesk, RoleEnum.analyst_soc)
+)):
+    return user
+
+# Analyst + Stakeholder — xác nhận recovery
+def require_analyst_or_stakeholder(user: User = Depends(
+    require_roles(RoleEnum.analyst_soc, RoleEnum.stakeholder)
 )):
     return user

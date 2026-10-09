@@ -84,21 +84,19 @@ def run():
     check("Stakeholder tạo alert", stakeholder.post("/alerts/", alert_payload), False)
 
     # ══════════════════════════════════════
-    print("\n── 4. Triage alert (chỉ Analyst) ──")
-    # Lấy alert mới tạo ở trên
-    new_alerts = analyst.get("/alerts/?status=new")
-    test_alert_id = new_alerts[-1]["id"] if new_alerts else alert_id
+    print("\n── 4. Triage alert (Analyst và IT được, Stakeholder không) ──")
+    # Tạo 2 alert mới để test
+    a_for_analyst = it.post("/alerts/", {"title": "Triage Test Analyst", "source": "manual", "severity": "low", "affected_asset": 1})
+    a_for_it      = it.post("/alerts/", {"title": "Triage Test IT",      "source": "manual", "severity": "low", "affected_asset": 1})
+    a_for_sth     = it.post("/alerts/", {"title": "Triage Test STH",     "source": "manual", "severity": "low", "affected_asset": 1})
 
-    triage_payload = {
-        "triage_type": "test",
-        "triage_severity": "low",
-        "triage_confidence": 50,
-        "triage_sla_hours": 24,
-    }
-    check("Analyst triage alert",     analyst.patch(f"/alerts/{test_alert_id}/triage", triage_payload),     True)
-    check("IT triage alert",          it.patch(f"/alerts/{test_alert_id}/triage", triage_payload),          False)
-    check("Stakeholder triage alert", stakeholder.patch(f"/alerts/{test_alert_id}/triage", triage_payload), False)
+    triage_payload = {"triage_type": "test", "triage_severity": "low", "triage_confidence": 50, "triage_sla_hours": 24}
 
+    check("Analyst triage alert được phép",    analyst.patch(f"/alerts/{a_for_analyst['id']}/triage", triage_payload) is not None, True)
+    check("IT triage alert được phép",         it.patch(f"/alerts/{a_for_it['id']}/triage", triage_payload) is not None,           True)
+    check("Stakeholder triage alert bị chặn",  stakeholder.patch(f"/alerts/{a_for_sth['id']}/triage", triage_payload),             False)
+    test_alert_id = a_for_analyst["id"]
+    
     # ══════════════════════════════════════
     print("\n── 5. Tạo incident (chỉ Analyst) ──")
     # Cần alert đã triage

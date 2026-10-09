@@ -71,19 +71,19 @@
       "pass": true
     },
     {
-      "test": "Analyst triage alert",
+      "test": "Analyst triage alert được phép",
       "expected": "allowed",
       "actual": "allowed",
       "pass": true
     },
     {
-      "test": "IT triage alert",
-      "expected": "blocked",
-      "actual": "blocked",
+      "test": "IT triage alert được phép",
+      "expected": "allowed",
+      "actual": "allowed",
       "pass": true
     },
     {
-      "test": "Stakeholder triage alert",
+      "test": "Stakeholder triage alert bị chặn",
       "expected": "blocked",
       "actual": "blocked",
       "pass": true

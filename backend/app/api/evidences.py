@@ -107,13 +107,15 @@ def collect_evidence(
     )
     return evidence
 
-# Khóa bằng chứng — không sửa được sau khi lock
+# Lock bằng chứng — IT và Analyst đều được lock
 @router.patch("/{evidence_id}/lock", response_model=EvidenceOut)
 def lock_evidence(
     incident_id: int,
     evidence_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
+    current_user: User = Depends(require_roles(
+        RoleEnum.analyst_soc, RoleEnum.it_helpdesk  #thêm it_helpdesk
+    ))
 ):
     evidence = db.query(Evidence).filter(
         Evidence.id == evidence_id,

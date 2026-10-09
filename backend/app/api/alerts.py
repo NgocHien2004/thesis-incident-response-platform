@@ -176,7 +176,9 @@ def triage_alert(
     alert_id: int,
     payload: TriageRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
+    current_user: User = Depends(require_roles(
+        RoleEnum.analyst_soc, RoleEnum.it_helpdesk  # ← thêm it_helpdesk
+    ))
 ):
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
     if not alert:
