@@ -1,7 +1,3 @@
-# Quy trình nghiệp vụ — IR Platform Đề tài 10
-
-Oct 10, 2026 · @NgocHien
-
 ## Tổng quan hệ thống
 
 Hệ thống quản lý vòng đời sự cố an ninh mạng (Incident Response Platform) dành cho tổ chức vừa và nhỏ, tích hợp AI phân loại cảnh báo và ánh xạ MITRE ATT&CK. Được thiết kế theo NIST SP 800-61 Rev.2 lifecycle với tham chiếu CSF 2.0.
