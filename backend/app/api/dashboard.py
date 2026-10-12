@@ -58,7 +58,7 @@ def get_dashboard(
             if mins is not None:
                 mttd_list.append(mins)
 
-    # ── MTTA (phút): detected_at → triaged_at của alert đầu tiên ──
+    # ── MTTA (phút): created_at → triaged_at của alert đầu tiên ──
     mtta_list = []
     for i in incidents:
         first_alert = (
@@ -67,8 +67,8 @@ def get_dashboard(
             .order_by(Alert.created_at.asc())
             .first()
         )
-        if first_alert and first_alert.triaged_at and i.detected_at:
-            mins = _minutes_between(i.detected_at, first_alert.triaged_at)
+        if first_alert and first_alert.triaged_at:
+            mins = _minutes_between(first_alert.created_at, first_alert.triaged_at)
             if mins is not None:
                 mtta_list.append(mins)
 
@@ -109,7 +109,8 @@ def get_dashboard(
     sla_breached = sum(
         1 for a in alerts
         if a.triage_sla_deadline
-        and a.status not in [AlertStatus.closed, AlertStatus.false_positive]
+        and a.status not in [AlertStatus.closed, AlertStatus.false_positive,
+                             AlertStatus.escalated]
         and a.triage_sla_deadline.replace(tzinfo=timezone.utc) < now
     )
 
@@ -150,7 +151,8 @@ def get_sla_detail(
     now = datetime.now(timezone.utc)
     alerts = db.query(Alert).filter(
         Alert.triage_sla_deadline.isnot(None),
-        Alert.status.notin_([AlertStatus.closed, AlertStatus.false_positive])
+        Alert.status.notin_([AlertStatus.closed, AlertStatus.false_positive,
+                             AlertStatus.escalated])
     ).all()
 
     result = []
