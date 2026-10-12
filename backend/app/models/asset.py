@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey, Unicode, UnicodeText
 from sqlalchemy.sql import func
 from database import Base
 import enum
@@ -20,15 +20,15 @@ class Asset(Base):
     __tablename__ = "assets"
 
     id               = Column(Integer, primary_key=True, index=True)
-    name             = Column(String(100), nullable=False)
+    name             = Column(Unicode(100), nullable=False)
     asset_type       = Column(Enum(AssetType), nullable=False)
     criticality      = Column(Enum(CriticalityLevel), nullable=False)
-    owner            = Column(String(100), nullable=True)
-    description      = Column(Text, nullable=True)
-    ip_address       = Column(String(50), nullable=True)
-    hostname         = Column(String(100), nullable=True)
-    data_processed   = Column(Text, nullable=True)
-    dependencies     = Column(Text, nullable=True)
+    owner            = Column(Unicode(100), nullable=True)
+    description      = Column(UnicodeText, nullable=True)
+    ip_address       = Column(Unicode(50), nullable=True)
+    hostname         = Column(Unicode(100), nullable=True)
+    data_processed   = Column(UnicodeText, nullable=True)
+    dependencies     = Column(UnicodeText, nullable=True)
     created_by       = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at       = Column(DateTime, server_default=func.now())
     updated_at       = Column(DateTime, server_default=func.now(), onupdate=func.now())

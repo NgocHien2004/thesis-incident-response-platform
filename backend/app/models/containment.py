@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey, Unicode, UnicodeText
 from sqlalchemy.sql import func
 from database import Base
 import enum
@@ -24,9 +24,9 @@ class Containment(Base):
     id              = Column(Integer, primary_key=True, index=True)
     incident_id     = Column(Integer, ForeignKey("incidents.id"), nullable=False)
     action_type     = Column(Enum(ContainmentAction), nullable=False)
-    target          = Column(String(200), nullable=False)  # IP, account, machine...
-    reason          = Column(Text, nullable=False)
-    risk_level      = Column(String(20), nullable=False, default="medium")  # low/medium/high
+    target          = Column(Unicode(200), nullable=False)  # IP, account, machine...
+    reason          = Column(UnicodeText, nullable=False)
+    risk_level      = Column(Unicode(20), nullable=False, default="medium")  # low/medium/high
     status          = Column(Enum(ContainmentStatus), nullable=False, default=ContainmentStatus.proposed)
 
     # Người đề xuất
@@ -36,12 +36,12 @@ class Containment(Base):
     # Người phê duyệt
     reviewed_by     = Column(Integer, ForeignKey("users.id"), nullable=True)
     reviewed_at     = Column(DateTime, nullable=True)
-    review_note     = Column(Text, nullable=True)
+    review_note     = Column(UnicodeText, nullable=True)
 
     # Thực hiện
     executed_by     = Column(Integer, ForeignKey("users.id"), nullable=True)
     executed_at     = Column(DateTime, nullable=True)
-    execution_note  = Column(Text, nullable=True)  # ghi chú thực hiện (mô phỏng)
+    execution_note  = Column(UnicodeText, nullable=True)  # ghi chú thực hiện (mô phỏng)
 
     created_at      = Column(DateTime, server_default=func.now())
     updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())

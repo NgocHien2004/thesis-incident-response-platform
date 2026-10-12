@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Text, Float, ForeignKey
+from sqlalchemy import Column, Integer, Enum, DateTime, Float, ForeignKey, Unicode, UnicodeText
 from sqlalchemy.sql import func
 from database import Base
 import enum
@@ -30,28 +30,28 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id              = Column(Integer, primary_key=True, index=True)
-    title           = Column(String(200), nullable=False)
-    description     = Column(Text, nullable=True)
+    title           = Column(Unicode(200), nullable=False)
+    description     = Column(UnicodeText, nullable=True)
     source          = Column(Enum(AlertSource), nullable=False)
     severity        = Column(Enum(AlertSeverity), nullable=False, default=AlertSeverity.medium)
     status          = Column(Enum(AlertStatus), nullable=False, default=AlertStatus.new)
-    source_ref      = Column(String(200), nullable=True)   # ID gốc từ hệ thống nguồn
-    ioc             = Column(Text, nullable=True)           # IP, domain, hash liên quan
+    source_ref      = Column(Unicode(200), nullable=True)   # ID gốc từ hệ thống nguồn
+    ioc             = Column(UnicodeText, nullable=True)           # IP, domain, hash liên quan
     affected_asset  = Column(Integer, ForeignKey("assets.id"), nullable=True)
-    raw_data        = Column(Text, nullable=True)           # Dữ liệu gốc giữ nguyên
+    raw_data        = Column(UnicodeText, nullable=True)           # Dữ liệu gốc giữ nguyên
     created_by      = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at      = Column(DateTime, server_default=func.now())
     updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())
     group_id = Column(Integer, ForeignKey("alert_groups.id"), nullable=True)
     
     # Triage fields
-    triage_type         = Column(String(100), nullable=True)   # loại: malware, phishing, intrusion...
+    triage_type         = Column(Unicode(100), nullable=True)   # loại: malware, phishing, intrusion...
     triage_severity     = Column(Enum(AlertSeverity), nullable=True)
     triage_confidence   = Column(Integer, nullable=True)        # độ tin cậy 1-100
     triage_assignee     = Column(Integer, ForeignKey("users.id"), nullable=True)
     triage_sla_hours    = Column(Integer, nullable=True)        # SLA tính bằng giờ
     triage_sla_deadline = Column(DateTime, nullable=True)
-    triage_note         = Column(Text, nullable=True)
+    triage_note         = Column(UnicodeText, nullable=True)
     triaged_by          = Column(Integer, ForeignKey("users.id"), nullable=True)
     triaged_at          = Column(DateTime, nullable=True)
 

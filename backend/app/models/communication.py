@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Text, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey, Boolean, Unicode, UnicodeText
 from sqlalchemy.sql import func
 from database import Base
 import enum
@@ -21,9 +21,9 @@ class Communication(Base):
     id              = Column(Integer, primary_key=True, index=True)
     incident_id     = Column(Integer, ForeignKey("incidents.id"), nullable=False)
     comm_type       = Column(Enum(CommType), nullable=False)
-    subject         = Column(String(200), nullable=False)
-    content         = Column(Text, nullable=False)
-    recipients      = Column(Text, nullable=False)   # JSON: ["email1", "role1"]
+    subject         = Column(Unicode(200), nullable=False)
+    content         = Column(UnicodeText, nullable=False)
+    recipients      = Column(UnicodeText, nullable=False)   # JSON: ["email1", "role1"]
     status          = Column(Enum(CommStatus), nullable=False, default=CommStatus.draft)
 
     # Người gửi

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Text, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey, Boolean, Unicode, UnicodeText
 from sqlalchemy.sql import func
 from database import Base
 import enum
@@ -17,13 +17,13 @@ class Evidence(Base):
 
     id              = Column(Integer, primary_key=True, index=True)
     incident_id     = Column(Integer, ForeignKey("incidents.id"), nullable=False)
-    title           = Column(String(200), nullable=False)
+    title           = Column(Unicode(200), nullable=False)
     evidence_type   = Column(Enum(EvidenceType), nullable=False)
-    description     = Column(Text, nullable=True)
-    source          = Column(String(200), nullable=True)   # nguồn thu thập (server, email...)
-    file_hash       = Column(String(128), nullable=True)   # SHA-256
-    file_path       = Column(String(500), nullable=True)
-    content         = Column(Text, nullable=True)          # nội dung text (log, email...)
+    description     = Column(UnicodeText, nullable=True)
+    source          = Column(Unicode(200), nullable=True)   # nguồn thu thập (server, email...)
+    file_hash       = Column(Unicode(128), nullable=True)   # SHA-256
+    file_path       = Column(Unicode(500), nullable=True)
+    content         = Column(UnicodeText, nullable=True)          # nội dung text (log, email...)
     is_locked       = Column(Boolean, default=False)       # không sửa được sau khi lock
     collected_by    = Column(Integer, ForeignKey("users.id"), nullable=False)
     collected_at    = Column(DateTime, server_default=func.now())
@@ -34,7 +34,7 @@ class ChainOfCustody(Base):
 
     id              = Column(Integer, primary_key=True, index=True)
     evidence_id     = Column(Integer, ForeignKey("evidences.id"), nullable=False)
-    action          = Column(String(100), nullable=False)  # collected, verified, locked, accessed
+    action          = Column(Unicode(100), nullable=False)  # collected, verified, locked, accessed
     performed_by    = Column(Integer, ForeignKey("users.id"), nullable=False)
-    note            = Column(Text, nullable=True)
+    note            = Column(UnicodeText, nullable=True)
     performed_at    = Column(DateTime, server_default=func.now())

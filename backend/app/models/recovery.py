@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, DateTime, Text, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey, Boolean, UnicodeText
 from sqlalchemy.sql import func
 from database import Base
 import enum
@@ -24,9 +24,9 @@ class RecoveryAction(Base):
     id              = Column(Integer, primary_key=True, index=True)
     incident_id     = Column(Integer, ForeignKey("incidents.id"), nullable=False)
     action_type     = Column(Enum(RecoveryActionType), nullable=False)
-    description     = Column(Text, nullable=False)
+    description     = Column(UnicodeText, nullable=False)
     status          = Column(Enum(RecoveryStatus), nullable=False, default=RecoveryStatus.pending)
-    note            = Column(Text, nullable=True)
+    note            = Column(UnicodeText, nullable=True)
 
     # Thực hiện
     assigned_to     = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -36,7 +36,7 @@ class RecoveryAction(Base):
     # Stakeholder xác nhận
     confirmed_by    = Column(Integer, ForeignKey("users.id"), nullable=True)
     confirmed_at    = Column(DateTime, nullable=True)
-    confirm_note    = Column(Text, nullable=True)
+    confirm_note    = Column(UnicodeText, nullable=True)
     is_confirmed    = Column(Boolean, default=False)
 
     created_by      = Column(Integer, ForeignKey("users.id"), nullable=False)

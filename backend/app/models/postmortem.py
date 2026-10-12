@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, Boolean, Unicode, UnicodeText
 from sqlalchemy.sql import func
 from database import Base
 
@@ -9,16 +9,16 @@ class Postmortem(Base):
     incident_id         = Column(Integer, ForeignKey("incidents.id"), nullable=False, unique=True)
 
     # Nội dung báo cáo
-    root_cause          = Column(Text, nullable=False)
-    timeline            = Column(Text, nullable=False)   # JSON: [{time, event, actor}]
-    impact              = Column(Text, nullable=False)
-    lessons_learned     = Column(Text, nullable=True)
+    root_cause          = Column(UnicodeText, nullable=False)
+    timeline            = Column(UnicodeText, nullable=False)   # JSON: [{time, event, actor}]
+    impact              = Column(UnicodeText, nullable=False)
+    lessons_learned     = Column(UnicodeText, nullable=True)
 
     # Hành động phòng ngừa
-    action_items        = Column(Text, nullable=True)    # JSON: [{task, owner, deadline, done}]
+    action_items        = Column(UnicodeText, nullable=True)    # JSON: [{task, owner, deadline, done}]
 
     # Người chịu trách nhiệm
-    responsible_party   = Column(String(200), nullable=True)
+    responsible_party   = Column(Unicode(200), nullable=True)
 
     # Trạng thái
     is_finalized        = Column(Boolean, default=False)
