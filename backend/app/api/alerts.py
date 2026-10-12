@@ -84,7 +84,7 @@ def upload_csv(
 ):
     if not file.filename.endswith(".csv"):
         raise HTTPException(400, "Chỉ chấp nhận file .csv")
-    content = file.file.read().decode("utf-8")
+    content = file.file.read().decode("utf-8-sig")
     reader = csv.DictReader(io.StringIO(content))
     alerts = []
     for row in reader:
@@ -103,7 +103,7 @@ def upload_csv(
     db.commit()
     for a in alerts:
         db.refresh(a)
-        alert = process_alert(alert, db)
+        process_alert(a, db)
     return alerts
 
 # Upload JSON
@@ -115,7 +115,7 @@ def upload_json(
 ):
     if not file.filename.endswith(".json"):
         raise HTTPException(400, "Chỉ chấp nhận file .json")
-    content = json.loads(file.file.read().decode("utf-8"))
+    content = json.loads(file.file.read().decode("utf-8-sig"))
     if not isinstance(content, list):
         raise HTTPException(400, "File JSON phải là một array")
     alerts = []
@@ -135,7 +135,7 @@ def upload_json(
     db.commit()
     for a in alerts:
         db.refresh(a)
-        alert = process_alert(alert, db)
+        process_alert(a, db)
     return alerts
 
 # Đóng false positive
