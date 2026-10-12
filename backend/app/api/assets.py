@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
 from database import get_db
 from app.models.asset import Asset
@@ -69,6 +70,13 @@ def delete_asset(
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset:
         raise HTTPException(404, "Không tìm thấy tài sản")
-    db.delete(asset)
-    db.commit()
+    try:
+        db.delete(asset)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            409,
+            "Không thể xóa: tài sản đang được cảnh báo hoặc incident tham chiếu"
+        )
     return {"message": "Đã xóa tài sản"}
