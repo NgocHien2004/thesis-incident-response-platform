@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, DateTime, ForeignKey, Boolean, Unicode, UnicodeText
-from sqlalchemy.sql import func
+from app.core.timeutils import utcnow
 from database import Base
 
 class Postmortem(Base):
@@ -26,5 +26,5 @@ class Postmortem(Base):
     finalized_at        = Column(DateTime, nullable=True)
 
     created_by          = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at          = Column(DateTime, server_default=func.now())
-    updated_at          = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at          = Column(DateTime, default=utcnow)
+    updated_at          = Column(DateTime, default=utcnow, onupdate=utcnow)

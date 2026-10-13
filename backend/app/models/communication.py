@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey, Boolean, Unicode, UnicodeText
-from sqlalchemy.sql import func
+from app.core.timeutils import utcnow
 from database import Base
 import enum
 
@@ -37,5 +37,5 @@ class Communication(Base):
     is_approved     = Column(Boolean, default=False)  # nội dung đã được duyệt
     approved_by     = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    created_at      = Column(DateTime, server_default=func.now())
-    updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at      = Column(DateTime, default=utcnow)
+    updated_at      = Column(DateTime, default=utcnow, onupdate=utcnow)

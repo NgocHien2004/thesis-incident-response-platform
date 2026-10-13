@@ -11,9 +11,23 @@ api.interceptors.request.use(config => {
   return config
 })
 
+const NAIVE_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/
+
+const markUtc = (v) => {
+  if (typeof v === 'string') return NAIVE_ISO.test(v) ? v + 'Z' : v
+  if (Array.isArray(v)) return v.map(markUtc)
+  if (v && typeof v === 'object') {
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, markUtc(x)]))
+  }
+  return v
+}
+
 // Tự động redirect về login nếu token hết hạn
 api.interceptors.response.use(
-  res => res,
+  res => {
+    res.data = markUtc(res.data)
+    return res
+  },
   err => {
     if (err.response?.status === 401) {
       localStorage.removeItem('access_token')

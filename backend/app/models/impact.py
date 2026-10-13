@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, DateTime, ForeignKey, Unicode, UnicodeText
-from sqlalchemy.sql import func
+from app.core.timeutils import utcnow
 from database import Base
 
 class ImpactAnalysis(Base):
@@ -27,5 +27,5 @@ class ImpactAnalysis(Base):
     ai_suggested       = Column(UnicodeText, nullable=True)  # đề xuất từ AI (đánh dấu rõ)
 
     analyzed_by     = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at      = Column(DateTime, server_default=func.now())
-    updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at      = Column(DateTime, default=utcnow)
+    updated_at      = Column(DateTime, default=utcnow, onupdate=utcnow)

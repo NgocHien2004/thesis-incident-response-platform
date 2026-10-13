@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Enum, DateTime, Float, ForeignKey, Unicode, UnicodeText
-from sqlalchemy.sql import func
+from app.core.timeutils import utcnow
 from database import Base
 import enum
 
@@ -40,8 +40,8 @@ class Alert(Base):
     affected_asset  = Column(Integer, ForeignKey("assets.id"), nullable=True)
     raw_data        = Column(UnicodeText, nullable=True)           # Dữ liệu gốc giữ nguyên
     created_by      = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at      = Column(DateTime, server_default=func.now())
-    updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at      = Column(DateTime, default=utcnow)
+    updated_at      = Column(DateTime, default=utcnow, onupdate=utcnow)
     group_id = Column(Integer, ForeignKey("alert_groups.id"), nullable=True)
     
     # Triage fields

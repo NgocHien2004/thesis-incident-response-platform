@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey, Boolean, Unicode, UnicodeText
-from sqlalchemy.sql import func
+from app.core.timeutils import utcnow
 from database import Base
 import enum
 
@@ -26,8 +26,8 @@ class Evidence(Base):
     content         = Column(UnicodeText, nullable=True)          # nội dung text (log, email...)
     is_locked       = Column(Boolean, default=False)       # không sửa được sau khi lock
     collected_by    = Column(Integer, ForeignKey("users.id"), nullable=False)
-    collected_at    = Column(DateTime, server_default=func.now())
-    created_at      = Column(DateTime, server_default=func.now())
+    collected_at    = Column(DateTime, default=utcnow)
+    created_at      = Column(DateTime, default=utcnow)
 
 class ChainOfCustody(Base):
     __tablename__ = "chain_of_custody"
@@ -37,4 +37,4 @@ class ChainOfCustody(Base):
     action          = Column(Unicode(100), nullable=False)  # collected, verified, locked, accessed
     performed_by    = Column(Integer, ForeignKey("users.id"), nullable=False)
     note            = Column(UnicodeText, nullable=True)
-    performed_at    = Column(DateTime, server_default=func.now())
+    performed_at    = Column(DateTime, default=utcnow)

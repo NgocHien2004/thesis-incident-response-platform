@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey, Boolean, UnicodeText
-from sqlalchemy.sql import func
+from app.core.timeutils import utcnow
 from database import Base
 import enum
 
@@ -40,5 +40,5 @@ class RecoveryAction(Base):
     is_confirmed    = Column(Boolean, default=False)
 
     created_by      = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at      = Column(DateTime, server_default=func.now())
-    updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at      = Column(DateTime, default=utcnow)
+    updated_at      = Column(DateTime, default=utcnow, onupdate=utcnow)

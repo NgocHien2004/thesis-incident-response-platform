@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Enum, DateTime, ForeignKey, Unicode, UnicodeText
-from sqlalchemy.sql import func
+from app.core.timeutils import utcnow
 from database import Base
 import enum
 
@@ -31,7 +31,7 @@ class Containment(Base):
 
     # Người đề xuất
     proposed_by     = Column(Integer, ForeignKey("users.id"), nullable=False)
-    proposed_at     = Column(DateTime, server_default=func.now())
+    proposed_at     = Column(DateTime, default=utcnow)
 
     # Người phê duyệt
     reviewed_by     = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -43,5 +43,5 @@ class Containment(Base):
     executed_at     = Column(DateTime, nullable=True)
     execution_note  = Column(UnicodeText, nullable=True)  # ghi chú thực hiện (mô phỏng)
 
-    created_at      = Column(DateTime, server_default=func.now())
-    updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at      = Column(DateTime, default=utcnow)
+    updated_at      = Column(DateTime, default=utcnow, onupdate=utcnow)
