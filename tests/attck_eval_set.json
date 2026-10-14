@@ -1,0 +1,423 @@
+{
+ "description": "Bộ mô tả sự cố tự xây dựng, viết theo lối analyst; nhãn do tác giả gán, mỗi câu có thể có nhiều kỹ thuật chấp nhận được",
+ "items": [
+  {
+   "id": "Q01",
+   "category": "phishing",
+   "en": "User received an email with a Word attachment containing macros, opened it and a script started running",
+   "vi": "Người dùng nhận email có tệp Word đính kèm chứa macro, đã mở tệp và một đoạn script bắt đầu chạy",
+   "expected": [
+    "T1566.001",
+    "T1204.002"
+   ]
+  },
+  {
+   "id": "Q02",
+   "category": "phishing",
+   "en": "Email contains a link to a fake Microsoft login page asking the user to enter credentials",
+   "vi": "Email chứa liên kết tới trang đăng nhập Microsoft giả mạo yêu cầu người dùng nhập thông tin đăng nhập",
+   "expected": [
+    "T1566.002",
+    "T1566"
+   ]
+  },
+  {
+   "id": "Q03",
+   "category": "phishing",
+   "en": "Employees received messages pretending to be IT support asking them to reset their password through a shortened link",
+   "vi": "Nhân viên nhận tin nhắn giả danh bộ phận IT yêu cầu đặt lại mật khẩu qua một liên kết rút gọn",
+   "expected": [
+    "T1566.002",
+    "T1566",
+    "T1598.003"
+   ]
+  },
+  {
+   "id": "Q04",
+   "category": "phishing",
+   "en": "User downloaded a fake software installer from a malicious website which then installed a trojan",
+   "vi": "Người dùng tải về bộ cài phần mềm giả từ một trang web độc hại và sau đó cài đặt một con trojan",
+   "expected": [
+    "T1189",
+    "T1204.002",
+    "T1204"
+   ]
+  },
+  {
+   "id": "Q05",
+   "category": "credential",
+   "en": "Hundreds of failed SSH logins within a few minutes from one external IP against the root account",
+   "vi": "Hàng trăm lần đăng nhập SSH thất bại trong vài phút từ một IP bên ngoài nhắm vào tài khoản root",
+   "expected": [
+    "T1110",
+    "T1110.001",
+    "T1110.003"
+   ]
+  },
+  {
+   "id": "Q06",
+   "category": "credential",
+   "en": "One password was tried against many different user accounts with few attempts per account over several hours",
+   "vi": "Một mật khẩu được thử trên rất nhiều tài khoản khác nhau, mỗi tài khoản ít lần thử, kéo dài nhiều giờ",
+   "expected": [
+    "T1110.003",
+    "T1110"
+   ]
+  },
+  {
+   "id": "Q07",
+   "category": "credential",
+   "en": "Successful VPN login using a former employee account that should have been disabled",
+   "vi": "Đăng nhập VPN thành công bằng tài khoản của nhân viên đã nghỉ việc lẽ ra phải bị vô hiệu hóa",
+   "expected": [
+    "T1078"
+   ]
+  },
+  {
+   "id": "Q08",
+   "category": "credential",
+   "en": "A process read the memory of the lsass process on a domain controller to extract password hashes",
+   "vi": "Một tiến trình đọc bộ nhớ của tiến trình lsass trên máy chủ domain controller để lấy trích xuất mã băm mật khẩu",
+   "expected": [
+    "T1003.001",
+    "T1003"
+   ]
+  },
+  {
+   "id": "Q09",
+   "category": "credential",
+   "en": "Many Kerberos service tickets were requested for service accounts and offline cracking is suspected",
+   "vi": "Nhiều vé dịch vụ Kerberos được yêu cầu cho các tài khoản dịch vụ và nghi ngờ bị bẻ khóa ngoại tuyến",
+   "expected": [
+    "T1558.003",
+    "T1558"
+   ]
+  },
+  {
+   "id": "Q10",
+   "category": "credential",
+   "en": "User accepted an unexpected multi-factor push notification after repeated prompts late at night",
+   "vi": "Người dùng chấp nhận một thông báo xác thực đa yếu tố bất ngờ sau nhiều lần nhắc liên tục vào đêm muộn",
+   "expected": [
+    "T1621"
+   ]
+  },
+  {
+   "id": "Q11",
+   "category": "credential",
+   "en": "Attacker stole the browser session cookie and reused it to open the mailbox without a password",
+   "vi": "Kẻ tấn công lấy cookie phiên của trình duyệt và dùng lại để mở hộp thư mà không cần mật khẩu",
+   "expected": [
+    "T1539",
+    "T1550.004"
+   ]
+  },
+  {
+   "id": "Q12",
+   "category": "credential",
+   "en": "A plaintext password was found inside a script file on a shared drive and then used to log in",
+   "vi": "Một mật khẩu dạng văn bản thuần được tìm thấy trong tệp script trên ổ chung rồi bị dùng để đăng nhập",
+   "expected": [
+    "T1552.001",
+    "T1552"
+   ]
+  },
+  {
+   "id": "Q13",
+   "category": "lateral",
+   "en": "Administrator signed in over remote desktop from an unusual workstation at midnight and then reached several servers",
+   "vi": "Quản trị viên đăng nhập qua máy tính từ xa từ một máy lạ vào nửa đêm rồi truy cập nhiều máy chủ khác",
+   "expected": [
+    "T1021.001",
+    "T1021"
+   ]
+  },
+  {
+   "id": "Q14",
+   "category": "lateral",
+   "en": "A file was copied to the admin share on several servers followed by creation of a remote service",
+   "vi": "Một tệp được sao chép vào thư mục chia sẻ quản trị trên nhiều máy chủ rồi một dịch vụ từ xa được tạo",
+   "expected": [
+    "T1021.002",
+    "T1569.002",
+    "T1570"
+   ]
+  },
+  {
+   "id": "Q15",
+   "category": "lateral",
+   "en": "Commands were executed on a remote machine using wmic and psexec from a compromised workstation",
+   "vi": "Các lệnh được chạy trên máy từ xa bằng wmic và psexec từ một máy trạm đã bị xâm nhập",
+   "expected": [
+    "T1047",
+    "T1569.002",
+    "T1021.002"
+   ]
+  },
+  {
+   "id": "Q16",
+   "category": "malware",
+   "en": "Word process launched PowerShell with an encoded command",
+   "vi": "Tiến trình Word khởi chạy PowerShell với một lệnh đã được mã hóa",
+   "expected": [
+    "T1059.001"
+   ]
+  },
+  {
+   "id": "Q17",
+   "category": "malware",
+   "en": "A new scheduled task was created that runs an executable from the temp directory every hour",
+   "vi": "Một tác vụ theo lịch mới được tạo để chạy tệp thực thi trong thư mục tạm mỗi giờ",
+   "expected": [
+    "T1053.005",
+    "T1053"
+   ]
+  },
+  {
+   "id": "Q18",
+   "category": "malware",
+   "en": "A registry run key was added so that an unknown program starts when the user logs on",
+   "vi": "Một khóa registry chạy khi khởi động được thêm để một chương trình lạ tự chạy khi người dùng đăng nhập",
+   "expected": [
+    "T1547.001",
+    "T1547"
+   ]
+  },
+  {
+   "id": "Q19",
+   "category": "malware",
+   "en": "Files on the file server were renamed with a new extension and a ransom note was dropped in every folder",
+   "vi": "Các tệp trên máy chủ tệp bị đổi sang phần mở rộng mới và một thư đòi tiền chuộc được thả vào mọi thư mục",
+   "expected": [
+    "T1486"
+   ]
+  },
+  {
+   "id": "Q20",
+   "category": "malware",
+   "en": "Volume shadow copies and the backup catalog were deleted right before files were encrypted",
+   "vi": "Các bản sao bóng của ổ đĩa và danh mục sao lưu bị xóa ngay trước khi các tệp bị mã hóa",
+   "expected": [
+    "T1490",
+    "T1486"
+   ]
+  },
+  {
+   "id": "Q21",
+   "category": "malware",
+   "en": "Workstation sends small regular HTTPS requests at fixed intervals to a newly registered domain",
+   "vi": "Máy trạm gửi các yêu cầu HTTPS nhỏ đều đặn theo chu kỳ cố định tới một tên miền mới đăng ký",
+   "expected": [
+    "T1071.001",
+    "T1071",
+    "T1573",
+    "T1568"
+   ]
+  },
+  {
+   "id": "Q22",
+   "category": "malware",
+   "en": "Security software was stopped and its service disabled by an unknown process on the endpoint",
+   "vi": "Phần mềm bảo mật bị dừng và dịch vụ của nó bị vô hiệu hóa bởi một tiến trình lạ trên máy trạm",
+   "expected": [
+    "T1685",
+    "T1489"
+   ]
+  },
+  {
+   "id": "Q23",
+   "category": "malware",
+   "en": "The Windows security event log was cleared on a server",
+   "vi": "Nhật ký sự kiện bảo mật của Windows bị xóa trên một máy chủ",
+   "expected": [
+    "T1685.005",
+    "T1685.001",
+    "T1070"
+   ]
+  },
+  {
+   "id": "Q24",
+   "category": "malware",
+   "en": "A tool was downloaded from an external website with certutil and saved to disk",
+   "vi": "Một công cụ được tải từ website bên ngoài bằng certutil và lưu xuống đĩa",
+   "expected": [
+    "T1105"
+   ]
+  },
+  {
+   "id": "Q25",
+   "category": "malware",
+   "en": "An unapproved remote access program was installed on the accountant computer",
+   "vi": "Một chương trình điều khiển từ xa chưa được phê duyệt được cài trên máy tính của kế toán",
+   "expected": [
+    "T1219"
+   ]
+  },
+  {
+   "id": "Q26",
+   "category": "malware",
+   "en": "A process injected code into explorer.exe",
+   "vi": "Một tiến trình đã chèn mã vào explorer.exe",
+   "expected": [
+    "T1055"
+   ]
+  },
+  {
+   "id": "Q27",
+   "category": "malware",
+   "en": "A new local administrator account was created on a server outside the change window",
+   "vi": "Một tài khoản quản trị cục bộ mới được tạo trên máy chủ ngoài khung giờ thay đổi",
+   "expected": [
+    "T1136.001",
+    "T1136",
+    "T1098"
+   ]
+  },
+  {
+   "id": "Q28",
+   "category": "malware",
+   "en": "An update from a trusted vendor was compromised and installed a backdoor on many machines",
+   "vi": "Một bản cập nhật từ nhà cung cấp tin cậy bị xâm nhập và cài cửa hậu trên nhiều máy",
+   "expected": [
+    "T1195.002",
+    "T1195"
+   ]
+  },
+  {
+   "id": "Q29",
+   "category": "malware",
+   "en": "Attacker exploited a local vulnerability to obtain SYSTEM privileges on the server",
+   "vi": "Kẻ tấn công khai thác lỗ hổng cục bộ để có quyền SYSTEM trên máy chủ",
+   "expected": [
+    "T1068"
+   ]
+  },
+  {
+   "id": "Q30",
+   "category": "webattack",
+   "en": "WAF blocked requests containing UNION SELECT and OR 1=1 in the login form parameters",
+   "vi": "WAF chặn các yêu cầu chứa UNION SELECT và OR 1=1 trong tham số của biểu mẫu đăng nhập",
+   "expected": [
+    "T1190"
+   ]
+  },
+  {
+   "id": "Q31",
+   "category": "webattack",
+   "en": "A php file was uploaded into the uploads folder of the website and then executed system commands",
+   "vi": "Một tệp php được tải lên thư mục uploads của website rồi thực thi các lệnh hệ thống",
+   "expected": [
+    "T1505.003",
+    "T1190"
+   ]
+  },
+  {
+   "id": "Q32",
+   "category": "webattack",
+   "en": "An exploit for a known vulnerability was used against the public VPN gateway before it was patched",
+   "vi": "Một mã khai thác cho lỗ hổng đã biết được dùng nhắm vào cổng VPN công khai trước khi được vá",
+   "expected": [
+    "T1190"
+   ]
+  },
+  {
+   "id": "Q33",
+   "category": "webattack",
+   "en": "The website homepage was altered to display a message from the attacker",
+   "vi": "Trang chủ website bị thay đổi để hiển thị thông điệp của kẻ tấn công",
+   "expected": [
+    "T1491.001",
+    "T1491"
+   ]
+  },
+  {
+   "id": "Q34",
+   "category": "webattack",
+   "en": "A flood of HTTP requests overwhelmed the website and made it unavailable",
+   "vi": "Một lượng lớn yêu cầu HTTP dồn dập làm website quá tải và không thể truy cập",
+   "expected": [
+    "T1498",
+    "T1499",
+    "T1499.002",
+    "T1499.003"
+   ]
+  },
+  {
+   "id": "Q35",
+   "category": "network",
+   "en": "One external IP probed hundreds of ports on the firewall within minutes",
+   "vi": "Một IP bên ngoài dò hàng trăm cổng trên tường lửa trong vài phút",
+   "expected": [
+    "T1595",
+    "T1595.001",
+    "T1046",
+    "T1595.002"
+   ]
+  },
+  {
+   "id": "Q36",
+   "category": "network",
+   "en": "An internal host scanned other hosts on the LAN for open SMB and RDP ports",
+   "vi": "Một máy nội bộ quét các máy khác trong mạng LAN để tìm cổng SMB và RDP đang mở",
+   "expected": [
+    "T1046",
+    "T1018"
+   ]
+  },
+  {
+   "id": "Q37",
+   "category": "exfil",
+   "en": "A large volume of data was sent from the file server to an external cloud storage service",
+   "vi": "Một lượng dữ liệu lớn được gửi từ máy chủ tệp tới một dịch vụ lưu trữ đám mây bên ngoài",
+   "expected": [
+    "T1567",
+    "T1567.002",
+    "T1048",
+    "T1041"
+   ]
+  },
+  {
+   "id": "Q38",
+   "category": "exfil",
+   "en": "Internal data was compressed into an encrypted archive before being uploaded",
+   "vi": "Dữ liệu nội bộ được nén thành tệp lưu trữ có mã hóa trước khi được tải lên",
+   "expected": [
+    "T1560",
+    "T1560.001"
+   ]
+  },
+  {
+   "id": "Q39",
+   "category": "exfil",
+   "en": "DNS queries with very long encoded subdomains were sent to an unknown domain",
+   "vi": "Các truy vấn DNS với tên miền phụ rất dài đã được mã hóa được gửi tới một tên miền lạ",
+   "expected": [
+    "T1071.004",
+    "T1048",
+    "T1572"
+   ]
+  },
+  {
+   "id": "Q40",
+   "category": "exfil",
+   "en": "A mailbox rule was created that automatically forwards all incoming emails to an external address",
+   "vi": "Một quy tắc hộp thư được tạo để tự động chuyển tiếp mọi email đến tới một địa chỉ bên ngoài",
+   "expected": [
+    "T1114.003",
+    "T1114"
+   ]
+  },
+  {
+   "id": "Q41",
+   "category": "exfil",
+   "en": "Sensitive files were searched and copied from shared drives by a user account outside working hours",
+   "vi": "Các tệp nhạy cảm bị tìm kiếm và sao chép từ ổ chung bởi một tài khoản người dùng ngoài giờ làm việc",
+   "expected": [
+    "T1039",
+    "T1213",
+    "T1005",
+    "T1083"
+   ]
+  }
+ ]
+}

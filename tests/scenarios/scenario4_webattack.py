@@ -52,7 +52,6 @@ def run():
         "affected_assets": [1],
         "affected_accounts": [],
         "attck_techniques": ["T1190", "T1059.007"],
-        "attck_version": "14.1",
         "summary": "SQL Injection T1190 khai thác web app, chưa có dấu hiệu thành công"
     })
 

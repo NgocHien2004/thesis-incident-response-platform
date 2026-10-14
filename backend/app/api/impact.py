@@ -8,6 +8,7 @@ from app.models.incident import Incident
 from app.models.asset import Asset
 from app.schemas.impact import ImpactAnalysisCreate, ImpactAnalysisOut
 from app.core.dependencies import get_current_user, require_roles
+from app.core.ai_version import get_attck_version
 from app.models.user import RoleEnum, User
 
 router = APIRouter(prefix="/incidents/{incident_id}/impact", tags=["Impact Analysis"])
@@ -51,7 +52,7 @@ def create_analysis(
         affected_assets=json.dumps(payload.affected_assets),
         affected_accounts=json.dumps(payload.affected_accounts),
         attck_techniques=json.dumps(payload.attck_techniques),
-        attck_version=payload.attck_version,
+        attck_version=payload.attck_version or (get_attck_version() if payload.attck_techniques else None),
         related_events=payload.related_events,
         summary=payload.summary,
         analyzed_by=current_user.id,
@@ -81,7 +82,8 @@ def update_analysis(
     analysis.affected_assets  = json.dumps(payload.affected_assets)
     analysis.affected_accounts = json.dumps(payload.affected_accounts)
     analysis.attck_techniques = json.dumps(payload.attck_techniques)
-    analysis.attck_version    = payload.attck_version
+    analysis.attck_version    = (payload.attck_version or analysis.attck_version
+                                 or (get_attck_version() if payload.attck_techniques else None))
     analysis.related_events   = payload.related_events
     analysis.summary          = payload.summary
     db.commit()

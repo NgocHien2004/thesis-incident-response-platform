@@ -17,7 +17,7 @@ class ImpactAnalysis(Base):
 
     # MITRE ATT&CK
     attck_techniques   = Column(UnicodeText, nullable=True)  # JSON: ["T1566", "T1078"]
-    attck_version      = Column(Unicode(20), nullable=True)  # "14.1"
+    attck_version      = Column(Unicode(20), nullable=True)  # snapshot ATT&CK, vd "ent-2026-08-04"
 
     # Các sự kiện liên quan
     related_events     = Column(UnicodeText, nullable=True)  # mô tả tự do

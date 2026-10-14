@@ -2,7 +2,7 @@ import requests
 import json
 import os
 
-# ATT&CK Enterprise v14.1 — STIX format
+# ATT&CK Enterprise (nhánh master của mitre/cti) — STIX format
 URL = "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"
 OUTPUT = "data/attck_enterprise.json"
 

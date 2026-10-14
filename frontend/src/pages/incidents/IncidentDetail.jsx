@@ -334,7 +334,7 @@ function ImpactTab({ incId, isAnalyst }) {
   const [adding, setAdding]     = useState(false)
   const [form, setForm] = useState({
     ioc_list:[], affected_assets:[], affected_accounts:[],
-    attck_techniques:[], attck_version:'14.1', summary:'', related_events:''
+    attck_techniques:[], attck_version:'', summary:'', related_events:''
   })
   const [iocInput, setIocInput]   = useState('')
   const [techInput, setTechInput] = useState('')

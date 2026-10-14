@@ -1,3 +1,18 @@
+"""
+Nạp dữ liệu demo (tiếng Việt) cho IR Platform thông qua API — không ghi thẳng vào DB.
+
+Tạo: 3 tài khoản, 8 tài sản, 4 incident ở 4 giai đoạn vòng đời khác nhau
+(phishing=đã đóng + postmortem, credential=đang phục hồi, malware=đang điều tra,
+web attack=mới mở) cùng các cảnh báo lẻ (chưa triage, false positive, nhập từ CSV).
+
+Chạy (backend đang bật; AI service tùy chọn):
+    cd backend && venv\\Scripts\\activate
+    python seed_demo_data.py
+    python seed_demo_data.py http://localhost:8000
+    python seed_demo_data.py --force        # vẫn nạp dù DB đã có tài sản
+
+Nên chạy trên DB vừa reset (reset_tables.sql) để số liệu dashboard sạch.
+"""
 import sys
 import json
 from datetime import datetime, timedelta, timezone
@@ -120,18 +135,6 @@ def triage(aid, t, sev, conf, sla, note, assignee=None):
     return call("PATCH", f"/alerts/{aid}/triage", "analyst", body, label=f"triage {aid}")
 
 
-def ai_top_technique(title, desc, ioc):
-    """Hỏi AI service lấy kỹ thuật ATT&CK đầu bảng; trả None nếu AI chưa bật."""
-    r = c.post("/ai/alert/suggest", headers=H("analyst"),
-               json={"title": title, "description": desc, "ioc": ioc})
-    if r.status_code != 200:
-        return None
-    try:
-        return r.json()["attck_techniques"][0]["id"]
-    except Exception:                                          # noqa
-        return None
-
-
 def incident(title, desc, sev, alert_ids, checklist):
     r = call("POST", "/incidents/", "analyst",
              {"title": title, "description": desc, "severity": sev,
@@ -212,7 +215,7 @@ a1 = new_alert("it", title=t1, description=d1, source="email", severity="high",
                source_ref="MAIL-0001", ioc="ceo-urgent@congty-gia.com,HoaDon.exe",
                affected_asset=A["mail"], raw_data="From: ceo-urgent@congty-gia.com | Subject: Chuyen khoan gap")
 if a1:
-    tech1 = ai_top_technique(t1, d1, "ceo-urgent@congty-gia.com") or "T1566.001"
+    tech1 = "T1566.001"
     triage(a1["id"], "phishing", "high", 90, 8, "Mạo danh lãnh đạo, tệp đính kèm thực thi.")
     i1 = incident("Phishing mạo danh giám đốc gửi tệp thực thi",
                   "Email giả mạo lãnh đạo, 2 nhân viên đã mở tệp đính kèm.", "high", [a1["id"]],
@@ -228,7 +231,7 @@ if a1:
             lock(i1, e)
         impact(i1, ioc_list=["ceo-urgent@congty-gia.com", "HoaDon.exe", "203.0.113.77"],
                affected_assets=[A["mail"]], affected_accounts=["levanc", "phamthid"],
-               attck_techniques=[tech1], attck_version="14.1",
+               attck_techniques=[tech1],
                related_events="2 nhân viên mở tệp đính kèm, không phát hiện thực thi thành công",
                summary="Phishing có đính kèm mã độc, phạm vi 2 tài khoản, chưa ghi nhận phát tán.")
         contain(i1, "block_domain", "congty-gia.com", "Tên miền giả mạo đang phát tán email", "medium",
@@ -281,7 +284,7 @@ if ids2:
             lock(i2, e)
         impact(i2, ioc_list=["203.0.113.45"], affected_assets=[A["vpn"], A["hr"]],
                affected_accounts=["ketoan.binh"], attck_techniques=["T1110", "T1078"],
-               attck_version="14.1", related_events="1 đăng nhập thành công lúc 02:14",
+                related_events="1 đăng nhập thành công lúc 02:14",
                summary="Brute-force VPN dẫn đến chiếm tài khoản kế toán, truy cập ứng dụng nhân sự.")
         contain(i2, "lock_account", "ketoan.binh", "Tài khoản bị chiếm quyền", "high",
                 note="Đã khóa tài khoản trên AD (mô phỏng)")
@@ -312,7 +315,7 @@ if a3:
                  description="Bắt gói 15 phút", source="fw-edge")
         impact(i3, ioc_list=["evil-update.example.net"], affected_assets=[A["pc"]],
                affected_accounts=["ketoan.tranbinh"], attck_techniques=["T1204.002", "T1071.001"],
-               attck_version="14.1", summary="Mã độc trên 1 máy trạm, đang đánh giá khả năng lây lan.")
+                summary="Mã độc trên 1 máy trạm, đang đánh giá khả năng lây lan.")
         contain(i3, "isolate_machine", "KT-PC07", "Ngăn mã độc liên lạc C2 và lây lan", "high",
                 approve=False, execute=False)
 

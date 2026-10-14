@@ -7,7 +7,7 @@ class ImpactAnalysisCreate(BaseModel):
     affected_assets: Optional[List[int]] = []
     affected_accounts: Optional[List[str]] = []
     attck_techniques: Optional[List[str]] = []
-    attck_version: Optional[str] = "14.1"
+    attck_version: Optional[str] = None
     related_events: Optional[str] = None
     summary: str
 

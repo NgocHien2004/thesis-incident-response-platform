@@ -66,7 +66,6 @@ def run():
         "affected_assets": [1],
         "affected_accounts": ["admin"],
         "attck_techniques": ["T1078", "T1110"],
-        "attck_version": "14.1",
         "summary": "Tài khoản admin bị chiếm từ Tor exit node, kỹ thuật T1078 Valid Accounts"
     })
 

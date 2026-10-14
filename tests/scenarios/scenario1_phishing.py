@@ -83,7 +83,6 @@ def run(analyst_token=None):
         "affected_assets": [1],
         "affected_accounts": ["finance01", "cfo"],
         "attck_techniques": ["T1566.001", "T1204.002"],
-        "attck_version": "14.1",
         "summary": "Phishing giả mạo CEO nhắm vào bộ phận tài chính, kỹ thuật T1566.001"
     })
 

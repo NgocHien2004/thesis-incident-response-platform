@@ -1,0 +1,151 @@
+{
+ "n_test": 565576,
+ "n_attack": 111311,
+ "pr_auc": 0.9998,
+ "roc_auc": 0.9999,
+ "thresholds": {
+  "0.15": {
+   "tp": 111287,
+   "fp": 1426,
+   "fn": 24,
+   "tn": 452839,
+   "precision": 0.9873,
+   "recall": 0.9998,
+   "f1": 0.9935,
+   "fpr": 0.00314
+  },
+  "0.5": {
+   "tp": 111229,
+   "fp": 546,
+   "fn": 82,
+   "tn": 453719,
+   "precision": 0.9951,
+   "recall": 0.9993,
+   "f1": 0.9972,
+   "fpr": 0.0012
+  },
+  "0.8": {
+   "tp": 110848,
+   "fp": 285,
+   "fn": 463,
+   "tn": 453980,
+   "precision": 0.9974,
+   "recall": 0.9958,
+   "f1": 0.9966,
+   "fpr": 0.00063
+  }
+ },
+ "zones": {
+  "auto_close": {
+   "flows": 452863,
+   "pct_of_all": 80.07,
+   "attacks": 24,
+   "attack_rate_in_zone_pct": 0.01
+  },
+  "review": {
+   "flows": 1580,
+   "pct_of_all": 0.28,
+   "attacks": 439,
+   "attack_rate_in_zone_pct": 27.78
+  },
+  "urgent": {
+   "flows": 111133,
+   "pct_of_all": 19.65,
+   "attacks": 110848,
+   "attack_rate_in_zone_pct": 99.74
+  }
+ },
+ "per_class": {
+  "Bot": {
+   "n": 393,
+   "recall": 0.8728,
+   "auto_closed_pct": 2.29,
+   "high_severity": true
+  },
+  "DDoS": {
+   "n": 25775,
+   "recall": 0.9997,
+   "auto_closed_pct": 0.01,
+   "high_severity": true
+  },
+  "DoS GoldenEye": {
+   "n": 2058,
+   "recall": 0.9995,
+   "auto_closed_pct": 0.0,
+   "high_severity": true
+  },
+  "DoS Hulk": {
+   "n": 45887,
+   "recall": 0.9999,
+   "auto_closed_pct": 0.0,
+   "high_severity": true
+  },
+  "DoS Slowhttptest": {
+   "n": 1075,
+   "recall": 0.9991,
+   "auto_closed_pct": 0.0,
+   "high_severity": true
+  },
+  "DoS slowloris": {
+   "n": 1129,
+   "recall": 0.9965,
+   "auto_closed_pct": 0.27,
+   "high_severity": true
+  },
+  "FTP-Patator": {
+   "n": 1591,
+   "recall": 1.0,
+   "auto_closed_pct": 0.0,
+   "high_severity": false
+  },
+  "Heartbleed": {
+   "n": 2,
+   "recall": 1.0,
+   "auto_closed_pct": 0.0,
+   "high_severity": true
+  },
+  "Infiltration": {
+   "n": 6,
+   "recall": 0.6667,
+   "auto_closed_pct": 16.67,
+   "high_severity": true
+  },
+  "PortScan": {
+   "n": 31757,
+   "recall": 0.9999,
+   "auto_closed_pct": 0.01,
+   "high_severity": false
+  },
+  "SSH-Patator": {
+   "n": 1200,
+   "recall": 0.9975,
+   "auto_closed_pct": 0.0,
+   "high_severity": false
+  },
+  "Web Attack � Brute Force": {
+   "n": 312,
+   "recall": 0.9936,
+   "auto_closed_pct": 0.0,
+   "high_severity": false
+  },
+  "Web Attack � Sql Injection": {
+   "n": 2,
+   "recall": 1.0,
+   "auto_closed_pct": 0.0,
+   "high_severity": true
+  },
+  "Web Attack � XSS": {
+   "n": 124,
+   "recall": 0.9758,
+   "auto_closed_pct": 2.42,
+   "high_severity": false
+  }
+ },
+ "safety": {
+  "attacks_in_auto_close": 24,
+  "pct_of_attacks_missed_by_auto_close": 0.022,
+  "benign_removed_from_analyst_queue_pct": 99.69,
+  "analyst_workload_pct_of_all_flows": 19.93
+ },
+ "high_severity_recall": 0.9991
+}

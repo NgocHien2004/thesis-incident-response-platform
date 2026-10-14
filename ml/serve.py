@@ -18,12 +18,9 @@ scaler       = joblib.load(os.path.join(DATA_DIR,  "scaler.pkl"))
 feature_cols = joblib.load(os.path.join(DATA_DIR,  "feature_cols.pkl"))
 
 print("Loading ATT&CK index...")
-vectorizer    = joblib.load(os.path.join(MODEL_DIR, "attck_vectorizer.pkl"))
-tfidf_matrix  = joblib.load(os.path.join(MODEL_DIR, "attck_tfidf_matrix.pkl"))
-tech_records  = joblib.load(os.path.join(MODEL_DIR, "attck_tech_records.pkl"))
-
-with open(os.path.join(MODEL_DIR, "attck_version.json")) as f:
-    attck_version = json.load(f)
+from attck_search import Searcher
+searcher      = Searcher(MODEL_DIR)
+attck_version = searcher.version
 
 print("All models loaded!")
 
@@ -113,39 +110,14 @@ def sanitize_input(text: str) -> str:
     # Giới hạn độ dài
     return text[:2000]
 
+def strip_indicators(text: str) -> str:
+    text = re.sub(r"\b\d{1,3}(?:\.\d{1,3}){3}\b", " ", text)
+    text = re.sub(r"\S+@\S+", " ", text)
+    text = re.sub(r"\b[\w-]+(?:\.[\w-]+)+\b", " ", text)
+    return text
+
 def search_attck(query: str, top_k: int = 5) -> list:
-    from sklearn.metrics.pairwise import cosine_similarity
-    query_vec = vectorizer.transform([query])
-    scores    = cosine_similarity(query_vec, tfidf_matrix).flatten()
-    candidate_indices = np.argsort(scores)[::-1][:20]
-
-    query_lower = query.lower()
-    results = []
-    tactic_boost = {
-        "brute force": "credential-access",
-        "phishing": "initial-access",
-        "scan": "discovery",
-        "lateral": "lateral-movement",
-        "exfil": "exfiltration",
-        "malware": "execution",
-        "persistence": "persistence",
-        "privilege": "privilege-escalation",
-    }
-    for idx in candidate_indices:
-        tech  = tech_records[idx]
-        score = float(scores[idx])
-        if tech["name"].lower() in query_lower:
-            score *= 1.5
-        for kw, tactic in tactic_boost.items():
-            if kw in query_lower and tactic in tech["tactics"]:
-                score *= 1.2
-                break
-        results.append({**tech, "score": round(score, 4), "rank": 0})
-
-    results.sort(key=lambda x: x["score"], reverse=True)
-    for i, r in enumerate(results):
-        r["rank"] = i + 1
-    return results[:top_k]
+    return searcher.search(query, top_k)
 
 # ── Endpoints ──
 
@@ -154,6 +126,7 @@ def root():
     return {
         "service": "AI Service",
         "models": ["rf_binary_v1", f"attck_{attck_version['version']}"],
+        "attck_version": attck_version["version"],
         "status": "ready"
     }
 
@@ -211,7 +184,7 @@ def suggest_for_alert(payload: AlertSuggestRequest):
     query = f"{title}. {description}. IOC: {ioc}".strip()
 
     # ATT&CK retrieval
-    techniques = search_attck(query, top_k=5)
+    techniques = search_attck(strip_indicators(f"{title}. {description}") or query, top_k=5)
 
     # Severity dựa trên keyword đơn giản (không dùng network features)
     severity = "medium"
@@ -221,7 +194,7 @@ def suggest_for_alert(payload: AlertSuggestRequest):
                    "elevated privileges", "ddos"]
     low_kw      = ["info", "recon"]
 
-    query_lower = query.lower()
+    query_lower = (query + " " + searcher.translate(query)).lower()
     if any(k in query_lower for k in critical_kw):
         severity = "critical"
     elif any(k in query_lower for k in high_kw):

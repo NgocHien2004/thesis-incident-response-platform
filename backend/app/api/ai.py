@@ -48,7 +48,7 @@ async def suggest_alert(
     })
     # Đánh dấu rõ nội dung AI tạo
     result["ai_generated"] = True
-    result["generated_by"] = "rf_binary_v1 + attck_14.1"
+    result["generated_by"] = "keyword_rules + attck_retrieval"
     return result
 
 # Tìm kiếm ATT&CK techniques
