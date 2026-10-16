@@ -73,9 +73,11 @@ export default function Login() {
             <p className="text-xs text-gray-500 mb-2">Tài khoản test:</p>
             <div className="space-y-1">
               {[
-                { user: 'analyst01', role: 'Analyst/SOC', color: 'text-purple-400' },
+                { user: 'analyst01', role: 'Analyst/SOC (commander)', color: 'text-purple-400' },
+                { user: 'analyst02', role: 'Analyst/SOC', color: 'text-purple-400' },
                 { user: 'it01',      role: 'IT/Helpdesk', color: 'text-blue-400' },
                 { user: 'stakeholder01', role: 'Stakeholder', color: 'text-green-400' },
+                { user: 'auditor01', role: 'Auditor (chỉ đọc)', color: 'text-amber-400' },
               ].map(u => (
                 <button
                   key={u.user}

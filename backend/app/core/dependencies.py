@@ -18,6 +18,7 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(payload["sub"])).first()
     if not user or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Người dùng không tồn tại")
+    db.info["actor"] = {"id": user.id, "username": user.username, "role": user.role.value}
     return user
 
 def require_roles(*roles: RoleEnum):
@@ -54,8 +55,8 @@ def require_it_or_analyst(user: User = Depends(
 )):
     return user
 
-# Analyst + Stakeholder — xác nhận recovery
-def require_analyst_or_stakeholder(user: User = Depends(
-    require_roles(RoleEnum.analyst_soc, RoleEnum.stakeholder)
+# Analyst + Auditor — xem nhật ký kiểm toán
+def require_analyst_or_auditor(user: User = Depends(
+    require_roles(RoleEnum.analyst_soc, RoleEnum.auditor)
 )):
     return user

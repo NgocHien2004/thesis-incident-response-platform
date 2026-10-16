@@ -1,18 +1,3 @@
-"""
-Nạp dữ liệu demo (tiếng Việt) cho IR Platform thông qua API — không ghi thẳng vào DB.
-
-Tạo: 3 tài khoản, 8 tài sản, 4 incident ở 4 giai đoạn vòng đời khác nhau
-(phishing=đã đóng + postmortem, credential=đang phục hồi, malware=đang điều tra,
-web attack=mới mở) cùng các cảnh báo lẻ (chưa triage, false positive, nhập từ CSV).
-
-Chạy (backend đang bật; AI service tùy chọn):
-    cd backend && venv\\Scripts\\activate
-    python seed_demo_data.py
-    python seed_demo_data.py http://localhost:8000
-    python seed_demo_data.py --force        # vẫn nạp dù DB đã có tài sản
-
-Nên chạy trên DB vừa reset (reset_tables.sql) để số liệu dashboard sạch.
-"""
 import sys
 import json
 from datetime import datetime, timedelta, timezone
@@ -58,19 +43,33 @@ def step(msg):
 # ─────────────────────────────────────────────── tài khoản
 print("Tài khoản")
 USERS = [("analyst01", "analyst_soc", "analyst"),
+         ("analyst02", "analyst_soc", "analyst2"),
          ("it01", "it_helpdesk", "it"),
-         ("stakeholder01", "stakeholder", "stake")]
+         ("stakeholder01", "stakeholder", "stake"),
+         ("auditor01", "auditor", "au")]
+
+
+def account(username, role, headers=None):
+    return c.post("/auth/register", json={"username": username, "email": f"{username}@example.com",
+                                          "password": PWD, "role": role}, headers=headers or {})
+
+
 try:
-    for u, role, key in USERS:
-        c.post("/auth/register", json={"username": u, "email": f"{u}@example.com",
-                                       "password": PWD, "role": role})
+    r = c.post("/auth/login", json={"username": "analyst01", "password": PWD})
+    if r.status_code != 200:
+        account("analyst01", "analyst_soc")          # tài khoản đầu tiên: khởi tạo hệ thống
+        r = c.post("/auth/login", json={"username": "analyst01", "password": PWD})
+    r.raise_for_status()
+    tok["analyst"] = r.json()["access_token"]
+    for u, role, key in USERS[1:]:
+        account(u, role, H("analyst"))               # các tài khoản còn lại do Analyst cấp
         r = c.post("/auth/login", json={"username": u, "password": PWD})
         r.raise_for_status()
         tok[key] = r.json()["access_token"]
 except Exception as e:                                         # noqa
     print(f"Không kết nối/đăng nhập được: {e}")
     sys.exit(1)
-step("đã đăng nhập analyst01, it01, stakeholder01")
+step("đã đăng nhập analyst01 (commander), analyst02, it01, stakeholder01, auditor01")
 
 existing = call("GET", "/assets/", "analyst") or []
 if existing and not FORCE:
@@ -160,7 +159,7 @@ def impact(i, **kw):
     call("POST", f"/incidents/{i}/impact/", "analyst", kw, label="impact")
 
 
-def contain(i, action, target, reason, risk, approve=True, execute=True, note="", role="it"):
+def contain(i, action, target, reason, risk, approve=True, execute=True, note="", role="it", verify=True):
     r = call("POST", f"/incidents/{i}/containments/", role,
              {"action_type": action, "target": target, "reason": reason, "risk_level": risk},
              label=f"containment {action}")
@@ -173,6 +172,9 @@ def contain(i, action, target, reason, risk, approve=True, execute=True, note=""
     if approve and execute:
         call("PATCH", f"/incidents/{i}/containments/{cid}/execute", "it",
              {"execution_note": note or "Đã thực hiện theo đề xuất"})
+        if verify:
+            call("PATCH", f"/incidents/{i}/containments/{cid}/verify", "analyst2",
+                 {"verify_note": "Đã kiểm tra: biện pháp ngăn chặn có hiệu lực (mô phỏng)"})
 
 
 def recover(i, rtype, desc, final="done", confirm=True):
@@ -199,7 +201,7 @@ def comm(i, ctype, subject, content, recipients, approve=True, send=True, ack=Tr
         return
     k = r["id"]
     if approve:
-        call("PATCH", f"/incidents/{i}/communications/{k}/approve", "analyst")
+        call("PATCH", f"/incidents/{i}/communications/{k}/approve", "analyst2")
     if approve and send:
         call("PATCH", f"/incidents/{i}/communications/{k}/send", "analyst")
     if approve and send and ack:
@@ -366,6 +368,8 @@ print(f"Tài sản : {len(A)}")
 print(f"Cảnh báo: {len(alerts)}  ({', '.join(f'{k}={sum(1 for x in alerts if x['status']==k)}' for k in sorted({x['status'] for x in alerts}))})")
 print(f"Incident: {len(incs)}  ({', '.join(f'#{x['id']}={x['status']}' for x in incs)})")
 print(f"Nhóm cảnh báo: {len(groups)}  (lớn nhất: {max([g['alert_count'] for g in groups] or [0])} alert)")
+audit = call("GET", "/audit/verify", "au") or {}
+print(f"Nhật ký kiểm toán: {audit.get('total')} bản ghi, chuỗi băm {'nguyên vẹn' if audit.get('ok') else 'BỊ PHÁ VỠ'}")
 dash = c.get("/dashboard/", headers=H("analyst"))
 print(f"Dashboard: HTTP {dash.status_code}")
 print("=" * 64)

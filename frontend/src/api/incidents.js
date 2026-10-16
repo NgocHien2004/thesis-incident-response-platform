@@ -24,3 +24,6 @@ export const sendCommunication = (incId, commId) => api.patch(`/incidents/${incI
 export const getPostmortem = (id) => api.get(`/incidents/${id}/postmortem/`)
 export const createPostmortem = (id, data) => api.post(`/incidents/${id}/postmortem/`, data)
 export const finalizePostmortem = (id) => api.patch(`/incidents/${id}/postmortem/finalize`)
+export const verifyContainment = (incId, contId, data) => api.patch(`/incidents/${incId}/containments/${contId}/verify`, data)
+export const acknowledgeCommunication = (incId, commId) => api.patch(`/incidents/${incId}/communications/${commId}/acknowledge`)
+export const getTimeline = (id, includeViews = false) => api.get(`/incidents/${id}/timeline`, { params: { include_views: includeViews } })

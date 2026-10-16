@@ -4,7 +4,7 @@ from typing import List
 from datetime import datetime, timezone
 import json
 from database import get_db
-from app.models.communication import Communication, CommStatus
+from app.models.communication import Communication, CommStatus, CommType
 from app.models.incident import Incident
 from app.schemas.communication import CommunicationCreate, CommunicationOut
 from app.core.dependencies import get_current_user, require_roles
@@ -69,6 +69,13 @@ def approve_communication(
         raise HTTPException(404, "Không tìm thấy thông báo")
     if comm.status != CommStatus.draft:
         raise HTTPException(400, "Chỉ có thể phê duyệt thông báo ở trạng thái draft")
+    # Tách nhiệm vụ: người duyệt khác người soạn; thông báo ra ngoài/leo thang cần commander
+    if comm.sent_by == current_user.id:
+        raise HTTPException(403, "Người phê duyệt phải khác người soạn thông báo")
+    if comm.comm_type in (CommType.external, CommType.escalation):
+        incident = _get_incident(incident_id, db)
+        if incident.commander_id != current_user.id:
+            raise HTTPException(403, "Thông báo ra ngoài hoặc leo thang cần commander của vụ phê duyệt")
 
     comm.is_approved = True
     comm.approved_by = current_user.id
@@ -107,7 +114,7 @@ def acknowledge_communication(
     incident_id: int,
     comm_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_roles(RoleEnum.stakeholder))
 ):
     comm = db.query(Communication).filter(
         Communication.id == comm_id,

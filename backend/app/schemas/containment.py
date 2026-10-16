@@ -16,6 +16,9 @@ class ContainmentReview(BaseModel):
 class ContainmentExecute(BaseModel):
     execution_note: str
 
+class ContainmentVerify(BaseModel):
+    verify_note: Optional[str] = None
+
 class ContainmentOut(BaseModel):
     id: int
     incident_id: int
@@ -32,6 +35,9 @@ class ContainmentOut(BaseModel):
     executed_by: Optional[int]
     executed_at: Optional[datetime]
     execution_note: Optional[str]
+    verified_by: Optional[int] = None
+    verified_at: Optional[datetime] = None
+    verify_note: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

@@ -8,6 +8,7 @@ from app.models.evidence import Evidence, ChainOfCustody
 from app.models.incident import Incident
 from app.schemas.evidence import EvidenceCreate, EvidenceOut, CustodyLogOut
 from app.core.dependencies import get_current_user, require_roles
+from app.core.rules import require_not_closed
 from app.models.user import RoleEnum, User
 
 router = APIRouter(prefix="/incidents/{incident_id}/evidences", tags=["Evidences"])
@@ -73,7 +74,7 @@ def collect_evidence(
         require_roles(RoleEnum.it_helpdesk, RoleEnum.analyst_soc)
     )
 ):
-    _get_incident(incident_id, db)
+    require_not_closed(_get_incident(incident_id, db))
 
     # Tự tính hash nếu có content và chưa có hash
     file_hash = payload.file_hash

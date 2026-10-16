@@ -25,6 +25,9 @@ from app.models.postmortem import Postmortem
 from app.api.postmortem import router as postmortem_router
 from app.api.dashboard import router as dashboard_router
 from app.api.ai import router as ai_router
+from app.models.audit_log import AuditLog
+import app.core.audit  # đăng ký bộ ghi nhật ký tự động
+from app.api.audit import router as audit_router
 
 # Tạo bảng nếu chưa có
 Base.metadata.create_all(bind=engine)
@@ -50,6 +53,7 @@ app.include_router(communication_router)
 app.include_router(postmortem_router)
 app.include_router(dashboard_router)
 app.include_router(ai_router)
+app.include_router(audit_router)
 
 @app.get("/")
 def root():

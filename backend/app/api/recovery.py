@@ -10,6 +10,7 @@ from app.schemas.recovery import (
     RecoveryConfirm, RecoveryActionOut
 )
 from app.core.dependencies import get_current_user, require_roles
+from app.core.rules import require_not_closed, require_status
 from app.models.user import RoleEnum, User
 
 router = APIRouter(prefix="/incidents/{incident_id}/recovery", tags=["Recovery"])
@@ -42,7 +43,11 @@ def create_recovery_action(
         require_roles(RoleEnum.it_helpdesk, RoleEnum.analyst_soc)
     )
 ):
-    _get_incident(incident_id, db)
+    require_status(
+        _get_incident(incident_id, db),
+        (IncidentStatus.contained, IncidentStatus.recovering),
+        "Chỉ tạo hành động recovery sau khi incident đã được khống chế"
+    )
     action = RecoveryAction(
         incident_id=incident_id,
         action_type=payload.action_type,
@@ -72,6 +77,7 @@ def update_recovery_status(
     ).first()
     if not action:
         raise HTTPException(404, "Không tìm thấy recovery action")
+    require_not_closed(_get_incident(incident_id, db))
 
     action.status = payload.status
     action.note   = payload.note
@@ -91,7 +97,7 @@ def confirm_recovery(
     payload: RecoveryConfirm,
     db: Session = Depends(get_db),
     current_user: User = Depends(
-        require_roles(RoleEnum.stakeholder, RoleEnum.analyst_soc)
+        require_roles(RoleEnum.stakeholder)
     )
 ):
     action = db.query(RecoveryAction).filter(
@@ -100,6 +106,7 @@ def confirm_recovery(
     ).first()
     if not action:
         raise HTTPException(404, "Không tìm thấy recovery action")
+    require_not_closed(_get_incident(incident_id, db))
     if action.status != RecoveryStatus.done:
         raise HTTPException(400, "Chỉ có thể xác nhận action đã hoàn thành (status: done)")
 

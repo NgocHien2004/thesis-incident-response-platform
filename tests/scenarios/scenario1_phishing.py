@@ -9,6 +9,7 @@ def run(analyst_token=None):
     r = ScenarioRunner("analyst01", "Test@1234").login()
     r_it = ScenarioRunner("it01", "Test@1234").login()
     r_st = ScenarioRunner("stakeholder01", "Test@1234").login()
+    r2   = ScenarioRunner("analyst02", "Test@1234").login()
 
     r.tick("start")
 
@@ -60,7 +61,6 @@ def run(analyst_token=None):
         "title": "Phishing campaign targeting finance department",
         "description": "CEO impersonation phishing với malicious attachment",
         "severity": "high",
-        "commander_id": 1,
         "alert_ids": [alert_id]
     })
     if not incident: return None
@@ -102,6 +102,9 @@ def run(analyst_token=None):
         r_it.patch(f"/incidents/{inc_id}/containments/{cont['id']}/execute", {
             "execution_note": "Block domain company-fake.com trên email gateway (mô phỏng)"
         })
+        r2.patch(f"/incidents/{inc_id}/containments/{cont['id']}/verify", {
+            "verify_note": "Đã kiểm tra: biện pháp ngăn chặn có hiệu lực (mô phỏng)"
+        })
 
     # 8. Recovery
     print("\n[8] Recovery...")
@@ -121,6 +124,7 @@ def run(analyst_token=None):
 
     # 9. Postmortem
     print("\n[9] Postmortem...")
+    r.patch(f"/incidents/{inc_id}/status", {"status": "closed", "note": "Hoàn tất xử lý"})
     pm = r.post(f"/incidents/{inc_id}/postmortem/", {
         "root_cause": "Thiếu email authentication (DMARC/SPF) cho phép giả mạo domain",
         "timeline": [

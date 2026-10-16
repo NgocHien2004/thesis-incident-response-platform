@@ -40,6 +40,8 @@ def create_postmortem(
     current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
 ):
     incident = _get_incident(incident_id, db)
+    if incident.status not in (IncidentStatus.recovering, IncidentStatus.closed):
+        raise HTTPException(400, "Chỉ tạo postmortem khi incident đã sang giai đoạn phục hồi hoặc đã đóng")
 
     # Kiểm tra chưa có postmortem
     existing = db.query(Postmortem).filter(
@@ -102,13 +104,14 @@ def update_postmortem(
     db.refresh(pm)
     return pm
 
-# Finalize postmortem + đóng incident
+# Chốt postmortem — chỉ commander, và chỉ khi incident đã đóng
 @router.patch("/finalize", response_model=PostmortemOut)
 def finalize_postmortem(
     incident_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
 ):
+    incident = _get_incident(incident_id, db)
     pm = db.query(Postmortem).filter(
         Postmortem.incident_id == incident_id
     ).first()
@@ -116,24 +119,18 @@ def finalize_postmortem(
         raise HTTPException(404, "Chưa có postmortem")
     if pm.is_finalized:
         raise HTTPException(400, "Đã finalize rồi")
+    if incident.status != IncidentStatus.closed:
+        raise HTTPException(400, "Chỉ chốt postmortem sau khi incident đã đóng")
+    if incident.commander_id != current_user.id:
+        raise HTTPException(403, "Chỉ commander của vụ mới được chốt postmortem")
 
-    # Kiểm tra action_items có đủ không
     action_items = json.loads(pm.action_items or "[]")
     if not action_items:
-        raise HTTPException(
-            400,
-            "Cần có ít nhất 1 action item trước khi finalize"
-        )
+        raise HTTPException(400, "Cần có ít nhất 1 action item trước khi finalize")
 
     pm.is_finalized = True
     pm.finalized_by = current_user.id
     pm.finalized_at = datetime.now(timezone.utc)
-
-    # Đóng incident
-    incident = _get_incident(incident_id, db)
-    incident.status     = IncidentStatus.closed
-    incident.resolved_at = datetime.now(timezone.utc)
-
     db.commit()
     db.refresh(pm)
     return pm
@@ -145,7 +142,9 @@ def update_action_item(
     item_index: int,
     done: bool,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(
+        require_roles(RoleEnum.it_helpdesk, RoleEnum.analyst_soc)
+    )
 ):
     pm = db.query(Postmortem).filter(
         Postmortem.incident_id == incident_id

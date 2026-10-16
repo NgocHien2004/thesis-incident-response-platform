@@ -7,6 +7,7 @@ class RoleEnum(str, enum.Enum):
     it_helpdesk  = "it_helpdesk"
     analyst_soc  = "analyst_soc"
     stakeholder  = "stakeholder"
+    auditor      = "auditor"
 
 class User(Base):
     __tablename__ = "users"

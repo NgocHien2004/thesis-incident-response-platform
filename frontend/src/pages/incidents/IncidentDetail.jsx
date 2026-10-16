@@ -5,7 +5,8 @@ import { getIncident, updateStatus, getEvidences, addEvidence, lockEvidence,
   executeContainment, getRecovery, addRecovery, updateRecoveryStatus,
   confirmRecovery, getCommunications, createCommunication,
   approveCommunication, sendCommunication, getPostmortem,
-  createPostmortem, finalizePostmortem, getImpact, createImpact } from '../../api/incidents'
+  createPostmortem, finalizePostmortem, getImpact, createImpact,
+  verifyContainment, acknowledgeCommunication, getTimeline } from '../../api/incidents'
 import Badge from '../../components/Badge'
 import Card from '../../components/Card'
 import Modal from '../../components/Modal'
@@ -13,7 +14,22 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 
-const TABS = ['Tổng quan','Bằng chứng','Phạm vi','Containment','Recovery','Thông báo','Postmortem']
+const TABS = ['Tổng quan','Bằng chứng','Phạm vi','Containment','Recovery','Thông báo','Postmortem','Timeline']
+
+// Bảng chuyển trạng thái hợp lệ (khớp với backend)
+const NEXT = {
+  open:          ['investigating'],
+  investigating: ['contained'],
+  contained:     ['recovering', 'investigating', 'closed'],
+  recovering:    ['closed', 'investigating'],
+  closed:        ['investigating'],
+}
+const STATUS_LABEL = {
+  investigating: 'Bắt đầu điều tra',
+  contained:     'Đã khống chế',
+  recovering:    'Chuyển sang phục hồi',
+  closed:        'Đóng incident',
+}
 
 export default function IncidentDetail() {
   const { id } = useParams()
@@ -25,7 +41,9 @@ export default function IncidentDetail() {
   const isAnalyst     = user?.role === 'analyst_soc'
   const isIT          = user?.role === 'it_helpdesk'
   const isStakeholder = user?.role === 'stakeholder'
+  const isAuditor     = user?.role === 'auditor'
   const canWrite      = isAnalyst || isIT
+  const myId          = Number(user?.id)
 
   const reload = () => getIncident(id).then(r => setIncident(r.data))
 
@@ -36,20 +54,30 @@ export default function IncidentDetail() {
   if (loading) return <LoadingSpinner />
   if (!incident) return <div className="p-6 text-gray-500">Không tìm thấy incident</div>
 
-  const statusFlow = ['open','investigating','contained','recovering','closed']
-  const canAdvance = isAnalyst && incident.status !== 'closed'
+  const isCommander = isAnalyst && myId === incident.commander_id
+  const closed = incident.status === 'closed'
 
-  const handleAdvanceStatus = async () => {
-    const next = statusFlow[statusFlow.indexOf(incident.status) + 1]
-    if (!next) return
+  const handleStatus = async (next) => {
+    const back = next === 'investigating' && incident.status !== 'open'
+    let note
+    if (back) {
+      note = prompt('Lý do quay lại điều tra hoặc mở lại incident (bắt buộc):')
+      if (!note || !note.trim()) return
+    } else if (next === 'closed') {
+      note = prompt('Ghi chú khi đóng incident (có thể bỏ trống):') || undefined
+    }
     try {
-      await updateStatus(id, { status: next })
-      toast.success(`Chuyển sang ${next}`)
+      await updateStatus(id, { status: next, note })
+      toast.success(STATUS_LABEL[next] || next)
       reload()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Thất bại')
     }
   }
+
+  // Đóng và mở lại incident chỉ dành cho commander của vụ
+  const nextOptions = !isAnalyst ? [] : (NEXT[incident.status] || []).filter(n =>
+    !(n === 'closed' || incident.status === 'closed') || isCommander)
 
   return (
     <div className="p-6 space-y-4">
@@ -73,16 +101,26 @@ export default function IncidentDetail() {
               <p className="text-sm text-gray-600 mt-1">{incident.description}</p>
             )}
           </div>
-          {canAdvance && (
-            <button onClick={handleAdvanceStatus}
-              className="text-sm px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg flex-shrink-0">
-              → {statusFlow[statusFlow.indexOf(incident.status)+1] || ''}
-            </button>
+          {nextOptions.length > 0 && (
+            <div className="flex flex-col gap-2 flex-shrink-0">
+              {nextOptions.map((n, i) => (
+                <button key={n} onClick={() => handleStatus(n)}
+                  className={`text-sm px-4 py-2 rounded-lg ${
+                    i === 0
+                      ? 'bg-primary-600 hover:bg-primary-700 text-white'
+                      : 'border border-gray-300 text-gray-600 hover:bg-gray-50'
+                  }`}>
+                  {n === 'investigating' && incident.status !== 'open'
+                    ? (closed ? 'Mở lại incident' : 'Quay lại điều tra')
+                    : STATUS_LABEL[n]}
+                </button>
+              ))}
+            </div>
           )}
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100">
           {[
-            {label:'Commander', value: `#${incident.commander_id||'—'}`},
+            {label:'Commander', value: incident.commander_id ? `#${incident.commander_id}${myId === incident.commander_id ? ' (bạn)' : ''}` : '—'},
             {label:'Phát hiện', value: incident.detected_at ? new Date(incident.detected_at).toLocaleString('vi-VN'):'—'},
             {label:'Contained', value: incident.contained_at ? new Date(incident.contained_at).toLocaleString('vi-VN'):'—'},
             {label:'Đóng lúc',  value: incident.resolved_at ? new Date(incident.resolved_at).toLocaleString('vi-VN'):'—'},
@@ -110,10 +148,11 @@ export default function IncidentDetail() {
         {tab===0 && <OverviewTab incident={incident} incId={id}/>}
         {tab===1 && <EvidenceTab incId={id} canWrite={canWrite} isAnalyst={isAnalyst}/>}
         {tab===2 && <ImpactTab   incId={id} isAnalyst={isAnalyst}/>}
-        {tab===3 && <ContainmentTab incId={id} isIT={isIT} isAnalyst={isAnalyst}/>}
+        {tab===3 && <ContainmentTab incId={id} isIT={isIT} isAnalyst={isAnalyst} myId={myId} commanderId={incident.commander_id} closed={closed}/>}
         {tab===4 && <RecoveryTab    incId={id} canWrite={canWrite} isAnalyst={isAnalyst} isStakeholder={isStakeholder}/>}
-        {tab===5 && <CommunicationTab incId={id} isAnalyst={isAnalyst}/>}
-        {tab===6 && <PostmortemTab    incId={id} isAnalyst={isAnalyst} incident={incident} reload={reload}/>}
+        {tab===5 && <CommunicationTab incId={id} isAnalyst={isAnalyst} isStakeholder={isStakeholder} myId={myId} isCommander={isCommander}/>}
+        {tab===6 && <PostmortemTab    incId={id} isAnalyst={isAnalyst} isCommander={isCommander} incident={incident} reload={reload}/>}
+        {tab===7 && <TimelineTab incId={id}/>}
       </div>
     </div>
   )
@@ -478,7 +517,7 @@ function ImpactTab({ incId, isAnalyst }) {
 }
 
 // ── Tab 3: Containment ──────────────────────────────
-function ContainmentTab({ incId, isIT, isAnalyst }) {
+function ContainmentTab({ incId, isIT, isAnalyst, myId, commanderId, closed }) {
   const [items, setItems] = useState([])
   const [showAdd, setShowAdd] = useState(false)
   const [adding, setAdding]   = useState(false)
@@ -508,6 +547,15 @@ function ContainmentTab({ incId, isIT, isAnalyst }) {
     } catch (err) { toast.error(err.response?.data?.detail || 'Thất bại') }
   }
 
+  const handleVerify = async (contId) => {
+    const note = prompt('Ghi chú xác minh (biện pháp đã có hiệu lực chưa?):') || 'Đã xác minh'
+    try {
+      await verifyContainment(incId, contId, { verify_note: note })
+      toast.success('Đã xác minh containment')
+      load()
+    } catch (err) { toast.error(err.response?.data?.detail || 'Thất bại') }
+  }
+
   const handleExecute = async (contId) => {
     const note = prompt('Ghi chú thực hiện:') || 'Đã thực hiện'
     try {
@@ -519,7 +567,7 @@ function ContainmentTab({ incId, isIT, isAnalyst }) {
 
   return (
     <div className="space-y-4">
-      {(isIT || isAnalyst) && (
+      {(isIT || isAnalyst) && !closed && (
         <div className="flex justify-end">
           <button onClick={() => setShowAdd(true)}
             className="text-sm px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
@@ -551,18 +599,39 @@ function ContainmentTab({ incId, isIT, isAnalyst }) {
                 {c.execution_note}
               </p>
             )}
+            {c.verify_note && (
+              <p className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded">
+                Xác minh: {c.verify_note}
+              </p>
+            )}
             <div className="flex gap-2 pt-1">
-              {c.status === 'proposed' && isAnalyst && (
-                <>
-                  <button onClick={() => handleReview(c.id, true)}
-                    className="text-xs px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200">✓ Phê duyệt</button>
-                  <button onClick={() => handleReview(c.id, false)}
-                    className="text-xs px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200">✗ Từ chối</button>
-                </>
-              )}
-              {c.status === 'approved' && (isIT || isAnalyst) && (
+              {c.status === 'proposed' && isAnalyst && !closed && (() => {
+                const own = c.proposed_by === myId
+                const needCommander = c.risk_level === 'high' && myId !== commanderId
+                return (
+                  <>
+                    {own ? (
+                      <span className="text-xs text-gray-400 self-center">Người đề xuất không tự phê duyệt</span>
+                    ) : needCommander ? (
+                      <span className="text-xs text-gray-400 self-center">Rủi ro cao: cần commander của vụ phê duyệt</span>
+                    ) : (
+                      <button onClick={() => handleReview(c.id, true)}
+                        className="text-xs px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200">✓ Phê duyệt</button>
+                    )}
+                    <button onClick={() => handleReview(c.id, false)}
+                      className="text-xs px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200">✗ Từ chối</button>
+                  </>
+                )
+              })()}
+              {c.status === 'approved' && (isIT || isAnalyst) && !closed && (
                 <button onClick={() => handleExecute(c.id)}
                   className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200">▶ Thực hiện</button>
+              )}
+              {c.status === 'executed' && isAnalyst && !closed && (
+                c.executed_by === myId
+                  ? <span className="text-xs text-gray-400 self-center">Người thực hiện không tự xác minh</span>
+                  : <button onClick={() => handleVerify(c.id)}
+                      className="text-xs px-3 py-1 bg-teal-100 text-teal-700 rounded hover:bg-teal-200">✓ Xác minh</button>
               )}
             </div>
           </div>
@@ -689,7 +758,7 @@ function RecoveryTab({ incId, canWrite, isAnalyst, isStakeholder }) {
                 <button onClick={() => handleDone(rec.id)}
                   className="text-xs px-3 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200">✓ Hoàn thành</button>
               )}
-              {rec.status === 'done' && !rec.is_confirmed && (isStakeholder || isAnalyst) && (
+              {rec.status === 'done' && !rec.is_confirmed && isStakeholder && (
                 <button onClick={() => handleConfirm(rec.id)}
                   className="text-xs px-3 py-1 bg-teal-100 text-teal-700 rounded hover:bg-teal-200">✓ Xác nhận</button>
               )}
@@ -735,7 +804,7 @@ function RecoveryTab({ incId, canWrite, isAnalyst, isStakeholder }) {
 }
 
 // ── Tab 5: Thông báo ──────────────────────────────
-function CommunicationTab({ incId, isAnalyst }) {
+function CommunicationTab({ incId, isAnalyst, isStakeholder, myId, isCommander }) {
   const [comms, setComms] = useState([])
   const [showAdd, setShowAdd] = useState(false)
   const [adding, setAdding]   = useState(false)
@@ -799,11 +868,27 @@ function CommunicationTab({ incId, isAnalyst }) {
             </div>
             <p className="text-gray-700 text-sm">{c.content}</p>
             {c.sent_at && <p className="text-xs text-gray-400">Gửi lúc: {new Date(c.sent_at).toLocaleString('vi-VN')}</p>}
+            {isStakeholder && c.status === 'sent' && (
+              <div className="flex gap-2 pt-1">
+                <button onClick={async () => {
+                    try {
+                      await acknowledgeCommunication(incId, c.id)
+                      toast.success('Đã xác nhận đã nhận')
+                      load()
+                    } catch (err) { toast.error(err.response?.data?.detail || 'Thất bại') }
+                  }}
+                  className="text-xs px-3 py-1 bg-teal-100 text-teal-700 rounded">✓ Xác nhận đã nhận</button>
+              </div>
+            )}
             {isAnalyst && (
               <div className="flex gap-2 pt-1">
                 {!c.is_approved && c.status === 'draft' && (
-                  <button onClick={() => handleApprove(c.id)}
-                    className="text-xs px-3 py-1 bg-green-100 text-green-700 rounded">✓ Phê duyệt</button>
+                  c.sent_by === myId
+                    ? <span className="text-xs text-gray-400 self-center">Người soạn không tự phê duyệt</span>
+                    : (['external', 'escalation'].includes(c.comm_type) && !isCommander)
+                      ? <span className="text-xs text-gray-400 self-center">Thông báo ra ngoài/leo thang: cần commander phê duyệt</span>
+                      : <button onClick={() => handleApprove(c.id)}
+                          className="text-xs px-3 py-1 bg-green-100 text-green-700 rounded">✓ Phê duyệt</button>
                 )}
                 {c.is_approved && c.status === 'draft' && (
                   <button onClick={() => handleSend(c.id)}
@@ -866,7 +951,7 @@ function CommunicationTab({ incId, isAnalyst }) {
 }
 
 // ── Tab 6: Postmortem ──────────────────────────────
-function PostmortemTab({ incId, isAnalyst, incident, reload }) {
+function PostmortemTab({ incId, isAnalyst, isCommander, incident, reload }) {
   const [pm, setPm]           = useState(null)
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -916,12 +1001,14 @@ function PostmortemTab({ incId, isAnalyst, incident, reload }) {
       {!pm ? (
         <Card>
           <p className="text-sm text-gray-400 mb-3">Chưa có postmortem</p>
-          {isAnalyst && (
+          {isAnalyst && (['recovering', 'closed'].includes(incident.status) ? (
             <button onClick={() => setShowCreate(true)}
               className="text-sm px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
               + Viết postmortem
             </button>
-          )}
+          ) : (
+            <p className="text-xs text-gray-400">Chỉ viết postmortem khi incident đã sang giai đoạn phục hồi hoặc đã đóng</p>
+          ))}
         </Card>
       ) : (
         <>
@@ -931,10 +1018,10 @@ function PostmortemTab({ incId, isAnalyst, incident, reload }) {
               {pm.is_finalized && <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">✓ Finalized</span>}
             </div>
           } action={
-            isAnalyst && !pm.is_finalized && (
+            isCommander && !pm.is_finalized && incident.status === 'closed' && (
               <button onClick={handleFinalize}
                 className="text-xs px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                Finalize & Đóng incident
+                Chốt postmortem
               </button>
             )
           }>
@@ -1051,6 +1138,61 @@ function PostmortemTab({ incId, isAnalyst, incident, reload }) {
           </div>
         </form>
       </Modal>
+    </div>
+  )
+}
+
+// ── Tab 7: Timeline (dựng từ nhật ký kiểm toán) ──────────────
+const ROLE_LABEL = {
+  analyst_soc: 'Analyst', it_helpdesk: 'IT', stakeholder: 'Stakeholder', auditor: 'Auditor',
+}
+
+function TimelineTab({ incId }) {
+  const [items, setItems]   = useState([])
+  const [loading, setLoading] = useState(true)
+  const [views, setViews]   = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    getTimeline(incId, views).then(r => setItems(r.data)).finally(() => setLoading(false))
+  }, [incId, views])
+
+  if (loading) return <LoadingSpinner/>
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-gray-500">
+          {items.length} sự kiện, sắp theo thời gian. Dựng tự động từ nhật ký kiểm toán nên không thể sửa.
+        </p>
+        <label className="text-xs text-gray-500 flex items-center gap-2">
+          <input type="checkbox" checked={views} onChange={e => setViews(e.target.checked)}/>
+          Hiện cả lượt xem bằng chứng
+        </label>
+      </div>
+      {items.length === 0 ? (
+        <Card><p className="text-sm text-gray-400">Chưa có sự kiện</p></Card>
+      ) : (
+        <Card>
+          <ol className="relative border-l border-gray-200 ml-2 space-y-4">
+            {items.map(t => (
+              <li key={t.id} className="ml-4">
+                <span className="absolute -left-1.5 mt-1.5 w-3 h-3 rounded-full bg-primary-500 border-2 border-white"/>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-400 font-mono">
+                    {new Date(t.at).toLocaleString('vi-VN')}
+                  </span>
+                  <span className="text-sm text-gray-800 font-medium">{t.label}</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {t.actor}{t.role ? ` (${ROLE_LABEL[t.role] || t.role})` : ''}
+                  {t.detail?.note ? <span className="text-gray-600"> — {t.detail.note}</span> : null}
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      )}
     </div>
   )
 }

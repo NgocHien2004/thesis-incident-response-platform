@@ -9,6 +9,7 @@ def run():
     r    = ScenarioRunner("analyst01", "Test@1234").login()
     r_it = ScenarioRunner("it01", "Test@1234").login()
     r_st = ScenarioRunner("stakeholder01", "Test@1234").login()
+    r2   = ScenarioRunner("analyst02", "Test@1234").login()
 
     r.tick("start")
 
@@ -46,7 +47,6 @@ def run():
         "title": "Admin account credential compromise",
         "description": "Tài khoản admin bị đăng nhập từ IP nước ngoài",
         "severity": "critical",
-        "commander_id": 1,
         "alert_ids": [alert_id]
     })
     if not incident: return None
@@ -84,6 +84,9 @@ def run():
         r_it.patch(f"/incidents/{inc_id}/containments/{cont['id']}/execute", {
             "execution_note": "Khóa tài khoản admin, revoke tất cả session (mô phỏng)"
         })
+        r2.patch(f"/incidents/{inc_id}/containments/{cont['id']}/verify", {
+            "verify_note": "Đã kiểm tra: biện pháp ngăn chặn có hiệu lực (mô phỏng)"
+        })
 
     # Recovery
     rec = r_it.post(f"/incidents/{inc_id}/recovery/", {
@@ -100,6 +103,7 @@ def run():
         })
 
     # Postmortem
+    r.patch(f"/incidents/{inc_id}/status", {"status": "closed", "note": "Hoàn tất xử lý"})
     pm = r.post(f"/incidents/{inc_id}/postmortem/", {
         "root_cause": "Không có MFA trên tài khoản admin, mật khẩu yếu bị brute force",
         "timeline": [

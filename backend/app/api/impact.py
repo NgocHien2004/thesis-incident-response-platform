@@ -9,6 +9,7 @@ from app.models.asset import Asset
 from app.schemas.impact import ImpactAnalysisCreate, ImpactAnalysisOut
 from app.core.dependencies import get_current_user, require_roles
 from app.core.ai_version import get_attck_version
+from app.core.rules import require_not_closed
 from app.models.user import RoleEnum, User
 
 router = APIRouter(prefix="/incidents/{incident_id}/impact", tags=["Impact Analysis"])
@@ -39,7 +40,7 @@ def create_analysis(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
 ):
-    _get_incident(incident_id, db)
+    require_not_closed(_get_incident(incident_id, db))
 
     # Validate asset ids tồn tại
     for asset_id in (payload.affected_assets or []):
@@ -77,6 +78,7 @@ def update_analysis(
     ).first()
     if not analysis:
         raise HTTPException(404, "Không tìm thấy phân tích")
+    require_not_closed(_get_incident(incident_id, db))
 
     analysis.ioc_list         = json.dumps(payload.ioc_list)
     analysis.affected_assets  = json.dumps(payload.affected_assets)

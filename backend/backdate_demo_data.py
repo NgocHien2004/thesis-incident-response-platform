@@ -16,10 +16,13 @@ from app.models.containment import Containment                      # noqa: E402
 from app.models.recovery import RecoveryAction                      # noqa: E402
 from app.models.communication import Communication                  # noqa: E402
 from app.models.postmortem import Postmortem                        # noqa: E402
+from app.models.audit_log import AuditLog                           # noqa: E402
+from app.core.audit import compute_hash, GENESIS                    # noqa: E402
 
 NOW = datetime.now(timezone.utc).replace(tzinfo=None)               # DB lưu UTC naive
 M = lambda mins: timedelta(minutes=mins)                            # noqa: E731
 db = SessionLocal()
+db.info["audit_disabled"] = True
 
 EXPECTED = ["Phishing", "Tấn công dò mật khẩu", "Mã độc beacon", "SQL injection"]
 incs = db.query(Incident).order_by(Incident.id).all()
@@ -53,6 +56,8 @@ def set_children(inc, base, *, cont, rec, comm, ev_at):
             c.reviewed_at = base + M(cont["review"])
         if c.executed_at:
             c.executed_at = base + M(cont["execute"])
+        if c.verified_at:
+            c.verified_at = base + M(cont.get("verify", cont["execute"] + 10))
     for k, r in enumerate(db.query(RecoveryAction).filter(RecoveryAction.incident_id == inc.id)
                           .order_by(RecoveryAction.id)):
         r.created_at = base + M(rec["create"])
@@ -84,7 +89,7 @@ for a in alerts_of(i1):
     set_alert(a, b, triage_delay=25)
 i1.detected_at, i1.created_at = b + M(40), b + M(40)
 i1.contained_at, i1.resolved_at = b + M(140), b + M(390)
-set_children(i1, b, cont=dict(propose=100, review=115, execute=140),
+set_children(i1, b, cont=dict(propose=100, review=115, execute=140, verify=150),
              rec=dict(create=150, done=200, confirm=300),
              comm=dict(create=210, send=240, ack=270), ev_at=55)
 pm = db.query(Postmortem).filter(Postmortem.incident_id == i1.id).first()
@@ -100,7 +105,7 @@ for a, o in zip(alerts_of(i2), offs):
     set_alert(a, b + M(o), triage_delay=20)
 i2.detected_at, i2.created_at = b + M(60), b + M(60)
 i2.contained_at = b + M(190)
-set_children(i2, b, cont=dict(propose=150, review=165, execute=190),
+set_children(i2, b, cont=dict(propose=150, review=165, execute=190, verify=200),
              rec=dict(create=200, done=260, confirm=340),
              comm=dict(create=300, send=300, ack=300), ev_at=80)
 for g in db.query(AlertGroup).filter(AlertGroup.alert_count > 1):
@@ -143,7 +148,95 @@ for k, a in enumerate(loose):
         if g and g.alert_count == 1:
             g.first_seen = g.last_seen = g.created_at = created
 
+db.flush()
+
+# ── Nhật ký kiểm toán: đưa thời gian về khớp với dữ liệu đã dịch lùi, rồi tính lại chuỗi băm ──
+alerts = {x.id: x for x in db.query(Alert).all()}
+incidents = {x.id: x for x in db.query(Incident).all()}
+evidences = {x.id: x for x in db.query(Evidence).all()}
+custody = {x.id: x for x in db.query(ChainOfCustody).all()}
+impacts = {x.id: x for x in db.query(ImpactAnalysis).all()}
+conts = {x.id: x for x in db.query(Containment).all()}
+recs = {x.id: x for x in db.query(RecoveryAction).all()}
+comms = {x.id: x for x in db.query(Communication).all()}
+pms = {x.id: x for x in db.query(Postmortem).all()}
+
+
+def audit_time(r):
+    e, i, a = r.entity_type, r.entity_id, r.action
+    if e == "alert" and i in alerts:
+        o = alerts[i]
+        if a == "alert.triaged":
+            return o.triaged_at or o.created_at + M(15)
+        if a == "alert.escalated":
+            inc = incidents.get(o.incident_id)
+            return inc.detected_at if inc else None
+        if a == "alert.false_positive":
+            return o.created_at + M(10)
+        return o.created_at
+    if e == "incident" and i in incidents:
+        o = incidents[i]
+        if a == "incident.updated":
+            pm = next((x for x in pms.values() if x.incident_id == i), None)
+            return pm.created_at if pm else o.detected_at
+        confirmed = [x.confirmed_at for x in recs.values() if x.incident_id == i and x.confirmed_at]
+        return {"incident.created": o.detected_at, "incident.investigating": o.detected_at + M(5) if o.detected_at else None,
+                "incident.contained": o.contained_at,
+                "incident.recovering": min(confirmed) if confirmed else None,
+                "incident.closed": o.resolved_at}.get(a)
+    if e == "evidence" and i in evidences:
+        return evidences[i].collected_at + M(2 if a == "evidence.locked" else 0)
+    if e == "custody" and i in custody:
+        return custody[i].performed_at
+    if e == "impact" and i in impacts:
+        return impacts[i].created_at
+    if e == "containment" and i in conts:
+        o = conts[i]
+        return {"containment.created": o.proposed_at, "containment.approved": o.reviewed_at,
+                "containment.rejected": o.reviewed_at, "containment.executed": o.executed_at,
+                "containment.verified": o.verified_at}.get(a)
+    if e == "recovery" and i in recs:
+        o = recs[i]
+        return {"recovery.created": o.created_at,
+                "recovery.in_progress": (o.executed_at - M(10)) if o.executed_at else o.created_at + M(5),
+                "recovery.done": o.executed_at, "recovery.failed": o.executed_at,
+                "recovery.confirmed": o.confirmed_at}.get(a)
+    if e == "communication" and i in comms:
+        o = comms[i]
+        return {"communication.created": o.created_at, "communication.approved": o.created_at + M(10),
+                "communication.sent": o.sent_at, "communication.acknowledged": o.acknowledged_at}.get(a)
+    if e == "postmortem" and i in pms:
+        o = pms[i]
+        return {"postmortem.created": o.created_at, "postmortem.updated": o.created_at + M(5),
+                "postmortem.finalized": o.finalized_at}.get(a)
+    if a == "asset.created":
+        return NOW - timedelta(days=5)
+    if a == "user.created":
+        return NOW - timedelta(days=6)
+    return None
+
+
+rows = db.query(AuditLog).order_by(AuditLog.id.asc()).all()
+logins = 0
+for r in rows:
+    t = audit_time(r)
+    if t is None and r.action.startswith("auth."):
+        t = NOW - timedelta(days=4) + M(7 * logins)
+        logins += 1
+    if t is not None:
+        r.at = t.replace(microsecond=0)
+db.flush()
+prev = GENESIS
+for r in rows:
+    data = {"prev_hash": prev, "at": r.at, "user_id": r.user_id, "username": r.username, "role": r.role,
+            "action": r.action, "entity_type": r.entity_type, "entity_id": r.entity_id,
+            "incident_id": r.incident_id, "detail": r.detail}
+    r.prev_hash = prev
+    r.row_hash = compute_hash(data)
+    prev = r.row_hash
+
 db.commit()
 db.close()
 print("Đã dịch lùi mốc thời gian cho 4 incident và các cảnh báo lẻ.")
+print("Đã tính lại chuỗi băm của nhật ký kiểm toán (chỉ làm với dữ liệu demo).")
 print("Mở GET /dashboard/ để xem MTTD/MTTA/MTTR mới.")

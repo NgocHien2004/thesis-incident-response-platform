@@ -43,5 +43,10 @@ class Containment(Base):
     executed_at     = Column(DateTime, nullable=True)
     execution_note  = Column(UnicodeText, nullable=True)  # ghi chú thực hiện (mô phỏng)
 
+    # Xác minh sau khi thực hiện (người xác minh khác người thực hiện)
+    verified_by     = Column(Integer, ForeignKey("users.id"), nullable=True)
+    verified_at     = Column(DateTime, nullable=True)
+    verify_note     = Column(UnicodeText, nullable=True)
+
     created_at      = Column(DateTime, default=utcnow)
     updated_at      = Column(DateTime, default=utcnow, onupdate=utcnow)

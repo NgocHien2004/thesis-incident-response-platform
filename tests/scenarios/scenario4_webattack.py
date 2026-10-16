@@ -8,6 +8,7 @@ def run():
     r    = ScenarioRunner("analyst01", "Test@1234").login()
     r_it = ScenarioRunner("it01", "Test@1234").login()
     r_st = ScenarioRunner("stakeholder01", "Test@1234").login()
+    r2   = ScenarioRunner("analyst02", "Test@1234").login()
     r.tick("start")
 
     alert = r_it.post("/alerts/", {
@@ -35,7 +36,6 @@ def run():
     incident = r.post("/incidents/", {
         "title": "SQL Injection attack on web application",
         "severity": "high",
-        "commander_id": 1,
         "alert_ids": [alert_id]
     })
     if not incident: return None
@@ -69,6 +69,9 @@ def run():
         r_it.patch(f"/incidents/{inc_id}/containments/{cont['id']}/execute", {
             "execution_note": "Block 203.0.113.42 trên WAF và firewall (mô phỏng)"
         })
+        r2.patch(f"/incidents/{inc_id}/containments/{cont['id']}/verify", {
+            "verify_note": "Đã kiểm tra: biện pháp ngăn chặn có hiệu lực (mô phỏng)"
+        })
 
     rec = r_it.post(f"/incidents/{inc_id}/recovery/", {
         "action_type": "patch_vulnerability",
@@ -84,6 +87,7 @@ def run():
             "confirm_note": "Web app hoạt động bình thường, WAF không còn phát hiện tấn công"
         })
 
+    r.patch(f"/incidents/{inc_id}/status", {"status": "closed", "note": "Hoàn tất xử lý"})
     pm = r.post(f"/incidents/{inc_id}/postmortem/", {
         "root_cause": "Login endpoint dùng string concatenation thay vì parameterized query",
         "timeline": [

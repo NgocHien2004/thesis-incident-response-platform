@@ -9,6 +9,8 @@ import AlertDetail from './pages/AlertDetail'
 import IncidentList from './pages/IncidentList'
 import IncidentDetail from './pages/incidents/IncidentDetail'
 import AssetList from './pages/AssetList'
+import AuditLog from './pages/AuditLog'
+import Accounts from './pages/Accounts'
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
@@ -30,6 +32,8 @@ export default function App() {
           <Route path="/incidents" element={<PrivateRoute><IncidentList /></PrivateRoute>} />
           <Route path="/incidents/:id" element={<PrivateRoute><IncidentDetail /></PrivateRoute>} />
           <Route path="/assets" element={<PrivateRoute><AssetList /></PrivateRoute>} />
+          <Route path="/audit" element={<PrivateRoute><AuditLog /></PrivateRoute>} />
+          <Route path="/accounts" element={<PrivateRoute><Accounts /></PrivateRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

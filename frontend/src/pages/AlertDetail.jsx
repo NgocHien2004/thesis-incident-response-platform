@@ -32,6 +32,7 @@ export default function AlertDetail() {
   const [incForm, setIncForm] = useState({ title: '', severity: 'high', description: '' })
 
   const isAnalyst = user?.role === 'analyst_soc'
+  const isIT      = user?.role === 'it_helpdesk'
 
   useEffect(() => {
     getAlert(id)
@@ -123,7 +124,7 @@ export default function AlertDetail() {
   if (loading) return <LoadingSpinner />
   if (!alert) return <div className="p-6 text-gray-500">Không tìm thấy cảnh báo</div>
 
-  const canTriage   = isAnalyst && ['new', 'reviewing'].includes(alert.status)
+  const canTriage   = (isAnalyst || isIT) && ['new', 'reviewing'].includes(alert.status)
   const canEscalate = isAnalyst && alert.status === 'triaged' && !alert.incident_id
 
   return (

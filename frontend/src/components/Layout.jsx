@@ -6,12 +6,15 @@ const navItems = [
   { path: '/alerts',    label: 'Cảnh báo',   icon: '🚨' },
   { path: '/incidents', label: 'Sự cố',      icon: '🔥' },
   { path: '/assets',    label: 'Tài sản',    icon: '🖥️' },
+  { path: '/audit',     label: 'Nhật ký',    icon: '🧾', roles: ['analyst_soc', 'auditor'] },
+  { path: '/accounts',  label: 'Tài khoản',  icon: '👤', roles: ['analyst_soc'] },
 ]
 
 const roleColors = {
   analyst_soc:  'bg-purple-100 text-purple-700',
   it_helpdesk:  'bg-blue-100 text-blue-700',
   stakeholder:  'bg-green-100 text-green-700',
+  auditor:      'bg-amber-100 text-amber-700',
 }
 
 export default function Layout({ children }) {
@@ -33,7 +36,7 @@ export default function Layout({ children }) {
           <div className="text-gray-400 text-xs mt-0.5">Incident Response</div>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map(item => (
+          {navItems.filter(item => !item.roles || item.roles.includes(user?.role)).map(item => (
             <Link
               key={item.path}
               to={item.path}
