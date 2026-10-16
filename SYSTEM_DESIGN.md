@@ -24,36 +24,64 @@ Hệ thống quản lý vòng đời sự cố an ninh mạng (Incident Response
 
 ## Role và phân quyền
 
-Hệ thống có 3 role, ánh xạ với cấu trúc SOC thực tế tại tổ chức vừa và nhỏ.
+Đề bài liệt kê 7 **nhóm người dùng**. Đây là các nhóm người trong tổ chức, không phải 7 vai trò kỹ thuật, nên hệ thống gộp chúng thành 4 vai trò theo quyền hạn thực tế.
+
+| # | Nhóm trong đề | Vai trò hệ thống | Cách xử lý |
+| --- | --- | --- | --- |
+| 1 | Nhân viên gửi báo cáo phishing | không cần tài khoản | Báo qua email hoặc điện thoại cho helpdesk, helpdesk nhập vào hệ thống (bước 2: "email nghi phishing, báo cáo thủ công") |
+| 2 | IT/helpdesk | `it_helpdesk` | |
+| 3 | Chuyên viên an ninh/SOC | `analyst_soc` | |
+| 4 | Incident commander / quản lý CNTT | `analyst_soc` được chỉ định làm commander của từng vụ (`commander_id`) | Commander là vai trò theo từng incident, có thẩm quyền cao hơn trong phạm vi vụ đó |
+| 5 | Chủ hệ thống / nghiệp vụ bị ảnh hưởng | `stakeholder` | |
+| 6 | Lãnh đạo, pháp chế, truyền thông | `stakeholder` | Đề ghi "trong kịch bản mô phỏng", nên là vai diễn, không cần role riêng |
+| 7 | Kiểm toán viên | `auditor` | Chỉ đọc, xem toàn bộ dữ liệu và nhật ký kiểm toán |
 
 | Role | Tương đương thực tế | Trách nhiệm chính |
 | --- | --- | --- |
-| `it_helpdesk` | Tier 1 SOC / IT Staff | Tiếp nhận cảnh báo, thu thập bằng chứng, thực hiện containment theo chỉ đạo, eradication & recovery |
-| `analyst_soc` | Tier 2 SOC / Incident Responder | Triage, tạo incident, phân tích IOC, phê duyệt containment, viết postmortem, gửi thông báo |
-| `stakeholder` | Business Owner / Management | Xác nhận recovery, đọc thông báo, xem dashboard |
+| `it_helpdesk` | Tier 1 SOC / IT Staff | Tiếp nhận và triage sơ bộ cảnh báo, thu thập bằng chứng, đề xuất và thực hiện containment, thực hiện recovery |
+| `analyst_soc` | Tier 2 SOC / Incident Responder | Triage, tạo incident (người tạo mặc định là commander), phân tích phạm vi, phê duyệt containment, xác minh, soạn và duyệt thông báo, postmortem |
+| `stakeholder` | Chủ hệ thống / Lãnh đạo | Xác nhận recovery, xác nhận đã nhận thông báo, xem dữ liệu |
+| `auditor` | Kiểm toán viên | Chỉ đọc; xem và xuất nhật ký kiểm toán, kiểm tra tính toàn vẹn của nhật ký |
 
-**Permission matrix chi tiết:**
+**Ma trận quyền:**
 
-| Hành động | IT/Helpdesk | Analyst/SOC | Stakeholder |
-| --- | --- | --- | --- |
-| Xem tất cả dữ liệu | ✅ | ✅ | ✅ |
-| Tạo / upload alert | ✅ | ✅ | ❌ |
-| Triage alert | ✅ | ✅ | ❌ |
-| Tạo incident | ❌ | ✅ | ❌ |
-| Thu thập bằng chứng | ✅ | ✅ | ❌ |
-| Lock bằng chứng | ✅ | ✅ | ❌ |
-| Phân tích phạm vi & IOC | ❌ | ✅ | ❌ |
-| Đề xuất containment | ✅ | ✅ | ❌ |
-| Phê duyệt containment | ❌ | ✅ | ❌ |
-| Thực hiện containment | ✅ | ✅ | ❌ |
-| Recovery action | ✅ | ✅ | ❌ |
-| Xác nhận recovery | ❌ | ✅ | ✅ |
-| Tạo & gửi thông báo | ❌ | ✅ | ❌ |
-| Viết postmortem | ❌ | ✅ | ❌ |
-| Xóa tài sản | ❌ | ✅ | ❌ |
-| Gọi AI suggest | ✅ | ✅ | ✅ |
+| Hành động | IT | Analyst | Stakeholder | Auditor |
+| --- | --- | --- | --- | --- |
+| Xem dữ liệu (alert, incident, tài sản, dashboard, timeline) | ✅ | ✅ | ✅ | ✅ |
+| Tạo, sửa tài sản | ✅ | ✅ | ❌ | ❌ |
+| Xóa tài sản | ❌ | ✅ | ❌ | ❌ |
+| Tạo / upload alert; triage | ✅ | ✅ | ❌ | ❌ |
+| Đánh dấu báo nhầm; tạo incident; đổi trạng thái incident; phân tích phạm vi | ❌ | ✅ | ❌ | ❌ |
+| Thu thập và khóa bằng chứng | ✅ | ✅ | ❌ | ❌ |
+| Đề xuất containment | ✅ | ✅ | ❌ | ❌ |
+| Phê duyệt containment | ❌ | ✅ (xem quy tắc bên dưới) | ❌ | ❌ |
+| Thực hiện containment | ✅ | ✅ | ❌ | ❌ |
+| Xác minh containment | ❌ | ✅ (người khác người thực hiện) | ❌ | ❌ |
+| Tạo, cập nhật hành động recovery | ✅ | ✅ | ❌ | ❌ |
+| Xác nhận recovery | ❌ | ❌ | ✅ | ❌ |
+| Soạn thông báo | ❌ | ✅ | ❌ | ❌ |
+| Phê duyệt thông báo | ❌ | ✅ (người khác người soạn) | ❌ | ❌ |
+| Gửi thông báo đã duyệt | ❌ | ✅ | ❌ | ❌ |
+| Xác nhận đã nhận thông báo | ❌ | ❌ | ✅ | ❌ |
+| Viết postmortem | ❌ | ✅ | ❌ | ❌ |
+| Đánh dấu hoàn thành action item | ✅ | ✅ | ❌ | ❌ |
+| Đóng hoặc mở lại incident; chốt postmortem | ❌ | ✅ (chỉ commander của vụ) | ❌ | ❌ |
+| Xem, xuất nhật ký kiểm toán; kiểm tra chuỗi băm | ❌ | ✅ | ❌ | ✅ |
+| Cấp tài khoản mới | ❌ | ✅ | ❌ | ❌ |
+| Gọi AI suggest | ✅ | ✅ | ✅ | ✅ |
 
-**Lý do thiết kế:** IT/Helpdesk được triage vì trong SME, Tier 1 thường triage sơ bộ trước khi escalate lên Analyst. Stakeholder không tạo/sửa dữ liệu kỹ thuật nhưng có quyền xác nhận recovery vì họ là người chịu trách nhiệm về hệ thống nghiệp vụ. Mọi thao tác có rủi ro (containment) đều yêu cầu phê duyệt từ Analyst trước khi thực hiện.
+**Ma trận thẩm quyền và tách nhiệm vụ.** Đề yêu cầu quyền thực thi containment nằm trong ma trận thẩm quyền của tổ chức. Hệ thống áp dụng các quy tắc sau, kiểm tra ở backend và có trong bộ kiểm thử phân quyền:
+
+- Người phê duyệt containment phải khác người đề xuất.
+- Containment rủi ro cao chỉ do commander của vụ phê duyệt.
+- Người xác minh containment phải khác người thực hiện.
+- Người duyệt thông báo phải khác người soạn; thông báo ra ngoài hoặc leo thang do commander duyệt.
+- Recovery chỉ do chủ hệ thống (stakeholder) xác nhận, analyst không xác nhận thay.
+- Chỉ commander của vụ được đóng, mở lại incident và chốt postmortem.
+
+**Bảo mật tài khoản.** Mật khẩu băm bcrypt. Token JWT hết hạn sau 15 phút. Sai mật khẩu 5 lần thì khóa tài khoản 15 phút. Tài khoản đầu tiên được tạo tự do để khởi tạo hệ thống; sau đó chỉ Analyst mới cấp tài khoản và phân vai trò. Mọi lần đăng nhập, đăng nhập sai và cấp tài khoản đều được ghi vào nhật ký kiểm toán.
+
+**Lý do thiết kế.** Gộp thành 4 vai trò để phù hợp tổ chức vừa và nhỏ nhưng vẫn giữ được tách nhiệm vụ. Commander là vai trò theo từng vụ chứ không phải một loại tài khoản, đúng với NIST SP 800-61 và CISA playbook. Kiểm toán viên có vai trò riêng chỉ đọc vì việc kiểm toán đòi hỏi xem được mọi thứ mà không thể thay đổi gì.
 
 ## Quy trình nghiệp vụ 12 bước
 
@@ -65,7 +93,7 @@ Mỗi bước mô tả ai làm gì, đầu vào, đầu ra và điều kiện ch
 
 ### Bước 2 — Tiếp nhận cảnh báo
 
-**Ai làm:** IT/Helpdesk, Analyst/SOC **Đầu vào:** File CSV/JSON, POST webhook, hoặc nhập thủ công **Đầu ra:** Alert với status `new`, có ID, timestamp, nguồn gốc **Ghi chú:** Mọi cảnh báo đều vào hàng chờ, chưa phán xét. Webhook endpoint cho phép tích hợp IDS/IPS mô phỏng.
+**Ai làm:** IT/Helpdesk, Analyst/SOC **Đầu vào:** File CSV/JSON, POST webhook, hoặc nhập thủ công **Đầu ra:** Alert với status `new`, có ID, timestamp, nguồn gốc **Ghi chú:** Mọi cảnh báo đều vào hàng chờ, chưa phán xét. Nhân viên báo cáo nghi phishing qua email hoặc điện thoại, helpdesk nhập vào hệ thống (nhân viên thường không có tài khoản). Chưa hỗ trợ nhập trực tiếp tệp email (.eml).
 
 ### Bước 3 — Chuẩn hóa & chống trùng
 
@@ -77,7 +105,7 @@ Mỗi bước mô tả ai làm gì, đầu vào, đầu ra và điều kiện ch
 
 ### Bước 5 — Tạo incident
 
-**Ai làm:** Analyst/SOC **Đầu vào:** Alert ở trạng thái `triaged` hoặc `escalated` **Đầu ra:** Incident với ID, commander, checklist ban đầu, liên kết đến các alert **Ghi chú:** Một incident có thể gộp nhiều alert liên quan. Tất cả alert được gán `incident_id` và chuyển sang `escalated`.
+**Ai làm:** Analyst/SOC **Đầu vào:** Alert đã `triaged` **Đầu ra:** Incident với ID, commander, checklist ban đầu, liên kết đến các alert **Ghi chú:** Một incident có thể gộp nhiều alert liên quan; các alert chuyển sang `escalated`. Commander mặc định là người tạo, hoặc một Analyst khác được chỉ định; commander phải là tài khoản Analyst đang hoạt động.
 
 ### Bước 6 — Thu thập bằng chứng
 
@@ -89,23 +117,23 @@ Mỗi bước mô tả ai làm gì, đầu vào, đầu ra và điều kiện ch
 
 ### Bước 8 — Containment
 
-**Ai làm:** IT/Helpdesk (đề xuất + thực hiện), Analyst/SOC (phê duyệt) **Đầu vào:** Kết quả phân tích phạm vi **Đầu ra:** Log hành động containment có timestamp, người thực hiện, ghi chú `[MÔ PHỎNG]` **Flow:** IT đề xuất (`proposed`) → Analyst phê duyệt (`approved`/`rejected`) → IT thực hiện (`executed`) **Quan trọng:** MVP chỉ mô phỏng — không tự động khóa tài khoản hay cô lập máy trên hệ thống thật.
+**Ai làm:** IT/Helpdesk hoặc Analyst (đề xuất, thực hiện), Analyst khác (phê duyệt, xác minh) **Đầu vào:** Incident đang điều tra, đã khống chế hoặc đang phục hồi **Flow:** Đề xuất (`proposed`) → phê duyệt hoặc từ chối → thực hiện (`executed`) → xác minh (`verified`) **Quy tắc thẩm quyền:** người duyệt khác người đề xuất; rủi ro cao chỉ commander duyệt; người xác minh khác người thực hiện. **Quan trọng:** MVP chỉ mô phỏng, không tự động khóa tài khoản hay cô lập máy trên hệ thống thật; "thực hiện" chỉ ghi nhận việc con người đã làm kèm ghi chú.
 
 ### Bước 9 — Eradication & Recovery
 
-**Ai làm:** IT/Helpdesk (thực hiện), Stakeholder + Analyst (xác nhận) **Đầu vào:** Incident đã `contained` **Đầu ra:** Danh sách recovery actions với trạng thái, confirmation từ Stakeholder **Điều kiện đóng:** Tất cả recovery actions phải được confirm trước khi incident chuyển sang `recovering`.
+**Ai làm:** IT/Helpdesk hoặc Analyst (thực hiện), Stakeholder là chủ hệ thống (xác nhận) **Đầu vào:** Incident đã `contained` **Đầu ra:** Danh sách recovery actions với trạng thái và xác nhận của chủ hệ thống **Ghi chú:** Khi mọi hành động đã xong được chủ hệ thống xác nhận, incident chuyển sang `recovering`. Analyst không được xác nhận thay chủ hệ thống.
 
 ### Bước 10 — Thông báo & phối hợp
 
-**Ai làm:** Analyst/SOC (tạo + gửi), bất kỳ ai (acknowledge) **Đầu vào:** Nội dung cập nhật sự cố **Đầu ra:** Log thông báo với subject, recipients, thời gian gửi, người xác nhận đã đọc **Flow:** Draft → Analyst phê duyệt nội dung → Gửi → Stakeholder acknowledge
+**Ai làm:** Analyst/SOC (soạn, duyệt, gửi), Stakeholder (xác nhận đã nhận) **Đầu ra:** Log thông báo với subject, recipients, thời gian gửi, người xác nhận đã đọc **Flow:** Nháp → Analyst khác người soạn phê duyệt nội dung → gửi → Stakeholder xác nhận. Thông báo ra ngoài hoặc leo thang cần commander phê duyệt. Chưa có mẫu thông báo và danh bạ bên liên quan.
 
 ### Bước 11 — Đóng vụ & Postmortem
 
-**Ai làm:** Analyst/SOC **Đầu vào:** Incident đã `recovering`, mọi recovery action đã confirmed **Đầu ra:** Postmortem với root cause, timeline, impact, lessons learned, action items có owner và deadline **Điều kiện đóng:** Finalize postmortem → incident tự động chuyển sang `closed`, `resolved_at` được ghi.
+**Ai làm:** Commander của vụ (đóng, chốt postmortem), Analyst (viết postmortem) **Tiêu chí đóng:** đã có mốc khống chế; không còn đề xuất containment chưa xử lý; mọi containment đã thực hiện đều được xác minh; không còn hành động recovery đang chờ hoặc đang làm; có ít nhất một hành động recovery được chủ hệ thống xác nhận. **Postmortem:** viết khi incident đã sang giai đoạn phục hồi hoặc đã đóng; chốt (finalize) khi incident đã đóng và có ít nhất một action item; chốt không thay đổi trạng thái hay thời điểm đóng của incident. **Mở lại:** commander có thể mở lại incident đã đóng kèm lý do bắt buộc. Incident đã đóng không nhận thêm bằng chứng, containment hay recovery.
 
 ### Bước 12 — Đo lường
 
-**Ai làm:** Hệ thống tự động tính, tất cả role xem được **Đầu ra:** MTTD, MTTA, MTTR, số vụ mở, lỗi lặp, % hoàn thành action items, SLA breached alerts **Ghi chú:** Dashboard cập nhật real-time mỗi lần gọi API. MTTD/MTTA tính từ timestamp của alert và triage.
+**Ai làm:** Hệ thống tự động tính, tất cả role xem được **Đầu ra:** MTTD, MTTA, MTTR, số vụ mở, lỗi lặp, % hoàn thành action items, SLA breached alerts **Định nghĩa:** MTTD là thời gian từ cảnh báo đầu tiên của vụ đến khi mở incident; MTTA là thời gian từ lúc tạo cảnh báo đến khi được triage; MTTR là thời gian từ khi mở incident đến khi đóng. MTTD và MTTR tính trên các vụ đã đóng. Vi phạm SLA là cảnh báo đã triage, quá hạn mà chưa được nâng thành incident. **Hạn chế:** chỉ số "lỗi lặp" so khớp chuỗi nguyên nhân gốc nên chưa đáng tin.
 
 ## Luồng dữ liệu & State machine
 
@@ -126,13 +154,15 @@ Incident (status: open)
     ↓ thu thập bằng chứng + phân tích
 Evidence + ImpactAnalysis
     ↓ đề xuất containment (IT) → phê duyệt (Analyst)
-Containment (status: executed) → Incident (status: contained)
+Containment (executed) → Incident (status: contained) → xác minh (Analyst khác)
     ↓ eradication & recovery (IT) → xác nhận (Stakeholder)
 RecoveryAction (is_confirmed: true) → Incident (status: recovering)
-    ↓ thông báo (Analyst)
+    ↓ thông báo (Analyst soạn, Analyst khác duyệt, Stakeholder xác nhận)
 Communication (status: acknowledged)
-    ↓ postmortem (Analyst) → finalize
-Postmortem (is_finalized: true) → Incident (status: closed)
+    ↓ đóng incident (commander, đủ tiêu chí đóng)
+Incident (status: closed)
+    ↓ postmortem (Analyst) → chốt (commander)
+Postmortem (is_finalized: true)
     ↓ tự động tính metrics
 Dashboard (MTTD, MTTA, MTTR, SLA...)
 ```
@@ -142,34 +172,77 @@ Dashboard (MTTD, MTTA, MTTR, SLA...)
 | Trạng thái | Chuyển sang | Điều kiện |
 | --- | --- | --- |
 | `new` | `reviewing` | Analyst mở xem |
-| `new` / `reviewing` | `triaged` | Triage thành công |
-| `new` / `reviewing` | `false_positive` | Analyst đánh dấu FP |
+| `new` / `reviewing` | `triaged` | Triage thành công (IT hoặc Analyst) |
+| `new` / `reviewing` | `false_positive` | Analyst đánh dấu báo nhầm |
 | `triaged` | `escalated` | Tạo incident gộp alert này |
 | `escalated` | — | Trạng thái cuối (theo dõi qua incident) |
 
 ### State machine — Incident
 
-| Trạng thái | Chuyển sang | Điều kiện |
+Chỉ các chuyển trạng thái trong bảng được chấp nhận; mọi chuyển khác bị từ chối (HTTP 400).
+
+| Từ | Sang | Điều kiện |
 | --- | --- | --- |
-| `open` | `investigating` | Analyst cập nhật thủ công |
-| `investigating` | `contained` | IT thực hiện containment được phê duyệt |
-| `contained` | `recovering` | Tất cả recovery actions được Stakeholder/Analyst confirm |
-| `recovering` | `closed` | Analyst finalize postmortem |
+| `open` | `investigating` | Analyst |
+| `investigating` | `contained` | Có ít nhất một containment đã thực hiện (hệ thống tự chuyển khi thực hiện containment) |
+| `contained` | `recovering` | Có hành động recovery (hệ thống tự chuyển khi mọi hành động đã xong được xác nhận) |
+| `contained` / `recovering` | `closed` | Commander của vụ, và đủ tiêu chí đóng (xem bước 11) |
+| `contained` / `recovering` | `investigating` | Quay lại điều tra, bắt buộc ghi lý do |
+| `closed` | `investigating` | Commander mở lại, bắt buộc ghi lý do |
 
 ### State machine — Containment
 
 | Trạng thái | Chuyển sang | Điều kiện |
 | --- | --- | --- |
-| `proposed` | `approved` | Analyst phê duyệt |
+| `proposed` | `approved` | Analyst khác người đề xuất; rủi ro cao chỉ commander |
 | `proposed` | `rejected` | Analyst từ chối |
-| `approved` | `executed` | IT thực hiện (chỉ mô phỏng) |
+| `approved` | `executed` | IT hoặc Analyst thực hiện (chỉ ghi nhận) |
+| `executed` | `verified` | Analyst khác người thực hiện xác minh |
 
 ### State machine — Evidence
 
 | Trạng thái | Chuyển sang | Điều kiện |
 | --- | --- | --- |
-| `is_locked: false` | `is_locked: true` | IT hoặc Analyst lock |
-| `is_locked: true` | — | Không thể sửa sau khi lock |
+| `is_locked: false` | `is_locked: true` | IT hoặc Analyst khóa |
+| `is_locked: true` | — | Không thể sửa sau khi khóa; mỗi lần thu thập, xem, khóa đều ghi vào chain of custody |
+
+### State machine — Recovery check
+
+| Trạng thái | Chuyển sang | Điều kiện |
+| --- | --- | --- |
+| `pending` | `in_progress` | IT hoặc Analyst bắt đầu (chỉ tạo được sau khi incident đã khống chế) |
+| `in_progress` | `done` / `failed` | IT hoặc Analyst cập nhật |
+| `done` | `is_confirmed: true` | Chủ hệ thống (stakeholder) xác nhận |
+
+### State machine — Communication
+
+| Trạng thái | Chuyển sang | Điều kiện |
+| --- | --- | --- |
+| `draft` | `draft` (đã duyệt) | Analyst khác người soạn duyệt; ra ngoài hoặc leo thang cần commander |
+| `draft` (đã duyệt) | `sent` | Analyst gửi |
+| `sent` | `acknowledged` | Stakeholder xác nhận đã nhận |
+
+### State machine — Postmortem và action item
+
+| Trạng thái | Chuyển sang | Điều kiện |
+| --- | --- | --- |
+| chưa có | đang soạn | Analyst viết khi incident đang phục hồi hoặc đã đóng |
+| đang soạn | `is_finalized: true` | Commander chốt khi incident đã đóng và có ít nhất một action item |
+| action item `done: false` | `done: true` | IT hoặc Analyst đánh dấu; tính vào chỉ số hoàn thành |
+
+Đối tượng **task** trong state machine tối thiểu của đề hiện chưa được cài đặt riêng: checklist ban đầu của incident chỉ là danh sách chữ.
+
+## Nhật ký kiểm toán (audit log)
+
+Mọi thay đổi dữ liệu nghiệp vụ và mọi sự kiện đăng nhập được ghi tự động vào bảng `audit_log`. Các đối tượng được theo dõi: tài sản, alert, incident, bằng chứng, chain of custody, phân tích phạm vi, containment, recovery, thông báo, postmortem, cùng đăng nhập, đăng nhập sai, khóa tài khoản và cấp tài khoản.
+
+- **Ghi tự động ở tầng dữ liệu:** một bộ lắng nghe trên session của SQLAlchemy ghi mỗi lần tạo, sửa, xóa các đối tượng trên, nên không thể quên ghi ở một endpoint nào đó. Mỗi bản ghi có người thực hiện (id, tên, vai trò), thời điểm UTC, hành động (ví dụ `containment.approved`), đối tượng, incident liên quan và chi tiết thay đổi (giá trị cũ và mới).
+- **Chỉ thêm vào:** không có endpoint sửa hoặc xóa nhật ký.
+- **Phát hiện chỉnh sửa:** mỗi bản ghi chứa mã băm SHA-256 của chính nó và của bản ghi trước. Endpoint `/audit/verify` tính lại toàn bộ chuỗi và báo bản ghi đầu tiên bị sửa hoặc mất.
+- **Truy cập:** chỉ Analyst và Auditor xem và xuất CSV.
+- **Timeline** của incident được dựng từ nhật ký (gồm cả các sự kiện của cảnh báo trước khi có incident), nên luôn khớp với nhật ký.
+
+**Hạn chế:** chuỗi băm phát hiện chỉnh sửa nhưng không ngăn được người có quyền quản trị trực tiếp cơ sở dữ liệu; hai thao tác ghi đồng thời có thể làm chuỗi rẽ nhánh; lượt đọc dữ liệu không được ghi (riêng lượt xem bằng chứng được ghi trong chain of custody).
 
 ## Module AI/ML
 
@@ -200,36 +273,69 @@ AI service chạy độc lập tại `http://localhost:8001`, backend gọi qua 
 
 ### ATT&CK Retrieval + Reranking
 
-**Dữ liệu:** MITRE ATT&CK Enterprise v14.1 — 697 techniques (không revoked, không deprecated)
+**Dữ liệu:** MITRE ATT&CK Enterprise (snapshot tải từ mitre/cti) — 697 techniques (không revoked, không deprecated). Snapshot được định danh bằng ngày sửa đổi mới nhất của dữ liệu (nhãn `ent-YYYY-MM-DD`) và SHA-256 của file, ghi trong `ml/models/attck_version.json`.
 
 **Quy trình:**
 
-1. Vectorize description + detection hints của 697 techniques bằng TF-IDF (10,000 features, bigram)
-2. Nhận query từ alert (title + description + IOC)
-3. Retrieval: cosine similarity → Top-20 candidates
-4. Reranking: boost score nếu tên technique xuất hiện trong query, boost thêm nếu tactic keywords khớp
-5. Trả về Top-K results với score
+1. Mỗi technique tạo một tài liệu gồm: tên (nhân ba trọng số) + mô tả + gợi ý phát hiện + tối đa 40 ví dụ thực tế (procedure examples lấy từ các quan hệ `uses` trong dữ liệu; 611/697 technique có ví dụ, tổng 17,136 ví dụ).
+2. Chỉ mục BM25 (k1 = 1.5, b = 0.75), unigram, stop words tiếng Anh.
+3. Truy vấn tiếng Việt được dịch cụm từ sang tiếng Anh bằng bảng thuật ngữ an ninh mạng 173 mục (`ml/attck_glossary_vi.json`) trước khi tìm.
+4. Reranking: nhân điểm 1.5 nếu tên technique xuất hiện trong truy vấn.
+5. Với `/alert/suggest`, IP, email và tên miền (IOC) được loại khỏi truy vấn truy hồi vì chúng mô tả chỉ báo chứ không mô tả hành vi.
+6. Trả về Top-K kết quả cùng điểm BM25 (không nằm trong khoảng 0–1).
 
-**Lưu phiên bản:** `models/attck_version.json` ghi version và timestamp lúc index.
+**Lưu phiên bản:** `models/attck_version.json` ghi nhãn snapshot, SHA-256, số technique, số ví dụ và thời điểm lập chỉ mục. Khi lưu phân tích phạm vi có kỹ thuật ATT&CK mà không nhập phiên bản, backend tự điền nhãn này từ AI service.
 
 ### Tích hợp vào hệ thống
 
 Endpoint `/ai/alert/suggest` trong backend nhận title + description + IOC, gọi AI service, trả về:
 
-- `severity_suggestion`: mức độ đề xuất (critical/high/medium/low)
-- `attck_techniques`: Top-5 techniques với id, tên, tactic, score
+- `severity_suggestion`: mức độ đề xuất, tính bằng luật từ khóa (tiếng Anh, cùng bản dịch của truy vấn tiếng Việt). Đây không phải đầu ra của mô hình Random Forest.
+- `attck_techniques`: Top-5 techniques với id, tên, tactic, điểm BM25
 - `summary`: tóm tắt ngắn gọn bằng tiếng Việt
-- `ai_generated: true` — đánh dấu rõ nội dung do AI tạo
+- `ai_generated: true` — đánh dấu rõ nội dung do AI tạo, kèm `generated_by`
 - `warning`: nhắc Analyst xác nhận trước khi sử dụng
 
-**Bảo mật:** Sanitize input trước khi xử lý (chống prompt injection), giới hạn độ dài 2000 ký tự, từ chối các pattern nguy hiểm.
+Mô hình Random Forest phục vụ qua `/classify` của AI service (đầu vào là thuộc tính luồng mạng). Hiện endpoint này chưa được backend hoặc giao diện gọi tới.
 
-### Kết quả benchmark
+**Bảo mật:** Sanitize input trước khi xử lý, giới hạn độ dài 2000 ký tự, từ chối các pattern nguy hiểm. Hệ thống không dùng LLM nên rủi ro prompt injection ở mức thấp; bộ lọc này là lớp phòng vệ bổ sung.
 
-| Tiêu chí | Không có AI | Có AI | Cải thiện |
-| --- | --- | --- | --- |
-| Tỷ lệ phân loại đúng severity | 28.6% | 85.7% | +57.1% |
-| Thời gian API call triage | 2.05s | 4.50s | +2.45s overhead |
+### Kết quả đánh giá
+
+**Bộ phân loại luồng mạng** (tập test 565,576 luồng, 111,311 tấn công; chia ngẫu nhiên 80/20 trên CIC-IDS2017):
+
+| Chỉ số | Giá trị |
+| --- | --- |
+| PR-AUC / ROC-AUC | 0.9998 / 0.9999 |
+| Ngưỡng 0.5: Precision / Recall / F1 | 0.9951 / 0.9993 / 0.9972 |
+| Ngưỡng 0.5: False Positive / False Negative | 546 / 82 |
+| Vùng tự đóng (prob < 0.15) | 80.07% số luồng, bỏ sót 24 tấn công (0.022%) |
+| Recall nhóm mức độ cao, gộp theo số mẫu | 0.9991 |
+| Recall nhóm mức độ cao, trung bình đều theo lớp | khoảng 0.948 (Bot 0.873; Infiltration 0.667 với n = 6) |
+
+Kết quả có thể cao hơn thực tế do cách chia ngẫu nhiên (các luồng gần giống nhau có thể nằm ở cả hai tập). Các lớp hiếm (Heartbleed n = 2, SQL Injection n = 2, Infiltration n = 6) không đủ mẫu để kết luận theo từng lớp.
+
+**Ánh xạ ATT&CK** (tập giữ lại 29 mô tả, viết và đóng băng trước khi cải tiến; Top-K tính theo ID chính xác):
+
+| Truy vấn | Phương pháp | Top-1 | Top-3 | Top-5 | MRR |
+| --- | --- | --- | --- | --- | --- |
+| Tiếng Anh | TF-IDF (trước) | 51.7% | 72.4% | 79.3% | 0.630 |
+| Tiếng Anh | BM25 + ví dụ thực tế | 62.1% | 79.3% | 82.8% | 0.709 |
+| Tiếng Việt | TF-IDF (trước) | 24.1% | 34.5% | 34.5% | 0.292 |
+| Tiếng Việt | BM25 + ví dụ + bảng thuật ngữ | 58.6% | 72.4% | 82.8% | 0.675 |
+
+Với n = 29, khoảng tin cậy 95% của Top-5 tiếng Anh chồng lấn giữa hai phương pháp nên mức cải thiện này chưa đủ để khẳng định; mức cải thiện tiếng Việt thì rõ ràng. Nhãn và các câu mô tả do tác giả xây dựng.
+
+**Gom nhóm cảnh báo** (tập mô phỏng 102 cảnh báo, 39 sự cố; luật: cùng IOC chuẩn hóa, cùng tài sản, trong cửa sổ 60 phút):
+
+| Chỉ số | Giá trị |
+| --- | --- |
+| Precision / Recall / F1 theo cặp | 91.3% / 68.3% / 78.1% |
+| Sự cố được gom trọn vẹn | 16/25 |
+
+Luật hoạt động tốt khi cảnh báo có cùng IOC và cùng tài sản. Luật không gom được trong các trường hợp: sự cố lan sang nhiều tài sản, cảnh báo thiếu IOC, IOC chồng lấn một phần, khoảng cách giữa hai cảnh báo lớn hơn 60 phút.
+
+**Kiểm thử khói (smoke benchmark) của luồng triage:** `tests/benchmark_ai.py` chạy 7 cảnh báo mô phỏng. Nhãn mong đợi và giá trị `manual_guess` do tác giả gán thủ công, và luật từ khóa của AI trùng với từ khóa trong tiêu đề các cảnh báo thử. Vì vậy các con số (28.6% so với 85.7%) chỉ minh họa luồng chạy, không dùng làm bằng chứng AI cải thiện chất lượng triage. Chỉ số đo được đáng tin cậy duy nhất của benchmark này là độ trễ: gọi AI làm thời gian triage tăng thêm khoảng 2.45 giây. Đánh giá thời gian triage của analyst có/không có AI cần thử nghiệm với người dùng thật.
 
 ## API Endpoints chính
 
@@ -239,7 +345,7 @@ Base URL: `http://localhost:8000` | Docs: `http://localhost:8000/docs`
 
 | Method | Endpoint | Mô tả | Role |
 | --- | --- | --- | --- |
-| POST | `/auth/register` | Tạo tài khoản | Public |
+| POST | `/auth/register` | Tạo tài khoản (tài khoản đầu tiên tạo tự do, sau đó chỉ Analyst) | Analyst |
 | POST | `/auth/login` | Đăng nhập, nhận JWT | Public |
 
 ### Assets
@@ -271,8 +377,9 @@ Base URL: `http://localhost:8000` | Docs: `http://localhost:8000/docs`
 | GET | `/incidents/` | Danh sách | All |
 | POST | `/incidents/` | Tạo từ alert | Analyst |
 | GET | `/incidents/{id}` | Chi tiết | All |
-| PATCH | `/incidents/{id}/status` | Cập nhật trạng thái | Analyst |
+| PATCH | `/incidents/{id}/status` | Đổi trạng thái theo bảng hợp lệ; đóng và mở lại chỉ commander | Analyst |
 | GET | `/incidents/{id}/alerts` | Alerts thuộc incident | All |
+| GET | `/incidents/{id}/timeline` | Timeline dựng từ nhật ký kiểm toán | All |
 
 ### Evidences
 
@@ -287,14 +394,25 @@ Base URL: `http://localhost:8000` | Docs: `http://localhost:8000/docs`
 | Method | Endpoint | Mô tả | Role |
 | --- | --- | --- | --- |
 | POST | `/incidents/{id}/containments/` | Đề xuất containment | IT, Analyst |
-| PATCH | `/incidents/{id}/containments/{cid}/review` | Phê duyệt | Analyst |
+| PATCH | `/incidents/{id}/containments/{cid}/review` | Phê duyệt (khác người đề xuất; rủi ro cao: commander) | Analyst |
 | PATCH | `/incidents/{id}/containments/{cid}/execute` | Thực hiện | IT, Analyst |
+| PATCH | `/incidents/{id}/containments/{cid}/verify` | Xác minh (khác người thực hiện) | Analyst |
 | POST | `/incidents/{id}/recovery/` | Tạo recovery action | IT, Analyst |
-| PATCH | `/incidents/{id}/recovery/{rid}/confirm` | Xác nhận recovery | Analyst, Stakeholder |
+| PATCH | `/incidents/{id}/recovery/{rid}/confirm` | Xác nhận recovery | Stakeholder |
 | POST | `/incidents/{id}/communications/` | Tạo thông báo | Analyst |
+| PATCH | `/incidents/{id}/communications/{cid}/approve` | Phê duyệt (khác người soạn; ra ngoài: commander) | Analyst |
 | PATCH | `/incidents/{id}/communications/{cid}/send` | Gửi | Analyst |
+| PATCH | `/incidents/{id}/communications/{cid}/acknowledge` | Xác nhận đã nhận | Stakeholder |
 | POST | `/incidents/{id}/postmortem/` | Viết postmortem | Analyst |
-| PATCH | `/incidents/{id}/postmortem/finalize` | Finalize + đóng incident | Analyst |
+| PATCH | `/incidents/{id}/postmortem/finalize` | Chốt postmortem (incident đã đóng, commander) | Analyst |
+
+### Audit
+
+| Method | Endpoint | Mô tả | Role |
+| --- | --- | --- | --- |
+| GET | `/audit/` | Danh sách, lọc theo incident, người dùng, hành động, đối tượng, thời gian | Analyst, Auditor |
+| GET | `/audit/verify` | Kiểm tra toàn vẹn chuỗi băm | Analyst, Auditor |
+| GET | `/audit/export.csv` | Xuất CSV | Analyst, Auditor |
 
 ### Dashboard & AI
 
