@@ -1,6 +1,11 @@
 {
-  "version": "14.1",
+  "version": "ent-2026-08-04",
+  "latest_technique_modified": "2026-08-04T20:30:56.386Z",
+  "sha256": "8b76d2c1b32cfa1d7ac2776536318a2272e78fe0a1601bf19488f3cd1d1200b1",
   "spec_version": "2.0",
   "technique_count": 697,
-  "indexed_at": "2026-10-01 08:51:32.528829"
+  "procedure_examples": 17136,
+  "source_url": "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json",
+  "retrieval": "bm25 + procedure examples + vi glossary",
+  "indexed_at": "2026-10-16T11:20:15.126001+00:00"
 }

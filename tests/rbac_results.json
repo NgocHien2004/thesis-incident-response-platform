@@ -1,8 +1,8 @@
 {
-  "passed": 131,
-  "failed": 4,
+  "passed": 135,
+  "failed": 0,
   "total": 135,
-  "pass_rate_pct": 97.0,
+  "pass_rate_pct": 100.0,
   "details": [
     {
       "test": "Analyst xem incidents",
@@ -1078,32 +1078,32 @@
       "expected": [
         200
       ],
-      "actual": 503,
-      "pass": false
+      "actual": 200,
+      "pass": true
     },
     {
       "test": "IT gọi AI suggest",
       "expected": [
         200
       ],
-      "actual": 503,
-      "pass": false
+      "actual": 200,
+      "pass": true
     },
     {
       "test": "Stakeholder gọi AI suggest",
       "expected": [
         200
       ],
-      "actual": 503,
-      "pass": false
+      "actual": 200,
+      "pass": true
     },
     {
       "test": "Auditor gọi AI suggest",
       "expected": [
         200
       ],
-      "actual": 503,
-      "pass": false
+      "actual": 200,
+      "pass": true
     },
     {
       "test": "Không token truy cập /incidents/",

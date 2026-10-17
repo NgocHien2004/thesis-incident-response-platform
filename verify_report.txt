@@ -1,0 +1,78 @@
+IR Platform — báo cáo kiểm tra 2026-10-17 12:56:34
+TỔNG KẾT: 47 đạt · 0 cảnh báo · 0 lỗi
+
+
+[HEAD] A. Kết nối
+[INFO] Python 3.14.3 · Windows · 2026-10-17 12:56:27
+[OK] Backend chạy tại http://localhost:8000 (62 endpoint)
+[OK] Đăng nhập được 5 tài khoản (analyst01, analyst02, it01, stakeholder01, auditor01)
+[OK] AI service /ai/health: HTTP 200 {"ai_service": "up", "detail": {"service": "AI Service", "models": ["rf_binary_v1", "attck_ent-2026-08-04"], "attck_vers
+
+[HEAD] B. Token và CORS (frontend phụ thuộc vào các mục này)
+[OK] JWT có claim role='analyst_soc' và sub='1' (AuthContext cần cả hai)
+[INFO] Access token còn hiệu lực ~15 phút
+[OK] CORS cho phép http://localhost:5173
+
+[HEAD] C. Tải dữ liệu từng trang theo role (mô phỏng các lời gọi API của frontend)
+[OK] 216 lời gọi tải trang đều thành công (4 incident × 4 role)
+[OK] Quyền xem nhật ký kiểm toán đúng: Analyst và Auditor xem được, IT và Stakeholder bị chặn
+
+[HEAD] D. Số liệu dashboard
+[INFO] Incident: tổng=4 mở=3 đóng=1 theo trạng thái={'open': 1, 'investigating': 1, 'contained': 0, 'recovering': 1, 'closed': 1}
+[INFO] Metrics: {'mttd_minutes': 40.0, 'mtta_minutes': 19.5, 'mttr_minutes': 350.0, 'repeat_incidents': 0, 'sla_breached_alerts': 1, 'action_item_completion_pct': 50.0}
+[OK] Tổng incident theo trạng thái khớp tổng
+[OK] Tổng alert theo trạng thái khớp tổng
+[OK] mttd_minutes = 40.0 phút (không âm)
+[OK] mtta_minutes = 19.5 phút (không âm)
+[OK] mttr_minutes = 350.0 phút (không âm)
+[INFO] SLA breached: alert #10 'Thiết bị lạ kết nối mạng nội bộ' (-300.5 phút)
+[INFO] Nhận ra bộ dữ liệu seed — so sánh với giá trị mong đợi (khi chưa có dữ liệu thêm)
+[OK] Trạng thái 4 incident seed đúng: ['closed', 'recovering', 'investigating', 'open']
+[OK] mttd_minutes = 40.0 (mong đợi ≈ 40.0)
+[OK] mtta_minutes = 19.5 (mong đợi ≈ 19.5)
+[OK] mttr_minutes = 350.0 (mong đợi ≈ 350.0)
+[OK] Vi phạm SLA = 1 như thiết kế
+[OK] Action item hoàn thành 50%
+
+[HEAD] E. Unicode tiếng Việt và múi giờ
+[OK] API trả lại đúng 100% chuỗi tiếng Việt vừa lưu
+[INFO] created_at do DB ghi lệch +0.0 giờ so với UTC (giờ máy lệch UTC +7.0)
+[OK] created_at đang là UTC — khớp với các mốc thời gian code ghi (triaged_at, detected_at...)
+
+[HEAD] F. Toàn vẹn dữ liệu trong DB
+[OK] Đọc thẳng từ DB: chuỗi tiếng Việt lưu đúng (cột Unicode)
+[OK] Mọi cột chữ tự do đều là NVARCHAR/NTEXT
+[INFO] Collation của DB: SQL_Latin1_General_CP1_CI_AS
+[INFO] SQL Server: GETDATE()=2026-10-17 12:56:32.330000  GETUTCDATE()=2026-10-17 05:56:32.333000
+[OK] Cả 13 alert đều có group_id (chống trùng đã chạy)
+[OK] Alert thuộc incident đều ở trạng thái escalated/closed
+[OK] Mọi alert: triaged_at ≥ created_at
+[OK] Hạn SLA luôn sau thời điểm triage
+[OK] Mọi incident: detected_at ≥ alert đầu tiên
+[OK] Mốc contained/resolved nhất quán với trạng thái incident
+[OK] Cả 4 bằng chứng đều có nhật ký chain of custody
+[OK] Bằng chứng đã khóa có ≥2 bản ghi custody (thu thập + khóa)
+[OK] Containment đã duyệt/thực hiện đều có người duyệt
+[OK] Containment đã thực hiện đều có người thực hiện
+[OK] Recovery đã xác nhận đều ở trạng thái done
+[OK] Thông báo đã gửi đều đã được phê duyệt
+[OK] Postmortem finalized đều có action item
+[OK] Không containment nào do chính người đề xuất phê duyệt
+[OK] Containment đã xác minh đều do người khác người thực hiện xác minh
+[OK] Containment rủi ro cao đều do commander của vụ phê duyệt
+[OK] Mọi recovery đều do chủ hệ thống (stakeholder) xác nhận
+[OK] Không thông báo nào do chính người soạn phê duyệt
+[OK] Mọi incident đều có commander là tài khoản Analyst
+[OK] Mọi incident đã đóng đều thỏa tiêu chí đóng
+[OK] Mọi incident đều có bản ghi tạo trong nhật ký kiểm toán
+[OK] Mọi incident đã đóng đều có bản ghi đóng trong nhật ký
+[OK] Chuỗi băm nhật ký kiểm toán nguyên vẹn (108 bản ghi)
+[INFO] Tài khoản theo vai trò: {'analyst_soc': 2, 'it_helpdesk': 1, 'stakeholder': 1, 'auditor': 1}
+[INFO] Số lượng bản ghi: alert=13 incident=4 evidence=4 containment=3 recovery=4 communication=2 postmortem=1
+[INFO] Đã xóa tài sản thử Unicode (HTTP 200)
+
+[HEAD] G. Frontend
+[OK] Dev server localhost:5173: HTTP 200
+[INFO] Đang chạy 'npm run build' (thư mục tạm, không đụng dist/ của bạn)...
+[OK] Frontend build thành công (mọi trang compile được)
+[INFO] [39m

@@ -1,7 +1,7 @@
 {
-  "passed": 18,
+  "passed": 45,
   "failed": 0,
-  "total": 18,
+  "total": 45,
   "pass_rate_pct": 100.0,
   "details": [
     {
@@ -45,6 +45,11 @@
       "note": "actions=['collected', 'accessed']"
     },
     {
+      "test": "Kiểm toán viên xem bằng chứng cũng bị ghi lại",
+      "pass": true,
+      "note": ""
+    },
+    {
       "test": "Lock thành công",
       "pass": true,
       "note": ""
@@ -57,7 +62,7 @@
     {
       "test": "Chain of custody ghi 'locked'",
       "pass": true,
-      "note": "actions=['collected', 'accessed', 'locked']"
+      "note": "actions=['collected', 'accessed', 'accessed', 'locked']"
     },
     {
       "test": "Không thể lock bằng chứng đã lock",
@@ -75,14 +80,44 @@
       "note": ""
     },
     {
+      "test": "Soạn thông báo",
+      "pass": true,
+      "note": ""
+    },
+    {
       "test": "Communication log có dữ liệu",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Log có subject",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Log có recipients",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Log có sent_at",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Log có status",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Log có is_approved",
       "pass": true,
       "note": ""
     },
     {
       "test": "Có đủ 3 action trong custody log",
       "pass": true,
-      "note": "actual=['collected', 'accessed', 'locked', 'accessed']"
+      "note": "actual=['collected', 'accessed', 'accessed', 'locked', 'accessed']"
     },
     {
       "test": "Thứ tự đúng: collected trước locked",
@@ -91,6 +126,106 @@
     },
     {
       "test": "Tất cả log có performed_by và performed_at",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Nhật ký có dữ liệu cho incident",
+      "pass": true,
+      "note": "13 bản ghi"
+    },
+    {
+      "test": "Ghi việc thu thập bằng chứng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Ghi đúng người thực hiện (it01)",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Ghi đúng vai trò",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Ghi việc khóa bằng chứng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Ghi việc tạo incident",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Ghi việc phê duyệt thông báo bởi người khác người soạn",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Mọi bản ghi có thời gian, người dùng và hành động",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không có thao tác xóa",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không có thao tác sửa",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không có thao tác ghi",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Kiểm tra chuỗi băm thành công",
+      "pass": true,
+      "note": "207 bản ghi"
+    },
+    {
+      "test": "Mỗi bản ghi nối với bản ghi trước bằng mã băm (đã kiểm tra ở bước verify)",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Xuất CSV thành công",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "CSV có tiêu đề và đúng số dòng",
+      "pass": true,
+      "note": "13 dòng"
+    },
+    {
+      "test": "CSV có cột mã băm",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Timeline có sự kiện",
+      "pass": true,
+      "note": "12 sự kiện"
+    },
+    {
+      "test": "Timeline gồm cả sự kiện cảnh báo trước khi có incident",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Timeline gồm thu thập và khóa bằng chứng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Timeline sắp theo thời gian",
       "pass": true,
       "note": ""
     }
