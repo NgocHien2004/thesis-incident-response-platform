@@ -6,7 +6,7 @@ import { getIncident, updateStatus, getEvidences, addEvidence, lockEvidence,
   confirmRecovery, getCommunications, createCommunication,
   approveCommunication, sendCommunication, getPostmortem,
   createPostmortem, finalizePostmortem, getImpact, createImpact,
-  verifyContainment, acknowledgeCommunication, getTimeline } from '../../api/incidents'
+  verifyContainment, acknowledgeCommunication, getTimeline, setActionItemDone } from '../../api/incidents'
 import Badge from '../../components/Badge'
 import Card from '../../components/Card'
 import Modal from '../../components/Modal'
@@ -151,7 +151,7 @@ export default function IncidentDetail() {
         {tab===3 && <ContainmentTab incId={id} isIT={isIT} isAnalyst={isAnalyst} myId={myId} commanderId={incident.commander_id} closed={closed}/>}
         {tab===4 && <RecoveryTab    incId={id} canWrite={canWrite} isAnalyst={isAnalyst} isStakeholder={isStakeholder}/>}
         {tab===5 && <CommunicationTab incId={id} isAnalyst={isAnalyst} isStakeholder={isStakeholder} myId={myId} isCommander={isCommander}/>}
-        {tab===6 && <PostmortemTab    incId={id} isAnalyst={isAnalyst} isCommander={isCommander} incident={incident} reload={reload}/>}
+        {tab===6 && <PostmortemTab    incId={id} isAnalyst={isAnalyst} isCommander={isCommander} canTrack={canWrite} incident={incident} reload={reload}/>}
         {tab===7 && <TimelineTab incId={id}/>}
       </div>
     </div>
@@ -951,7 +951,7 @@ function CommunicationTab({ incId, isAnalyst, isStakeholder, myId, isCommander }
 }
 
 // ── Tab 6: Postmortem ──────────────────────────────
-function PostmortemTab({ incId, isAnalyst, isCommander, incident, reload }) {
+function PostmortemTab({ incId, isAnalyst, isCommander, canTrack, incident, reload }) {
   const [pm, setPm]           = useState(null)
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -980,6 +980,14 @@ function PostmortemTab({ incId, isAnalyst, isCommander, incident, reload }) {
       getPostmortem(incId).then(r => setPm(r.data))
     } catch (err) { toast.error(err.response?.data?.detail||'Thất bại') }
     finally { setCreating(false) }
+  }
+
+  const toggleItem = async (index, done) => {
+    try {
+      await setActionItemDone(incId, index, done)
+      toast.success(done ? 'Đã đánh dấu hoàn thành' : 'Đã bỏ đánh dấu')
+      getPostmortem(incId).then(r => setPm(r.data))
+    } catch (err) { toast.error(err.response?.data?.detail||'Thất bại') }
   }
 
   const handleFinalize = async () => {
@@ -1057,9 +1065,17 @@ function PostmortemTab({ incId, isAnalyst, isCommander, incident, reload }) {
                 <div className="space-y-2">
                   {parseJson(pm.action_items).map((a,i) => (
                     <div key={i} className="flex items-center gap-3 text-sm">
-                      <span className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center text-xs ${a.done ? 'bg-green-500 border-green-500 text-white':'border-gray-300'}`}>
-                        {a.done ? '✓' : ''}
-                      </span>
+                      {canTrack ? (
+                        <button type="button" title={a.done ? 'Bỏ đánh dấu hoàn thành' : 'Đánh dấu hoàn thành'}
+                          onClick={() => toggleItem(i, !a.done)}
+                          className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center text-xs cursor-pointer ${a.done ? 'bg-green-500 border-green-500 text-white':'border-gray-300 hover:border-green-500'}`}>
+                          {a.done ? '✓' : ''}
+                        </button>
+                      ) : (
+                        <span className={`w-4 h-4 rounded border flex-shrink-0 flex items-center justify-center text-xs ${a.done ? 'bg-green-500 border-green-500 text-white':'border-gray-300'}`}>
+                          {a.done ? '✓' : ''}
+                        </span>
+                      )}
                       <span className={`flex-1 ${a.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>{a.task}</span>
                       <span className="text-xs text-gray-400">{a.owner}</span>
                       <span className="text-xs text-gray-400">{a.deadline}</span>

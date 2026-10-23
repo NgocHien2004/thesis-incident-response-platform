@@ -2,7 +2,14 @@ import os
 import sys
 from datetime import datetime, timedelta, timezone
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_HERE = os.path.dirname(os.path.abspath(__file__))
+BACKEND_DIR = _HERE
+for _d in (_HERE, os.path.join(_HERE, ".."), os.path.join(_HERE, "backend"), os.path.join(_HERE, "..", "backend"),
+           os.getcwd(), os.path.join(os.getcwd(), "backend")):
+    if os.path.exists(os.path.join(_d, "database.py")):
+        BACKEND_DIR = os.path.abspath(_d)
+        break
+sys.path.insert(0, BACKEND_DIR)
 
 from database import SessionLocal                                  # noqa: E402
 from app.models.user import User                                   # noqa: E402,F401  (cần để SQLAlchemy phân giải khóa ngoại)

@@ -185,7 +185,7 @@ export default function AlertDetail() {
                 Tạo Incident
               </button>
             )}
-            {canTriage && (
+            {isAnalyst && canTriage && (
               <button
                 onClick={handleFalsePositive}
                 className="text-sm px-3 py-2 bg-white hover:bg-gray-50 text-gray-600 rounded-lg border border-gray-200 transition-colors"
