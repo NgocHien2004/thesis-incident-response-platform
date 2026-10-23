@@ -119,7 +119,9 @@ def confirm_recovery(
     all_actions = db.query(RecoveryAction).filter(
         RecoveryAction.incident_id == incident_id
     ).all()
-    all_confirmed = all(a.is_confirmed for a in all_actions)
+    # Action failed không tính (giống tiêu chí đóng vụ); cần ít nhất 1 action còn hiệu lực
+    active = [a for a in all_actions if a.status != RecoveryStatus.failed]
+    all_confirmed = bool(active) and all(a.is_confirmed for a in active)
 
     # Nếu tất cả đã confirmed → incident chuyển sang recovering
     if all_confirmed:
@@ -146,10 +148,11 @@ def recovery_summary(
     total       = len(actions)
     done        = sum(1 for a in actions if a.status == RecoveryStatus.done)
     confirmed   = sum(1 for a in actions if a.is_confirmed)
+    active      = [a for a in actions if a.status != RecoveryStatus.failed]
     return {
         "total": total,
         "done": done,
         "confirmed": confirmed,
         "pending": sum(1 for a in actions if a.status == RecoveryStatus.pending),
-        "all_confirmed": confirmed == total and total > 0,
+        "all_confirmed": bool(active) and all(a.is_confirmed for a in active),
     }

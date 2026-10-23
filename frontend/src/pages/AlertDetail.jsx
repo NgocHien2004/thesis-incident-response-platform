@@ -126,6 +126,7 @@ export default function AlertDetail() {
 
   const canTriage   = (isAnalyst || isIT) && ['new', 'reviewing'].includes(alert.status)
   const canEscalate = isAnalyst && alert.status === 'triaged' && !alert.incident_id
+  const canFalsePositive = isAnalyst && ['new', 'reviewing', 'triaged'].includes(alert.status) && !alert.incident_id
 
   return (
     <div className="p-6 space-y-4">
@@ -185,7 +186,7 @@ export default function AlertDetail() {
                 Tạo Incident
               </button>
             )}
-            {isAnalyst && canTriage && (
+            {canFalsePositive && (
               <button
                 onClick={handleFalsePositive}
                 className="text-sm px-3 py-2 bg-white hover:bg-gray-50 text-gray-600 rounded-lg border border-gray-200 transition-colors"

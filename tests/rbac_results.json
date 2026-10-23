@@ -1,7 +1,7 @@
 {
-  "passed": 111,
+  "passed": 118,
   "failed": 0,
-  "total": 111,
+  "total": 118,
   "pass_rate_pct": 100.0,
   "details": [
     {
@@ -125,6 +125,47 @@
         403
       ],
       "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "IT đánh dấu false positive bị chặn",
+      "expected": [
+        401,
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Analyst đánh dấu false positive (alert new)",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Analyst đánh dấu false positive (alert đã triage)",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Đánh dấu false positive lần hai bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "Alert đã gắn incident (escalated) không đánh dấu false positive được",
+      "expected": [
+        400
+      ],
+      "actual": 400,
       "pass": true
     },
     {
@@ -450,6 +491,18 @@
         200
       ],
       "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Action failed không chặn: incident tự chuyển 'recovering'",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Tóm tắt recovery: all_confirmed bỏ qua action failed",
+      "expected": true,
+      "actual": true,
       "pass": true
     },
     {

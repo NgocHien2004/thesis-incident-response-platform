@@ -393,5 +393,4 @@ with open("verify_report.txt", "w", encoding="utf-8") as f:
     f.write(f"IR Platform — báo cáo kiểm tra {datetime.now():%Y-%m-%d %H:%M:%S}\n{summary}\n\n")
     for lvl, txt in lines:
         f.write(("\n" if lvl == "HEAD" else "") + f"[{lvl}] {txt}\n")
-print("Đã ghi verify_report.txt — gửi file này (hoặc dán nội dung) cho tôi.")
 sys.exit(1 if n_fail else 0)

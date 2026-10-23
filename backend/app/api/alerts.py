@@ -148,6 +148,11 @@ def mark_false_positive(
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
     if not alert:
         raise HTTPException(404, "Không tìm thấy cảnh báo")
+    if alert.status not in (AlertStatus.new, AlertStatus.reviewing, AlertStatus.triaged):
+        raise HTTPException(
+            400,
+            f"Không thể đánh dấu false positive khi cảnh báo đang ở trạng thái '{alert.status.value}'"
+        )
     alert.status = AlertStatus.false_positive
     db.commit()
     return {"message": "Đã đánh dấu false positive"}

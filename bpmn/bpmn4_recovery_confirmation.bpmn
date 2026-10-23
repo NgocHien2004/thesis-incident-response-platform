@@ -61,7 +61,7 @@
       <bpmn:outgoing>Flow_9</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:exclusiveGateway id="ga" name="Mọi recovery đã được xác nhận?">
-      <bpmn:documentation>Kiểm tra trên tất cả action của vụ. Một action failed không bao giờ được xác nhận sẽ làm điều kiện này không đạt, trong khi tiêu chí đóng vụ bỏ qua action failed.</bpmn:documentation>
+      <bpmn:documentation>Kiểm tra trên các action còn hiệu lực của vụ: action failed được bỏ qua (giống tiêu chí đóng vụ) và phải có ít nhất 1 action còn hiệu lực. Đạt điều kiện và vụ đang contained thì tự chuyển recovering.</bpmn:documentation>
       <bpmn:incoming>Flow_9</bpmn:incoming>
       <bpmn:outgoing>Flow_10</bpmn:outgoing>
       <bpmn:outgoing>Flow_12</bpmn:outgoing>

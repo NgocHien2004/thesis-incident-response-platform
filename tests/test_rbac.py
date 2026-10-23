@@ -18,6 +18,14 @@ def expect(label, resp, *codes):
     return ok
 
 
+def check(label, cond):
+    global passed, failed
+    passed, failed = (passed + 1, failed) if cond else (passed, failed + 1)
+    results.append({"test": label, "expected": True, "actual": bool(cond), "pass": bool(cond)})
+    print(f"  {'✓ PASS' if cond else '✗ FAIL'} | {label}")
+    return cond
+
+
 BLOCK = (401, 403)
 
 
@@ -54,6 +62,19 @@ def run():
     expect("Analyst triage", R(A, "PATCH", f"/alerts/{mk('a')}/triage", tri), 200)
     expect("IT triage", R(IT, "PATCH", f"/alerts/{mk('b')}/triage", tri), 200)
     expect("Stakeholder triage bị chặn", R(ST, "PATCH", f"/alerts/{mk('c')}/triage", tri), *BLOCK)
+
+    print("\n── 4b. Báo nhầm (chỉ Analyst, chỉ alert chưa gắn incident) ──")
+    fp = lambda who, aid: R(who, "PATCH", f"/alerts/{aid}/false-positive")
+    expect("IT đánh dấu false positive bị chặn", fp(IT, mk('d')), *BLOCK)
+    expect("Analyst đánh dấu false positive (alert new)", fp(A, mk('e')), 200)
+    tid = mk('f')
+    R(A, "PATCH", f"/alerts/{tid}/triage", tri)
+    expect("Analyst đánh dấu false positive (alert đã triage)", fp(A, tid), 200)
+    expect("Đánh dấu false positive lần hai bị từ chối", fp(A, tid), 400)
+    eid = R(IT, "POST", "/alerts/", {**alert_body, "title": f"FP esc {tag}", "ioc": f"{uuid.uuid4().hex[:8]}.example.com"}).json()["id"]
+    R(IT, "PATCH", f"/alerts/{eid}/triage", tri)
+    R(A, "POST", "/incidents/", {"title": f"FP esc {tag}", "severity": "low", "alert_ids": [eid]})
+    expect("Alert đã gắn incident (escalated) không đánh dấu false positive được", fp(A, eid), 400)
 
     print("\n── 5. Tạo incident (chỉ Analyst) và commander ──")
     def triaged():
@@ -127,10 +148,16 @@ def run():
     expect("IT tạo recovery (incident đã khống chế)", rec, 200)
     rid = rec.json()["id"]
     R(IT, "PATCH", f"/incidents/{inc}/recovery/{rid}/status", {"status": "done"})
+    rid2 = R(IT, "POST", f"/incidents/{inc}/recovery/", rb).json()["id"]
+    R(IT, "PATCH", f"/incidents/{inc}/recovery/{rid2}/status", {"status": "failed"})
     cf = lambda who: R(who, "PATCH", f"/incidents/{inc}/recovery/{rid}/confirm", {"confirm_note": "RBAC"})
     expect("Analyst xác nhận thay chủ hệ thống bị chặn", cf(A), *BLOCK)
     expect("IT xác nhận recovery bị chặn", cf(IT), *BLOCK)
     expect("Stakeholder (chủ hệ thống) xác nhận recovery", cf(ST), 200)
+    check("Action failed không chặn: incident tự chuyển 'recovering'",
+          R(A, "GET", f"/incidents/{inc}").json().get("status") == "recovering")
+    check("Tóm tắt recovery: all_confirmed bỏ qua action failed",
+          R(A, "GET", f"/incidents/{inc}/recovery/summary").json().get("all_confirmed") is True)
     expect("Tạo recovery khi incident còn 'open' bị từ chối", R(IT, "POST", f"/incidents/{other}/recovery/", rb), 409)
 
     print("\n── 12. Thông báo: tách người soạn và người duyệt ──")
