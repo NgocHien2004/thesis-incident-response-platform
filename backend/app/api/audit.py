@@ -12,7 +12,7 @@ from database import get_db
 from app.models.audit_log import AuditLog
 from app.models.user import User
 from app.core.audit import verify_chain, label_for
-from app.core.dependencies import require_analyst_or_auditor
+from app.core.dependencies import require_analyst
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
 
@@ -55,7 +55,7 @@ def list_audit(
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_analyst_or_auditor),
+    current_user: User = Depends(require_analyst),
 ):
     q = _filtered(db, incident_id, username, action, entity_type, since, until)
     total = q.count()
@@ -66,7 +66,7 @@ def list_audit(
 @router.get("/verify")
 def verify_audit(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_analyst_or_auditor),
+    current_user: User = Depends(require_analyst),
 ):
     return verify_chain(db)
 
@@ -80,7 +80,7 @@ def export_audit(
     since: Optional[datetime] = None,
     until: Optional[datetime] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_analyst_or_auditor),
+    current_user: User = Depends(require_analyst),
 ):
     rows = _filtered(db, incident_id, username, action, entity_type, since, until) \
         .order_by(AuditLog.id.asc()).all()

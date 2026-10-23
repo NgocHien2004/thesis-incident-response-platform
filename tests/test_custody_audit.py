@@ -25,7 +25,7 @@ def run():
     print("╚══════════════════════════════════════════════╝")
 
     u = login_all()
-    analyst, analyst2, it, auditor = u["analyst"], u["analyst2"], u["it"], u["au"]
+    analyst, analyst2, it = u["analyst"], u["analyst2"], u["it"]
     inc_id = new_incident(u, "Kiểm thử custody")
     print(f"\n  Dùng incident #{inc_id} (tạo riêng cho bài kiểm thử)\n")
 
@@ -57,9 +57,9 @@ def run():
     actions = [c["action"] for c in (analyst.get(f"/incidents/{inc_id}/evidences/{ev_id}/custody") or [])]
     check("Chain of custody ghi 'accessed' khi xem", "accessed" in actions, f"actions={actions}")
     n_before = actions.count("accessed")
-    auditor.get(f"/incidents/{inc_id}/evidences/{ev_id}")
+    analyst2.get(f"/incidents/{inc_id}/evidences/{ev_id}")
     actions = [c["action"] for c in (analyst.get(f"/incidents/{inc_id}/evidences/{ev_id}/custody") or [])]
-    check("Kiểm toán viên xem bằng chứng cũng bị ghi lại", actions.count("accessed") == n_before + 1)
+    check("Analyst khác xem bằng chứng cũng bị ghi lại", actions.count("accessed") == n_before + 1)
 
     print("\n── 4. Lock bằng chứng ──")
     locked = analyst.patch(f"/incidents/{inc_id}/evidences/{ev_id}/lock")
@@ -101,7 +101,7 @@ def run():
     check("Tất cả log có performed_by và performed_at", all(c.get("performed_by") and c.get("performed_at") for c in final))
 
     print("\n── 9. Nhật ký kiểm toán: ghi đủ ai làm gì, lúc nào ──")
-    res = auditor.get(f"/audit/?incident_id={inc_id}&limit=500")
+    res = analyst.get(f"/audit/?incident_id={inc_id}&limit=500")
     items = (res or {}).get("items", [])
     by_action = {}
     for i in items:
@@ -119,19 +119,19 @@ def run():
           all(i["at"] and i["username"] and i["action"] for i in items))
 
     print("\n── 10. Nhật ký không thể sửa hoặc xóa ──")
-    check("Không có thao tác xóa", auditor.raw("DELETE", "/audit/1").status_code in (404, 405))
+    check("Không có thao tác xóa", analyst.raw("DELETE", "/audit/1").status_code in (404, 405))
     check("Không có thao tác sửa", analyst.raw("PATCH", "/audit/1", {"detail": "x"}).status_code in (404, 405))
     check("Không có thao tác ghi", analyst.raw("POST", "/audit/", {"action": "x"}).status_code in (404, 405))
 
     print("\n── 11. Chuỗi băm phát hiện sửa đổi ──")
-    v = auditor.get("/audit/verify")
+    v = analyst.get("/audit/verify")
     check("Kiểm tra chuỗi băm thành công", v is not None and v.get("ok") is True,
           f"{v.get('total')} bản ghi" if v else "")
-    rows = (auditor.get("/audit/?limit=3") or {}).get("items", [])
+    rows = (analyst.get("/audit/?limit=3") or {}).get("items", [])
     check("Mỗi bản ghi nối với bản ghi trước bằng mã băm (đã kiểm tra ở bước verify)", v is not None and v.get("first_bad_id") is None)
 
     print("\n── 12. Xuất nhật ký cho kiểm toán ──")
-    r = auditor.raw("GET", f"/audit/export.csv?incident_id={inc_id}")
+    r = analyst.raw("GET", f"/audit/export.csv?incident_id={inc_id}")
     check("Xuất CSV thành công", r.status_code == 200 and "csv" in r.headers.get("content-type", ""))
     if r.status_code == 200:
         data = list(csv.reader(io.StringIO(r.content.decode("utf-8-sig"))))

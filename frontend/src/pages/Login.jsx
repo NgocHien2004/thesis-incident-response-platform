@@ -77,7 +77,6 @@ export default function Login() {
                 { user: 'analyst02', role: 'Analyst/SOC', color: 'text-purple-400' },
                 { user: 'it01',      role: 'IT/Helpdesk', color: 'text-blue-400' },
                 { user: 'stakeholder01', role: 'Stakeholder', color: 'text-green-400' },
-                { user: 'auditor01', role: 'Auditor (chỉ đọc)', color: 'text-amber-400' },
               ].map(u => (
                 <button
                   key={u.user}

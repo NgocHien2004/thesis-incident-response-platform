@@ -54,9 +54,3 @@ def require_it_or_analyst(user: User = Depends(
     require_roles(RoleEnum.it_helpdesk, RoleEnum.analyst_soc)
 )):
     return user
-
-# Analyst + Auditor — xem nhật ký kiểm toán
-def require_analyst_or_auditor(user: User = Depends(
-    require_roles(RoleEnum.analyst_soc, RoleEnum.auditor)
-)):
-    return user

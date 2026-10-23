@@ -80,7 +80,6 @@ def login_all():
         "analyst2": ScenarioRunner("analyst02",     PASSWORD).login(),
         "it":       ScenarioRunner("it01",          PASSWORD).login(),
         "st":       ScenarioRunner("stakeholder01", PASSWORD).login(),
-        "au":       ScenarioRunner("auditor01",     PASSWORD).login(),
     }
 
 

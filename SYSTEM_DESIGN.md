@@ -24,7 +24,7 @@ Hệ thống quản lý vòng đời sự cố an ninh mạng (Incident Response
 
 ## Role và phân quyền
 
-Đề bài liệt kê 7 **nhóm người dùng**. Đây là các nhóm người trong tổ chức, không phải 7 vai trò kỹ thuật, nên hệ thống gộp chúng thành 4 vai trò theo quyền hạn thực tế.
+Đề bài liệt kê 7 **nhóm người dùng**. Đây là các nhóm người trong tổ chức, không phải 7 vai trò kỹ thuật, nên hệ thống gộp chúng thành 3 vai trò theo quyền hạn thực tế.
 
 | # | Nhóm trong đề | Vai trò hệ thống | Cách xử lý |
 | --- | --- | --- | --- |
@@ -34,41 +34,40 @@ Hệ thống quản lý vòng đời sự cố an ninh mạng (Incident Response
 | 4 | Incident commander / quản lý CNTT | `analyst_soc` được chỉ định làm commander của từng vụ (`commander_id`) | Commander là vai trò theo từng incident, có thẩm quyền cao hơn trong phạm vi vụ đó |
 | 5 | Chủ hệ thống / nghiệp vụ bị ảnh hưởng | `stakeholder` | |
 | 6 | Lãnh đạo, pháp chế, truyền thông | `stakeholder` | Đề ghi "trong kịch bản mô phỏng", nên là vai diễn, không cần role riêng |
-| 7 | Kiểm toán viên | `auditor` | Chỉ đọc, xem toàn bộ dữ liệu và nhật ký kiểm toán |
+| 7 | Kiểm toán viên | `analyst_soc` | Hệ thống không có vai trò kiểm toán riêng. Việc xem, xuất và kiểm tra toàn vẹn nhật ký kiểm toán do Analyst đảm nhiệm; mọi thao tác của chính Analyst vẫn nằm trong nhật ký |
 
 | Role | Tương đương thực tế | Trách nhiệm chính |
 | --- | --- | --- |
 | `it_helpdesk` | Tier 1 SOC / IT Staff | Tiếp nhận và triage sơ bộ cảnh báo, thu thập bằng chứng, đề xuất và thực hiện containment, thực hiện recovery |
-| `analyst_soc` | Tier 2 SOC / Incident Responder | Triage, tạo incident (người tạo mặc định là commander), phân tích phạm vi, phê duyệt containment, xác minh, soạn và duyệt thông báo, postmortem |
+| `analyst_soc` | Tier 2 SOC / Incident Responder | Triage, tạo incident (người tạo mặc định là commander), phân tích phạm vi, phê duyệt containment, xác minh, soạn và duyệt thông báo, postmortem, xem và xuất nhật ký kiểm toán, cấp tài khoản |
 | `stakeholder` | Chủ hệ thống / Lãnh đạo | Xác nhận recovery, xác nhận đã nhận thông báo, xem dữ liệu |
-| `auditor` | Kiểm toán viên | Chỉ đọc; xem và xuất nhật ký kiểm toán, kiểm tra tính toàn vẹn của nhật ký |
 
 **Ma trận quyền:**
 
-| Hành động | IT | Analyst | Stakeholder | Auditor |
-| --- | --- | --- | --- | --- |
-| Xem dữ liệu (alert, incident, tài sản, dashboard, timeline) | ✅ | ✅ | ✅ | ✅ |
-| Tạo, sửa tài sản | ✅ | ✅ | ❌ | ❌ |
-| Xóa tài sản | ❌ | ✅ | ❌ | ❌ |
-| Tạo / upload alert; triage | ✅ | ✅ | ❌ | ❌ |
-| Đánh dấu báo nhầm; tạo incident; đổi trạng thái incident; phân tích phạm vi | ❌ | ✅ | ❌ | ❌ |
-| Thu thập và khóa bằng chứng | ✅ | ✅ | ❌ | ❌ |
-| Đề xuất containment | ✅ | ✅ | ❌ | ❌ |
-| Phê duyệt containment | ❌ | ✅ (xem quy tắc bên dưới) | ❌ | ❌ |
-| Thực hiện containment | ✅ | ✅ | ❌ | ❌ |
-| Xác minh containment | ❌ | ✅ (người khác người thực hiện) | ❌ | ❌ |
-| Tạo, cập nhật hành động recovery | ✅ | ✅ | ❌ | ❌ |
-| Xác nhận recovery | ❌ | ❌ | ✅ | ❌ |
-| Soạn thông báo | ❌ | ✅ | ❌ | ❌ |
-| Phê duyệt thông báo | ❌ | ✅ (người khác người soạn) | ❌ | ❌ |
-| Gửi thông báo đã duyệt | ❌ | ✅ | ❌ | ❌ |
-| Xác nhận đã nhận thông báo | ❌ | ❌ | ✅ | ❌ |
-| Viết postmortem | ❌ | ✅ | ❌ | ❌ |
-| Đánh dấu hoàn thành action item | ✅ | ✅ | ❌ | ❌ |
-| Đóng hoặc mở lại incident; chốt postmortem | ❌ | ✅ (chỉ commander của vụ) | ❌ | ❌ |
-| Xem, xuất nhật ký kiểm toán; kiểm tra chuỗi băm | ❌ | ✅ | ❌ | ✅ |
-| Cấp tài khoản mới | ❌ | ✅ | ❌ | ❌ |
-| Gọi AI suggest | ✅ | ✅ | ✅ | ✅ |
+| Hành động | IT | Analyst | Stakeholder |
+| --- | --- | --- | --- |
+| Xem dữ liệu (alert, incident, tài sản, dashboard, timeline) | ✅ | ✅ | ✅ |
+| Tạo, sửa tài sản | ✅ | ✅ | ❌ |
+| Xóa tài sản | ❌ | ✅ | ❌ |
+| Tạo / upload alert; triage | ✅ | ✅ | ❌ |
+| Đánh dấu báo nhầm; tạo incident; đổi trạng thái incident; phân tích phạm vi | ❌ | ✅ | ❌ |
+| Thu thập và khóa bằng chứng | ✅ | ✅ | ❌ |
+| Đề xuất containment | ✅ | ✅ | ❌ |
+| Phê duyệt containment | ❌ | ✅ (xem quy tắc bên dưới) | ❌ |
+| Thực hiện containment | ✅ | ✅ | ❌ |
+| Xác minh containment | ❌ | ✅ (người khác người thực hiện) | ❌ |
+| Tạo, cập nhật hành động recovery | ✅ | ✅ | ❌ |
+| Xác nhận recovery | ❌ | ❌ | ✅ |
+| Soạn thông báo | ❌ | ✅ | ❌ |
+| Phê duyệt thông báo | ❌ | ✅ (người khác người soạn) | ❌ |
+| Gửi thông báo đã duyệt | ❌ | ✅ | ❌ |
+| Xác nhận đã nhận thông báo | ❌ | ❌ | ✅ |
+| Viết postmortem | ❌ | ✅ | ❌ |
+| Đánh dấu hoàn thành action item | ✅ | ✅ | ❌ |
+| Đóng hoặc mở lại incident; chốt postmortem | ❌ | ✅ (chỉ commander của vụ) | ❌ |
+| Xem, xuất nhật ký kiểm toán; kiểm tra chuỗi băm | ❌ | ✅ | ❌ |
+| Cấp tài khoản mới | ❌ | ✅ | ❌ |
+| Gọi AI suggest | ✅ | ✅ | ✅ |
 
 **Ma trận thẩm quyền và tách nhiệm vụ.** Đề yêu cầu quyền thực thi containment nằm trong ma trận thẩm quyền của tổ chức. Hệ thống áp dụng các quy tắc sau, kiểm tra ở backend và có trong bộ kiểm thử phân quyền:
 
@@ -81,7 +80,7 @@ Hệ thống quản lý vòng đời sự cố an ninh mạng (Incident Response
 
 **Bảo mật tài khoản.** Mật khẩu băm bcrypt. Token JWT hết hạn sau 15 phút. Sai mật khẩu 5 lần thì khóa tài khoản 15 phút. Tài khoản đầu tiên được tạo tự do để khởi tạo hệ thống; sau đó chỉ Analyst mới cấp tài khoản và phân vai trò. Mọi lần đăng nhập, đăng nhập sai và cấp tài khoản đều được ghi vào nhật ký kiểm toán.
 
-**Lý do thiết kế.** Gộp thành 4 vai trò để phù hợp tổ chức vừa và nhỏ nhưng vẫn giữ được tách nhiệm vụ. Commander là vai trò theo từng vụ chứ không phải một loại tài khoản, đúng với NIST SP 800-61 và CISA playbook. Kiểm toán viên có vai trò riêng chỉ đọc vì việc kiểm toán đòi hỏi xem được mọi thứ mà không thể thay đổi gì.
+**Lý do thiết kế.** Gộp thành 3 vai trò để phù hợp tổ chức vừa và nhỏ nhưng vẫn giữ được tách nhiệm vụ. Commander là vai trò theo từng vụ chứ không phải một loại tài khoản, đúng với NIST SP 800-61 và CISA playbook. Hệ thống không có vai trò kiểm toán viên riêng: chức năng nhật ký kiểm toán do Analyst dùng để tự rà soát và truy vết. Hạn chế: không có người kiểm tra độc lập với người vận hành, nên chuỗi băm là lớp bảo vệ chính cho tính toàn vẹn của nhật ký. Trong tổ chức thật, nên cấp thêm một vai trò chỉ đọc cho kiểm toán nội bộ.
 
 ## Quy trình nghiệp vụ 12 bước
 
@@ -239,7 +238,7 @@ Mọi thay đổi dữ liệu nghiệp vụ và mọi sự kiện đăng nhập 
 - **Ghi tự động ở tầng dữ liệu:** một bộ lắng nghe trên session của SQLAlchemy ghi mỗi lần tạo, sửa, xóa các đối tượng trên, nên không thể quên ghi ở một endpoint nào đó. Mỗi bản ghi có người thực hiện (id, tên, vai trò), thời điểm UTC, hành động (ví dụ `containment.approved`), đối tượng, incident liên quan và chi tiết thay đổi (giá trị cũ và mới).
 - **Chỉ thêm vào:** không có endpoint sửa hoặc xóa nhật ký.
 - **Phát hiện chỉnh sửa:** mỗi bản ghi chứa mã băm SHA-256 của chính nó và của bản ghi trước. Endpoint `/audit/verify` tính lại toàn bộ chuỗi và báo bản ghi đầu tiên bị sửa hoặc mất.
-- **Truy cập:** chỉ Analyst và Auditor xem và xuất CSV.
+- **Truy cập:** chỉ Analyst xem và xuất CSV.
 - **Timeline** của incident được dựng từ nhật ký (gồm cả các sự kiện của cảnh báo trước khi có incident), nên luôn khớp với nhật ký.
 
 **Hạn chế:** chuỗi băm phát hiện chỉnh sửa nhưng không ngăn được người có quyền quản trị trực tiếp cơ sở dữ liệu; hai thao tác ghi đồng thời có thể làm chuỗi rẽ nhánh; lượt đọc dữ liệu không được ghi (riêng lượt xem bằng chứng được ghi trong chain of custody).
@@ -410,9 +409,9 @@ Base URL: `http://localhost:8000` | Docs: `http://localhost:8000/docs`
 
 | Method | Endpoint | Mô tả | Role |
 | --- | --- | --- | --- |
-| GET | `/audit/` | Danh sách, lọc theo incident, người dùng, hành động, đối tượng, thời gian | Analyst, Auditor |
-| GET | `/audit/verify` | Kiểm tra toàn vẹn chuỗi băm | Analyst, Auditor |
-| GET | `/audit/export.csv` | Xuất CSV | Analyst, Auditor |
+| GET | `/audit/` | Danh sách, lọc theo incident, người dùng, hành động, đối tượng, thời gian | Analyst |
+| GET | `/audit/verify` | Kiểm tra toàn vẹn chuỗi băm | Analyst |
+| GET | `/audit/export.csv` | Xuất CSV | Analyst |
 
 ### Dashboard & AI
 

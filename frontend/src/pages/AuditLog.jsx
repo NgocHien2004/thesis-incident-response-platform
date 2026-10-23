@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 
 const ROLE_LABEL = {
-  analyst_soc: 'Analyst', it_helpdesk: 'IT', stakeholder: 'Stakeholder', auditor: 'Auditor',
+  analyst_soc: 'Analyst', it_helpdesk: 'IT', stakeholder: 'Stakeholder',
 }
 const ENTITIES = ['asset', 'alert', 'incident', 'evidence', 'custody', 'impact',
   'containment', 'recovery', 'communication', 'postmortem', 'auth', 'user']
@@ -14,7 +14,7 @@ const PAGE = 50
 
 export default function AuditLog() {
   const { user } = useAuth()
-  const allowed = ['analyst_soc', 'auditor'].includes(user?.role)
+  const allowed = user?.role === 'analyst_soc'
 
   const [data, setData]       = useState({ total: 0, items: [] })
   const [loading, setLoading] = useState(true)
@@ -54,7 +54,7 @@ export default function AuditLog() {
   }
 
   if (!allowed) {
-    return <div className="p-6 text-sm text-gray-500">Chỉ Analyst và Auditor mới xem được nhật ký kiểm toán.</div>
+    return <div className="p-6 text-sm text-gray-500">Chỉ Analyst/SOC mới xem được nhật ký kiểm toán.</div>
   }
 
   const inputCls = 'border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary-400'

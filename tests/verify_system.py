@@ -21,8 +21,8 @@ ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
 BASE = ARGS[0] if ARGS else "http://localhost:8000"
 WITH_FRONTEND = "--frontend" in sys.argv
 PWD = "Test@1234"
-USERS = {"analyst": "analyst01", "analyst2": "analyst02", "it": "it01", "stake": "stakeholder01", "au": "auditor01"}
-PAGE_ROLES = ["analyst", "it", "stake", "au"]
+USERS = {"analyst": "analyst01", "analyst2": "analyst02", "it": "it01", "stake": "stakeholder01"}
+PAGE_ROLES = ["analyst", "it", "stake"]
 
 client = httpx.Client(base_url=BASE, timeout=40.0)
 lines = []                      # (level, text)  level: OK / WARN / FAIL / INFO / HEAD
@@ -73,7 +73,7 @@ if len(tok) < len(USERS):
     log("FAIL", "Không đủ tài khoản đăng nhập được — dừng. (Chạy seed_demo_data.py trước.)")
     open("verify_report.txt", "w", encoding="utf-8").write("\n".join(f"[{l}] {t}" for l, t in lines))
     sys.exit(1)
-log("OK", "Đăng nhập được 5 tài khoản (analyst01, analyst02, it01, stakeholder01, auditor01)")
+log("OK", "Đăng nhập được 4 tài khoản (analyst01, analyst02, it01, stakeholder01)")
 
 r = get("/ai/health")
 try:
@@ -120,19 +120,19 @@ for role in PAGE_ROLES:
         ok = r.status_code == 200 or (p.endswith("/postmortem/") and r.status_code == 404)
         if not ok:
             bad.append(f"{USERS[role]} GET {p} -> {r.status_code} {r.text[:80]}")
-check(not bad, f"{total} lời gọi tải trang đều thành công ({len(incs)} incident × 4 role)",
+check(not bad, f"{total} lời gọi tải trang đều thành công ({len(incs)} incident × 3 role)",
       f"{len(bad)}/{total} lời gọi lỗi")
 for b in bad[:15]:
     log("FAIL", "  " + b)
 
 audit_bad = []
 for role in USERS:
-    want = 200 if role in ("analyst", "analyst2", "au") else 403
+    want = 200 if role in ("analyst", "analyst2") else 403
     for p in ("/audit/", "/audit/verify"):
         got = get(p, role).status_code
         if got != want:
             audit_bad.append(f"{USERS[role]} GET {p} -> {got} (mong đợi {want})")
-check(not audit_bad, "Quyền xem nhật ký kiểm toán đúng: Analyst và Auditor xem được, IT và Stakeholder bị chặn",
+check(not audit_bad, "Quyền xem nhật ký kiểm toán đúng: Analyst xem được, IT và Stakeholder bị chặn",
       "Phân quyền nhật ký kiểm toán sai: " + "; ".join(audit_bad))
 
 # ══════════════════════════════════════════════════ D. DASHBOARD
@@ -337,7 +337,7 @@ try:
         "Mọi incident đều có bản ghi tạo trong nhật ký kiểm toán", "Incident không có trong nhật ký kiểm toán")
     rep([i.id for i in I if sv(i.status) == "closed" and ("incident", i.id, "incident.closed") not in logged],
         "Mọi incident đã đóng đều có bản ghi đóng trong nhật ký", "Incident đóng nhưng không có bản ghi nhật ký")
-    chain = get("/audit/verify", "au").json()
+    chain = get("/audit/verify", "analyst").json()
     check(chain.get("ok") is True, f"Chuỗi băm nhật ký kiểm toán nguyên vẹn ({chain.get('total')} bản ghi)",
           f"Chuỗi băm nhật ký BỊ PHÁ VỠ tại bản ghi #{chain.get('first_bad_id')}")
     counts = {}

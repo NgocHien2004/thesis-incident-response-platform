@@ -45,8 +45,7 @@ print("Tài khoản")
 USERS = [("analyst01", "analyst_soc", "analyst"),
          ("analyst02", "analyst_soc", "analyst2"),
          ("it01", "it_helpdesk", "it"),
-         ("stakeholder01", "stakeholder", "stake"),
-         ("auditor01", "auditor", "au")]
+         ("stakeholder01", "stakeholder", "stake")]
 
 
 def account(username, role, headers=None):
@@ -69,7 +68,7 @@ try:
 except Exception as e:                                         # noqa
     print(f"Không kết nối/đăng nhập được: {e}")
     sys.exit(1)
-step("đã đăng nhập analyst01 (commander), analyst02, it01, stakeholder01, auditor01")
+step("đã đăng nhập analyst01 (commander), analyst02, it01, stakeholder01")
 
 existing = call("GET", "/assets/", "analyst") or []
 if existing and not FORCE:
@@ -368,7 +367,7 @@ print(f"Tài sản : {len(A)}")
 print(f"Cảnh báo: {len(alerts)}  ({', '.join(f'{k}={sum(1 for x in alerts if x['status']==k)}' for k in sorted({x['status'] for x in alerts}))})")
 print(f"Incident: {len(incs)}  ({', '.join(f'#{x['id']}={x['status']}' for x in incs)})")
 print(f"Nhóm cảnh báo: {len(groups)}  (lớn nhất: {max([g['alert_count'] for g in groups] or [0])} alert)")
-audit = call("GET", "/audit/verify", "au") or {}
+audit = call("GET", "/audit/verify", "analyst") or {}
 print(f"Nhật ký kiểm toán: {audit.get('total')} bản ghi, chuỗi băm {'nguyên vẹn' if audit.get('ok') else 'BỊ PHÁ VỠ'}")
 dash = c.get("/dashboard/", headers=H("analyst"))
 print(f"Dashboard: HTTP {dash.status_code}")

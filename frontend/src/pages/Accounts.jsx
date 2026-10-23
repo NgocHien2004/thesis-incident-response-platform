@@ -6,9 +6,8 @@ import { useAuth } from '../context/AuthContext'
 
 const ROLES = [
   { value: 'it_helpdesk', label: 'IT / Helpdesk', hint: 'Nhập cảnh báo, triage, thu thập bằng chứng, đề xuất và thực hiện containment, khôi phục.' },
-  { value: 'analyst_soc', label: 'Analyst / SOC', hint: 'Điều tra và điều phối. Có thể được chỉ định làm commander của một vụ việc.' },
+  { value: 'analyst_soc', label: 'Analyst / SOC', hint: 'Điều tra và điều phối, xem nhật ký kiểm toán, cấp tài khoản. Có thể được chỉ định làm commander của một vụ việc.' },
   { value: 'stakeholder', label: 'Stakeholder', hint: 'Chủ hệ thống, lãnh đạo, pháp chế, truyền thông: xem vụ việc, xác nhận khôi phục và thông báo.' },
-  { value: 'auditor',     label: 'Auditor',     hint: 'Chỉ đọc. Xem toàn bộ dữ liệu và nhật ký kiểm toán, không thay đổi được gì.' },
 ]
 
 export default function Accounts() {

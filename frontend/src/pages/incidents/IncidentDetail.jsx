@@ -41,7 +41,6 @@ export default function IncidentDetail() {
   const isAnalyst     = user?.role === 'analyst_soc'
   const isIT          = user?.role === 'it_helpdesk'
   const isStakeholder = user?.role === 'stakeholder'
-  const isAuditor     = user?.role === 'auditor'
   const canWrite      = isAnalyst || isIT
   const myId          = Number(user?.id)
 
@@ -1160,7 +1159,7 @@ function PostmortemTab({ incId, isAnalyst, isCommander, canTrack, incident, relo
 
 // ── Tab 7: Timeline (dựng từ nhật ký kiểm toán) ──────────────
 const ROLE_LABEL = {
-  analyst_soc: 'Analyst', it_helpdesk: 'IT', stakeholder: 'Stakeholder', auditor: 'Auditor',
+  analyst_soc: 'Analyst', it_helpdesk: 'IT', stakeholder: 'Stakeholder',
 }
 
 function TimelineTab({ incId }) {

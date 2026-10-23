@@ -1,7 +1,7 @@
 {
-  "passed": 135,
+  "passed": 111,
   "failed": 0,
-  "total": 135,
+  "total": 111,
   "pass_rate_pct": 100.0,
   "details": [
     {
@@ -53,22 +53,6 @@
       "pass": true
     },
     {
-      "test": "Auditor xem incidents",
-      "expected": [
-        200
-      ],
-      "actual": 200,
-      "pass": true
-    },
-    {
-      "test": "Auditor xem dashboard",
-      "expected": [
-        200
-      ],
-      "actual": 200,
-      "pass": true
-    },
-    {
       "test": "IT tạo asset",
       "expected": [
         200
@@ -86,15 +70,6 @@
     },
     {
       "test": "Stakeholder tạo asset bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
-      "test": "Auditor tạo asset bị chặn",
       "expected": [
         401,
         403
@@ -128,15 +103,6 @@
       "pass": true
     },
     {
-      "test": "Auditor tạo alert bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
       "test": "Analyst triage",
       "expected": [
         200
@@ -162,15 +128,6 @@
       "pass": true
     },
     {
-      "test": "Auditor triage bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
       "test": "IT tạo incident bị chặn",
       "expected": [
         401,
@@ -181,15 +138,6 @@
     },
     {
       "test": "Stakeholder tạo incident bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
-      "test": "Auditor tạo incident bị chặn",
       "expected": [
         401,
         403
@@ -223,15 +171,6 @@
     },
     {
       "test": "IT đổi trạng thái bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
-      "test": "Auditor đổi trạng thái bị chặn",
       "expected": [
         401,
         403
@@ -297,24 +236,6 @@
       "pass": true
     },
     {
-      "test": "Auditor thu thập bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
-      "test": "Auditor khóa bằng chứng bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
       "test": "Stakeholder khóa bằng chứng bị chặn",
       "expected": [
         401,
@@ -332,7 +253,7 @@
       "pass": true
     },
     {
-      "test": "Auditor xem bằng chứng (chỉ đọc)",
+      "test": "Analyst xem bằng chứng",
       "expected": [
         200
       ],
@@ -341,15 +262,6 @@
     },
     {
       "test": "Stakeholder đề xuất bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
-      "test": "Auditor đề xuất bị chặn",
       "expected": [
         401,
         403
@@ -400,15 +312,6 @@
       "pass": true
     },
     {
-      "test": "Auditor phê duyệt bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
       "test": "Analyst tự duyệt đề xuất của chính mình bị chặn",
       "expected": [
         403
@@ -450,15 +353,6 @@
       "pass": true
     },
     {
-      "test": "Auditor thực hiện bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
       "test": "Xác minh khi chưa thực hiện bị từ chối",
       "expected": [
         400
@@ -484,15 +378,6 @@
     },
     {
       "test": "IT xác minh bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
-      "test": "Auditor xác minh bị chặn",
       "expected": [
         401,
         403
@@ -534,15 +419,6 @@
       "pass": true
     },
     {
-      "test": "Auditor tạo recovery bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
       "test": "IT tạo recovery (incident đã khống chế)",
       "expected": [
         200
@@ -561,15 +437,6 @@
     },
     {
       "test": "IT xác nhận recovery bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
-      "test": "Auditor xác nhận recovery bị chặn",
       "expected": [
         401,
         403
@@ -604,15 +471,6 @@
     },
     {
       "test": "Stakeholder soạn thông báo bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
-      "test": "Auditor soạn thông báo bị chặn",
       "expected": [
         401,
         403
@@ -664,15 +522,6 @@
     },
     {
       "test": "Analyst xác nhận đã nhận bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
-      "test": "Auditor xác nhận đã nhận bị chặn",
       "expected": [
         401,
         403
@@ -795,15 +644,6 @@
       "pass": true
     },
     {
-      "test": "Auditor viết postmortem bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
       "test": "Postmortem khi incident chưa phục hồi bị từ chối",
       "expected": [
         400
@@ -822,15 +662,6 @@
     {
       "test": "Analyst không phải commander chốt bị chặn",
       "expected": [
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
-      "test": "Auditor đánh dấu action item bị chặn",
-      "expected": [
-        401,
         403
       ],
       "actual": 403,
@@ -888,24 +719,7 @@
       "pass": true
     },
     {
-      "test": "Auditor xóa asset bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
       "test": "Analyst xóa asset",
-      "expected": [
-        200
-      ],
-      "actual": 200,
-      "pass": true
-    },
-    {
-      "test": "Auditor xem nhật ký kiểm toán",
       "expected": [
         200
       ],
@@ -939,7 +753,7 @@
       "pass": true
     },
     {
-      "test": "Auditor kiểm tra tính toàn vẹn nhật ký",
+      "test": "Analyst kiểm tra tính toàn vẹn nhật ký",
       "expected": [
         200
       ],
@@ -964,7 +778,7 @@
       "pass": true
     },
     {
-      "test": "Auditor xuất nhật ký CSV",
+      "test": "Analyst xuất nhật ký CSV",
       "expected": [
         200
       ],
@@ -1023,14 +837,6 @@
       "pass": true
     },
     {
-      "test": "Auditor xem timeline incident",
-      "expected": [
-        200
-      ],
-      "actual": 200,
-      "pass": true
-    },
-    {
       "test": "Không đăng nhập: không tạo được tài khoản",
       "expected": [
         401
@@ -1049,15 +855,6 @@
     },
     {
       "test": "Stakeholder cấp tài khoản bị chặn",
-      "expected": [
-        401,
-        403
-      ],
-      "actual": 403,
-      "pass": true
-    },
-    {
-      "test": "Auditor cấp tài khoản bị chặn",
       "expected": [
         401,
         403
@@ -1091,14 +888,6 @@
     },
     {
       "test": "Stakeholder gọi AI suggest",
-      "expected": [
-        200
-      ],
-      "actual": 200,
-      "pass": true
-    },
-    {
-      "test": "Auditor gọi AI suggest",
       "expected": [
         200
       ],
