@@ -48,3 +48,4 @@ class PlaybookStep(Base):
     owner_role  = Column(Enum(RoleEnum), nullable=True)   # vai trò thường đảm nhiệm
     due_hours   = Column(Integer, nullable=True)           # hạn: số giờ kể từ lúc tạo vụ
     is_required = Column(Boolean, default=True)            # bắt buộc xong (hoặc bỏ qua có lý do) mới đóng được vụ
+    reference   = Column(Unicode(100), nullable=True)      # mã mục tương ứng trong tài liệu nguồn (chỉ để đối chiếu)

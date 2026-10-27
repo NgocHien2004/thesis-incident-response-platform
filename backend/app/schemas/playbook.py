@@ -12,6 +12,7 @@ class PlaybookStepIn(BaseModel):
     owner_role: Optional[RoleEnum] = None
     due_hours: Optional[int] = Field(default=None, ge=0, le=24 * 90)
     is_required: bool = True
+    reference: Optional[str] = Field(default=None, max_length=100)
 
     @field_validator("owner_role")
     @classmethod
@@ -42,6 +43,7 @@ class PlaybookStepOut(BaseModel):
     owner_role: Optional[RoleEnum]
     due_hours: Optional[int]
     is_required: bool
+    reference: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

@@ -36,8 +36,10 @@ from app.api.audit import router as audit_router
 # Tạo bảng nếu chưa có
 Base.metadata.create_all(bind=engine)
 
-# Nạp playbook mẫu khi bảng còn trống
+# Bổ sung cột mới cho bảng đã có, rồi nạp playbook mẫu khi cần
 from database import SessionLocal
+from app.services.schema_upgrade import ensure_schema
+ensure_schema(engine)
 from app.services.default_playbooks import seed_default_playbooks
 with SessionLocal() as _db:
     seed_default_playbooks(_db)

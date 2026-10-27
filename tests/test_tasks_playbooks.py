@@ -63,15 +63,17 @@ def run():
         rd = R(A, "GET", f"/playbooks/{ref['id']}").json()
         check("Playbook tham chiếu có đủ 6 giai đoạn",
               {s["phase"] for s in rd["steps"]} == {"analysis", "evidence", "containment", "recovery", "communication", "closure"})
-        check("Mọi bước của playbook tham chiếu ghi mã mục CISA",
-              all("CISA IR Checklist" in (s["description"] or "") for s in rd["steps"]))
+        check("Mọi bước của playbook tham chiếu có mã mục CISA ở trường riêng",
+              all((s.get("reference") or "").startswith("CISA B ") for s in rd["steps"]))
+        check("Mô tả bước không bị lẫn mã tham chiếu", not any("Tham chiếu:" in (s["description"] or "") for s in rd["steps"]))
+        check("Mô tả playbook tham chiếu ngắn gọn, không kể lai lịch", len(rd["description"] or "") < 400 and "1d" not in (rd["description"] or ""))
         check("Playbook tham chiếu nêu nguồn CISA và NIST", "CISA" in (rd["source"] or "") and "NIST" in (rd["source"] or ""))
     expect("Playbook không tồn tại trả 404", R(A, "GET", "/playbooks/999999"), 404)
 
     new_pb = {
         "name": f"Playbook kiểm thử {tag}", "incident_type": "other", "description": "test",
         "steps": [
-            {"title": "Bước A", "phase": "analysis", "owner_role": "analyst_soc", "due_hours": 2, "is_required": True},
+            {"title": "Bước A", "phase": "analysis", "owner_role": "analyst_soc", "due_hours": 2, "is_required": True, "reference": "Mã thử A"},
             {"title": "Bước B", "phase": "recovery", "owner_role": "it_helpdesk", "due_hours": 24, "is_required": False},
         ],
     }
@@ -86,11 +88,13 @@ def run():
     expect("Giao bước cho Stakeholder bị từ chối", R(A, "POST", "/playbooks/", bad), 422)
     expect("Playbook không có bước nào bị từ chối", R(A, "POST", "/playbooks/", {**new_pb, "name": f"Rỗng {tag}", "steps": []}), 422)
 
+    check("Tạo playbook lưu mã tham chiếu của bước", made.json()["steps"][0]["reference"] == "Mã thử A")
     upd = {**new_pb, "steps": [new_pb["steps"][0]], "is_active": True}
     expect("IT sửa playbook bị chặn", R(IT, "PUT", f"/playbooks/{pid}", upd), *BLOCK)
     r = R(A, "PUT", f"/playbooks/{pid}", upd)
     expect("Analyst sửa playbook (thay toàn bộ bước)", r, 200)
     check("Sau khi sửa playbook còn 1 bước", r.json()["step_count"] == 1)
+    check("Sửa playbook giữ nguyên mã tham chiếu", r.json()["steps"][0]["reference"] == "Mã thử A")
 
     print("\n── 2. Áp dụng playbook cho incident ──")
     inc = new_incident(u, f"Task kiểm thử {tag}")

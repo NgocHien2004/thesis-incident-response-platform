@@ -87,11 +87,8 @@ REF_SOURCE = ("CISA Federal Government Cybersecurity Incident and Vulnerability 
               "Phụ lục B (Incident Response Checklist); NIST SP 800-61 Rev. 3; NIST SP 800-86.")
 
 REF_DESCRIPTION = (
-    "Playbook đối chiếu với checklist ứng phó sự cố của CISA, dùng làm chuẩn tham chiếu khi cần kiểm tra quy trình đã đủ bước hay chưa. "
-    "Giữ thứ tự các bước 1 đến 11 của bản gốc, diễn đạt lại bằng tiếng Việt, không phải bản dịch từng câu. "
-    "Điều chỉnh cho tổ chức vừa và nhỏ: bỏ các mục chỉ áp dụng cho cơ quan liên bang Mỹ hoặc SOC nâng cao (1d, 5b, 7j, 10g, 10h, 11a đến 11c, 11g, 11h); "
-    "chuyển thể các mục báo cáo cho CISA thành thông báo nội bộ và cho đối tác (1c, 8b, 10e, 11d đến 11f). "
-    "Phần chuẩn bị trước sự cố (Phụ lục C) không nằm trong playbook này. Mỗi bước có mã tham chiếu mục tương ứng trong Phụ lục B."
+    "Quy trình ứng phó sự cố đầy đủ từ xác nhận đến đóng vụ, theo 11 bước của checklist CISA và điều chỉnh cho tổ chức vừa và nhỏ. "
+    "Dùng khi cần kiểm tra một vụ đã đi hết các bước cần thiết hay chưa, hoặc làm mẫu để xây playbook riêng."
 )
 
 REF_STEPS = [
@@ -130,10 +127,15 @@ REF_STEPS = [
 
 
 def _all_defaults():
-    """Danh sách playbook mẫu; mỗi mục có source riêng và cờ auto_add (thêm vào DB đã có sẵn playbook khác)."""
-    items = [dict(d, source=SOURCE, auto_add=False) for d in DEFAULTS]
+    """Danh sách playbook mẫu; mỗi mục có source riêng và cờ auto_add (thêm vào DB đã có sẵn playbook khác).
+    Mỗi bước: (tiêu đề, mô tả, giai đoạn, vai trò, hạn giờ, bắt buộc, mã tham chiếu hoặc None)."""
+    items = [
+        dict(d, source=SOURCE, auto_add=False,
+             steps=[st + (None,) for st in d["steps"]])
+        for d in DEFAULTS
+    ]
     ref_steps = [
-        (title, f"{desc}\n\nTham chiếu: CISA IR Checklist (Phụ lục B) mục {ref}.", phase, role, hours, required)
+        (title, desc, phase, role, hours, required, f"CISA B {ref}")
         for (title, desc, phase, role, hours, required, ref) in REF_STEPS
     ]
     items.append({
@@ -147,20 +149,39 @@ def _all_defaults():
     return items
 
 
+def _add_steps(db: Session, playbook_id: int, steps):
+    for order, (title, desc, phase, role, hours, required, reference) in enumerate(steps, 1):
+        db.add(PlaybookStep(
+            playbook_id=playbook_id, step_order=order, title=title, description=desc,
+            phase=phase, owner_role=role, due_hours=hours, is_required=required, reference=reference,
+        ))
+
+
 def seed_default_playbooks(db: Session):
     """Nạp playbook mẫu. Bảng trống thì nạp tất cả; bảng đã có dữ liệu thì chỉ thêm playbook có cờ auto_add
-    nếu chưa có playbook cùng tên hoặc cùng nguồn tham chiếu (nên đổi tên playbook đó không làm hệ thống tạo lại). Đây là dữ liệu cấu hình nên không ghi vào nhật ký kiểm toán."""
+    nếu chưa có playbook cùng tên hoặc cùng nguồn tham chiếu (nên đổi tên playbook đó không làm hệ thống tạo lại).
+    Playbook tham chiếu được tạo bởi bản cũ (chưa có mã tham chiếu ở bước nào) được làm mới nội dung tại chỗ.
+    Đây là dữ liệu cấu hình nên không ghi vào nhật ký kiểm toán."""
     rows = db.query(Playbook).all()
     existing = {p.name.strip().lower() for p in rows}
     sources = {(p.source or "").strip() for p in rows}
     empty = not rows
-    added = 0
+    changed = 0
     db.info["audit_disabled"] = True
     try:
         for item in _all_defaults():
+            if item["auto_add"] and not empty and item["source"].strip() in sources:
+                pb = next(p for p in rows if (p.source or "").strip() == item["source"].strip())
+                old = db.query(PlaybookStep).filter(PlaybookStep.playbook_id == pb.id).all()
+                if old and all(st.reference is None for st in old):
+                    pb.description = item["description"]
+                    db.query(PlaybookStep).filter(PlaybookStep.playbook_id == pb.id).delete()
+                    _add_steps(db, pb.id, item["steps"])
+                    changed += 1
+                continue
             if item["name"].strip().lower() in existing:
                 continue
-            if not empty and (not item["auto_add"] or item["source"].strip() in sources):
+            if not empty and not item["auto_add"]:
                 continue
             pb = Playbook(
                 name=item["name"], incident_type=item["incident_type"],
@@ -168,13 +189,9 @@ def seed_default_playbooks(db: Session):
             )
             db.add(pb)
             db.flush()
-            for order, (title, desc, phase, role, hours, required) in enumerate(item["steps"], 1):
-                db.add(PlaybookStep(
-                    playbook_id=pb.id, step_order=order, title=title, description=desc,
-                    phase=phase, owner_role=role, due_hours=hours, is_required=required,
-                ))
-            added += 1
+            _add_steps(db, pb.id, item["steps"])
+            changed += 1
         db.commit()
     finally:
         db.info.pop("audit_disabled", None)
-    return added
+    return changed

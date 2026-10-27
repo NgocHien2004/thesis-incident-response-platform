@@ -45,6 +45,7 @@ def _add_steps(db: Session, playbook_id: int, steps):
             playbook_id=playbook_id, step_order=order, title=s.title.strip(),
             description=s.description, phase=s.phase, owner_role=s.owner_role,
             due_hours=s.due_hours, is_required=s.is_required,
+            reference=(s.reference or "").strip() or None,
         ))
 
 

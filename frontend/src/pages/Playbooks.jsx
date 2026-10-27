@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext'
 
 const input = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-400'
 const phaseLabel = Object.fromEntries(PHASES)
-const emptyStep = () => ({ title: '', description: '', phase: 'analysis', owner_role: '', due_hours: '', is_required: true })
+const emptyStep = () => ({ title: '', description: '', phase: 'analysis', owner_role: '', due_hours: '', is_required: true, reference: '' })
 const emptyForm = () => ({
   name: '', incident_type: 'other', description: '', source: '', is_active: true, steps: [emptyStep()],
 })
@@ -44,7 +44,7 @@ export default function Playbooks() {
       is_active: p.is_active,
       steps: p.steps.map(s => ({
         title: s.title, description: s.description || '', phase: s.phase, owner_role: s.owner_role || '',
-        due_hours: s.due_hours ?? '', is_required: s.is_required,
+        due_hours: s.due_hours ?? '', is_required: s.is_required, reference: s.reference || '',
       })),
     })
     setEditing(id)
@@ -71,6 +71,7 @@ export default function Playbooks() {
         owner_role: s.owner_role || null,
         due_hours: s.due_hours !== '' ? parseInt(s.due_hours) : null,
         is_required: s.is_required,
+        reference: s.reference.trim() || null,
       })),
     }
     setSaving(true)
@@ -169,6 +170,11 @@ export default function Playbooks() {
                     Bắt buộc
                   </label>
                 </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Mã mục trong tài liệu nguồn (không bắt buộc)</label>
+                  <input value={s.reference} onChange={e => setStep(i, { reference: e.target.value })}
+                    maxLength={100} placeholder="Ví dụ: CISA B 3a–3b" className={input} />
+                </div>
               </div>
             ))}
           </div>
@@ -237,6 +243,7 @@ export default function Playbooks() {
                       <p className="text-xs text-gray-400 mt-0.5">
                         {phaseLabel[s.phase]} · {s.owner_role ? ROLE_LABEL[s.owner_role] : 'Chưa rõ vai trò'} ·{' '}
                         {s.due_hours != null ? `trong ${s.due_hours} giờ` : 'không đặt hạn'}
+                        {s.reference && <span className="ml-2 px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{s.reference}</span>}
                       </p>
                     </div>
                   </li>
