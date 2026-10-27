@@ -133,11 +133,43 @@ def triage(aid, t, sev, conf, sla, note, assignee=None):
     return call("PATCH", f"/alerts/{aid}/triage", "analyst", body, label=f"triage {aid}")
 
 
-def incident(title, desc, sev, alert_ids, checklist):
-    r = call("POST", "/incidents/", "analyst",
-             {"title": title, "description": desc, "severity": sev,
-              "alert_ids": alert_ids, "checklist": checklist}, label=f"incident {title[:30]}")
+_playbooks = {}
+
+
+def playbook_id(kind):
+    if not _playbooks:
+        for p in call("GET", "/playbooks/", "analyst", params={"active_only": True}) or []:
+            _playbooks[p["incident_type"]] = p["id"]
+    return _playbooks.get(kind)
+
+
+def incident(title, desc, sev, alert_ids, checklist, playbook=None):
+    body = {"title": title, "description": desc, "severity": sev,
+            "alert_ids": alert_ids, "checklist": checklist}
+    if playbook:
+        body["playbook_id"] = playbook_id(playbook)
+    r = call("POST", "/incidents/", "analyst", body, label=f"incident {title[:30]}")
     return r["id"] if r else None
+
+
+def work(i, done=0, doing=0, skip_optional=False):
+    """Xử lý các công việc theo playbook: done việc đầu tiên xong, doing việc kế tiếp đang làm."""
+    tasks = call("GET", f"/incidents/{i}/tasks/", "analyst") or []
+    skipped = False
+    for k, t in enumerate(tasks):
+        who = "it" if t["owner_role"] == "it_helpdesk" else "analyst"
+        if k < done:
+            if skip_optional and not t["is_required"] and not skipped:
+                call("PATCH", f"/incidents/{i}/tasks/{t['id']}", "analyst",
+                     {"status": "skipped", "note": "Đã thông báo trực tiếp, không cần gửi thêm"},
+                     label=f"task {t['id']} -> skipped")
+                skipped = True
+            else:
+                call("PATCH", f"/incidents/{i}/tasks/{t['id']}", who, {"status": "done"},
+                     label=f"task {t['id']} -> done")
+        elif k < done + doing:
+            call("PATCH", f"/incidents/{i}/tasks/{t['id']}", who, {"status": "in_progress"},
+                 label=f"task {t['id']} -> in_progress")
 
 
 def status(i, s, note=None):
@@ -221,7 +253,7 @@ if a1:
     i1 = incident("Phishing mạo danh giám đốc gửi tệp thực thi",
                   "Email giả mạo lãnh đạo, 2 nhân viên đã mở tệp đính kèm.", "high", [a1["id"]],
                   ["Thu thập header email", "Chặn tên miền người gửi", "Đặt lại mật khẩu người dùng",
-                   "Thông báo toàn công ty"])
+                   "Thông báo toàn công ty"], playbook="phishing")
     if i1:
         status(i1, "investigating", "Bắt đầu điều tra")
         e = evidence(i1, "it", title="Header email phishing", evidence_type="email",
@@ -241,6 +273,7 @@ if a1:
         comm(i1, "stakeholder_notify", "Cập nhật sự cố phishing",
              "Sự cố đã được khống chế. Đề nghị nhân viên không mở email từ địa chỉ lạ.",
              ["stakeholder01"])
+        work(i1, done=99, skip_optional=True)
         status(i1, "closed", "Hoàn tất xử lý")
         call("POST", f"/incidents/{i1}/postmortem/", "analyst", {
             "root_cause": "Nhân viên mở tệp đính kèm trong email mạo danh do thiếu đào tạo nhận biết phishing.",
@@ -275,7 +308,7 @@ if ids2:
     i2 = incident("Tấn công dò mật khẩu và lộ thông tin đăng nhập VPN",
                   "Brute-force dẫn đến một đăng nhập VPN thành công bất thường.", "critical", ids2,
                   ["Khóa tài khoản bị ảnh hưởng", "Đặt lại thông tin đăng nhập",
-                   "Rà soát log VPN 7 ngày", "Bật MFA"])
+                   "Rà soát log VPN 7 ngày", "Bật MFA"], playbook="credential_compromise")
     if i2:
         status(i2, "investigating", "Phát hiện đăng nhập thành công từ IP lạ")
         e = evidence(i2, "analyst", title="Log VPN đăng nhập bất thường", evidence_type="log",
@@ -295,6 +328,7 @@ if ids2:
         comm(i2, "internal_update", "Cập nhật sự cố tài khoản VPN",
              "Đã khóa tài khoản bị ảnh hưởng, đang triển khai MFA.", ["stakeholder01"],
              approve=True, send=False)
+        work(i2, done=5, doing=1)
 
 # ═════════════════════════════════════════════════════ KỊCH BẢN 3: MALWARE (đang điều tra)
 print("\nKịch bản 3 — Malware (đang điều tra, containment chờ duyệt)")
@@ -306,7 +340,7 @@ if a3:
     triage(a3["id"], "malware", "critical", 95, 4, "Beaconing ra ngoài, cần cô lập sớm.")
     i3 = incident("Mã độc beacon từ máy trạm phòng Kế toán",
                   "Máy KT-PC07 kết nối tới tên miền C2 nghi ngờ.", "critical", [a3["id"]],
-                  ["Cô lập máy trạm", "Thu thập mẫu mã độc", "Quét toàn bộ máy cùng VLAN"])
+                  ["Cô lập máy trạm", "Thu thập mẫu mã độc", "Quét toàn bộ máy cùng VLAN"], playbook="malware")
     if i3:
         status(i3, "investigating", "Đang thu thập bằng chứng")
         evidence(i3, "it", title="Mẫu tệp thực thi nghi ngờ", evidence_type="file",
@@ -319,6 +353,7 @@ if a3:
                 summary="Mã độc trên 1 máy trạm, đang đánh giá khả năng lây lan.")
         contain(i3, "isolate_machine", "KT-PC07", "Ngăn mã độc liên lạc C2 và lây lan", "high",
                 approve=False, execute=False)
+        work(i3, done=3, doing=1)
 
 # ═════════════════════════════════════════════════════ KỊCH BẢN 4: WEB ATTACK (mới mở)
 print("\nKịch bản 4 — Web attack / SQL injection (mới mở)")
@@ -330,7 +365,8 @@ if a4:
     triage(a4["id"], "web_attack", "high", 80, 8, "Chuỗi tấn công SQLi điển hình, WAF đã chặn.")
     incident("SQL injection nhắm vào website công ty",
              "Nhiều request SQLi từ cùng một IP, WAF đã chặn nhưng cần rà soát.", "high",
-             [a4["id"]], ["Rà soát log ứng dụng", "Kiểm tra dữ liệu có bị truy vấn", "Vá lỗi nhập liệu"])
+             [a4["id"]], ["Rà soát log ứng dụng", "Kiểm tra dữ liệu có bị truy vấn", "Vá lỗi nhập liệu"],
+             playbook="web_attack")
 
 # ═════════════════════════════════════════════════════ CẢNH BÁO LẺ
 print("\nCảnh báo lẻ")

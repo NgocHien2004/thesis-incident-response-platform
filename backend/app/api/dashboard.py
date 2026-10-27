@@ -7,6 +7,7 @@ from database import get_db
 from app.models.incident import Incident, IncidentStatus, IncidentSeverity
 from app.models.alert import Alert, AlertStatus
 from app.models.postmortem import Postmortem
+from app.models.task import Task, TaskStatus
 from app.core.dependencies import get_current_user
 from app.models.user import User
 
@@ -119,6 +120,19 @@ def get_dashboard(
     for s in AlertStatus:
         alert_by_status[s.value] = sum(1 for a in alerts if a.status == s)
 
+    # ── Công việc theo playbook của các vụ đang mở ──
+    open_ids = {i.id for i in open_incidents}
+    open_tasks = [
+        t for t in db.query(Task).all()
+        if t.incident_id in open_ids and t.status in (TaskStatus.todo, TaskStatus.in_progress)
+    ]
+    naive_now = now.replace(tzinfo=None)
+    tasks_block = {
+        "open": len(open_tasks),
+        "open_required": sum(1 for t in open_tasks if t.is_required),
+        "overdue": sum(1 for t in open_tasks if t.due_at and t.due_at < naive_now),
+    }
+
     return {
         "incidents": {
             "total": len(incidents),
@@ -135,6 +149,7 @@ def get_dashboard(
             "sla_breached_alerts": sla_breached,
             "action_item_completion_pct": action_completion_pct,
         },
+        "tasks": tasks_block,
         "alerts": {
             "total": len(alerts),
             "by_status": alert_by_status,

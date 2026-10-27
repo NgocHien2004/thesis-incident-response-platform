@@ -17,6 +17,8 @@ from app.models.containment import Containment
 from app.models.recovery import RecoveryAction
 from app.models.communication import Communication
 from app.models.postmortem import Postmortem
+from app.models.task import Task
+from app.models.playbook import Playbook
 
 GENESIS = "0" * 64
 
@@ -31,6 +33,8 @@ TRACKED = {
     RecoveryAction: "recovery",
     Communication: "communication",
     Postmortem: "postmortem",
+    Task: "task",
+    Playbook: "playbook",
 }
 
 # Các cột do hệ thống tự cập nhật, không đáng ghi nhật ký
@@ -251,6 +255,15 @@ LABELS = {
     "postmortem.created": "Tạo postmortem",
     "postmortem.updated": "Cập nhật postmortem",
     "postmortem.finalized": "Chốt postmortem",
+    "task.created": "Tạo công việc",
+    "task.todo": "Đặt lại công việc về chưa làm",
+    "task.in_progress": "Bắt đầu công việc",
+    "task.done": "Hoàn thành công việc",
+    "task.skipped": "Bỏ qua công việc",
+    "task.updated": "Cập nhật công việc (giao việc, hạn, ghi chú)",
+    "task.deleted": "Xóa công việc",
+    "playbook.created": "Tạo playbook",
+    "playbook.updated": "Cập nhật playbook",
 }
 
 

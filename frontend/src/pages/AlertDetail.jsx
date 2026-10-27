@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getAlert, triageAlert, markFalsePositive, suggestAI } from '../api/alerts'
 import { createIncident, getIncidents } from '../api/incidents'
+import { getPlaybooks } from '../api/playbooks'
+import { guessPlaybookType } from '../utils/playbook'
 import Badge from '../components/Badge'
 import Card from '../components/Card'
 import Modal from '../components/Modal'
@@ -29,7 +31,8 @@ export default function AlertDetail() {
     triage_type: 'intrusion', triage_severity: 'medium',
     triage_confidence: 80, triage_sla_hours: 4, triage_note: ''
   })
-  const [incForm, setIncForm] = useState({ title: '', severity: 'high', description: '' })
+  const [incForm, setIncForm] = useState({ title: '', severity: 'high', description: '', playbook_id: '' })
+  const [playbooks, setPlaybooks] = useState([])
 
   const isAnalyst = user?.role === 'analyst_soc'
   const isIT      = user?.role === 'it_helpdesk'
@@ -103,12 +106,24 @@ export default function AlertDetail() {
     }
   }
 
+  const openIncident = async () => {
+    try {
+      const pb = await getPlaybooks({ active_only: true })
+      setPlaybooks(pb.data)
+      const type = guessPlaybookType(alert?.triage_type, alert?.title)
+      const match = pb.data.find(p => p.incident_type === type)
+      setIncForm(f => ({ ...f, playbook_id: f.playbook_id || (match ? String(match.id) : '') }))
+    } catch { /* không có playbook vẫn tạo được incident */ }
+    setShowIncident(true)
+  }
+
   const handleCreateIncident = async (e) => {
     e.preventDefault()
     setCreating(true)
     try {
       const res = await createIncident({
         ...incForm,
+        playbook_id: incForm.playbook_id ? parseInt(incForm.playbook_id) : null,
         commander_id: parseInt(user?.id),
         alert_ids: [parseInt(id)]
       })
@@ -180,7 +195,7 @@ export default function AlertDetail() {
             )}
             {canEscalate && (
               <button
-                onClick={() => setShowIncident(true)}
+                onClick={openIncident}
                 className="text-sm px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
               >
                 Tạo Incident
@@ -362,6 +377,15 @@ export default function AlertDetail() {
               {['critical','high','medium','low'].map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Playbook (tạo sẵn danh sách công việc)</label>
+            <select value={incForm.playbook_id}
+              onChange={e => setIncForm({...incForm, playbook_id: e.target.value})}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-400">
+              <option value="">Không dùng playbook</option>
+              {playbooks.map(p => <option key={p.id} value={p.id}>{p.name} ({p.step_count} bước)</option>)}
             </select>
           </div>
           <div>

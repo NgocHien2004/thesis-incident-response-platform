@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getIncidents, createIncident } from '../api/incidents'
 import { getAlerts } from '../api/alerts'
+import { getPlaybooks } from '../api/playbooks'
+import { guessPlaybookType } from '../utils/playbook'
 import Badge from '../components/Badge'
 import Modal from '../components/Modal'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -18,8 +20,9 @@ export default function IncidentList() {
   const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating]   = useState(false)
   const [triagedAlerts, setTriagedAlerts] = useState([])
+  const [playbooks, setPlaybooks] = useState([])
   const [form, setForm] = useState({
-    title: '', severity: 'high', description: '', alert_ids: []
+    title: '', severity: 'high', description: '', alert_ids: [], playbook_id: ''
   })
 
   const isAnalyst = user?.role === 'analyst_soc'
@@ -36,16 +39,23 @@ export default function IncidentList() {
   const openCreate = async () => {
     const res = await getAlerts('triaged')
     setTriagedAlerts(res.data)
+    const pb = await getPlaybooks({ active_only: true })
+    setPlaybooks(pb.data)
     setShowCreate(true)
   }
 
   const toggleAlert = (id) => {
-    setForm(f => ({
-      ...f,
-      alert_ids: f.alert_ids.includes(id)
-        ? f.alert_ids.filter(a => a !== id)
-        : [...f.alert_ids, id]
-    }))
+    const picked = triagedAlerts.find(a => a.id === id)
+    setForm(f => {
+      const next = f.alert_ids.includes(id) ? f.alert_ids.filter(a => a !== id) : [...f.alert_ids, id]
+      let playbook_id = f.playbook_id
+      if (!playbook_id && next.length === 1 && picked) {
+        const type = guessPlaybookType(picked.triage_type, picked.title)
+        const match = playbooks.find(p => p.incident_type === type)
+        if (match) playbook_id = String(match.id)
+      }
+      return { ...f, alert_ids: next, playbook_id }
+    })
   }
 
   const handleCreate = async (e) => {
@@ -58,11 +68,12 @@ export default function IncidentList() {
     try {
       await createIncident({
         ...form,
+        playbook_id: form.playbook_id ? parseInt(form.playbook_id) : null,
         commander_id: parseInt(user?.id),
       })
       toast.success('Tạo incident thành công')
       setShowCreate(false)
-      setForm({ title: '', severity: 'high', description: '', alert_ids: [] })
+      setForm({ title: '', severity: 'high', description: '', alert_ids: [], playbook_id: '' })
       load()
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Tạo thất bại')
@@ -165,6 +176,15 @@ export default function IncidentList() {
               onChange={e => setForm({...form, severity: e.target.value})}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-400">
               {['critical','high','medium','low'].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Playbook (tạo sẵn danh sách công việc)</label>
+            <select value={form.playbook_id}
+              onChange={e => setForm({...form, playbook_id: e.target.value})}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary-400">
+              <option value="">Không dùng playbook</option>
+              {playbooks.map(p => <option key={p.id} value={p.id}>{p.name} ({p.step_count} bước)</option>)}
             </select>
           </div>
           <div>

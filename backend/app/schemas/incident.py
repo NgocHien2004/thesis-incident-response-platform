@@ -10,6 +10,7 @@ class IncidentCreate(BaseModel):
     commander_id: Optional[int] = None
     alert_ids: List[int]           # danh sách alert gộp vào incident này
     checklist: Optional[List[str]] = None  # danh sách việc cần làm ban đầu
+    playbook_id: Optional[int] = None      # áp dụng playbook ngay khi tạo vụ
 
 class IncidentOut(BaseModel):
     id: int

@@ -39,13 +39,13 @@
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:exclusiveGateway id="g1" name="Đủ 5 tiêu chí đóng?">
-      <bpmn:documentation>1) có mốc contained; 2) không còn containment proposed hoặc approved; 3) mọi containment executed đều đã verified; 4) không còn recovery pending, in_progress hoặc done chưa xác nhận; 5) có ít nhất 1 recovery done đã được chủ hệ thống xác nhận.</bpmn:documentation>
+    <bpmn:exclusiveGateway id="g1" name="Đủ 6 tiêu chí đóng?">
+      <bpmn:documentation>1) có mốc contained; 2) không còn containment proposed hoặc approved; 3) mọi containment executed đều đã verified; 4) không còn recovery pending, in_progress hoặc done chưa xác nhận; 5) có ít nhất 1 recovery done đã được chủ hệ thống xác nhận; 6) không còn công việc bắt buộc (task) ở trạng thái todo hoặc in_progress; công việc bắt buộc phải done hoặc được commander bỏ qua kèm lý do.</bpmn:documentation>
       <bpmn:incoming>Flow_3</bpmn:incoming>
       <bpmn:outgoing>Flow_4</bpmn:outgoing>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:userTask id="a2" name="Bổ sung phần còn thiếu (xác minh, xác nhận)">
+    <bpmn:userTask id="a2" name="Bổ sung phần còn thiếu (xác minh, xác nhận, công việc)">
       <bpmn:incoming>Flow_4</bpmn:incoming>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
     </bpmn:userTask>

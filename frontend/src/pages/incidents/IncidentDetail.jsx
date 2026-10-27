@@ -7,6 +7,7 @@ import { getIncident, updateStatus, getEvidences, addEvidence, lockEvidence,
   approveCommunication, sendCommunication, getPostmortem,
   createPostmortem, finalizePostmortem, getImpact, createImpact,
   verifyContainment, acknowledgeCommunication, getTimeline, setActionItemDone } from '../../api/incidents'
+import TasksTab from './TasksTab'
 import Badge from '../../components/Badge'
 import Card from '../../components/Card'
 import Modal from '../../components/Modal'
@@ -14,7 +15,7 @@ import LoadingSpinner from '../../components/LoadingSpinner'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 
-const TABS = ['Tổng quan','Bằng chứng','Phạm vi','Containment','Recovery','Thông báo','Postmortem','Timeline']
+const TABS = ['Tổng quan','Công việc','Bằng chứng','Phạm vi','Containment','Recovery','Thông báo','Postmortem','Timeline']
 
 // Bảng chuyển trạng thái hợp lệ (khớp với backend)
 const NEXT = {
@@ -145,13 +146,14 @@ export default function IncidentDetail() {
       {/* Tab content */}
       <div>
         {tab===0 && <OverviewTab incident={incident} incId={id}/>}
-        {tab===1 && <EvidenceTab incId={id} canWrite={canWrite} isAnalyst={isAnalyst}/>}
-        {tab===2 && <ImpactTab   incId={id} isAnalyst={isAnalyst}/>}
-        {tab===3 && <ContainmentTab incId={id} isIT={isIT} isAnalyst={isAnalyst} myId={myId} commanderId={incident.commander_id} closed={closed}/>}
-        {tab===4 && <RecoveryTab    incId={id} canWrite={canWrite} isAnalyst={isAnalyst} isStakeholder={isStakeholder}/>}
-        {tab===5 && <CommunicationTab incId={id} isAnalyst={isAnalyst} isStakeholder={isStakeholder} myId={myId} isCommander={isCommander}/>}
-        {tab===6 && <PostmortemTab    incId={id} isAnalyst={isAnalyst} isCommander={isCommander} canTrack={canWrite} incident={incident} reload={reload}/>}
-        {tab===7 && <TimelineTab incId={id}/>}
+        {tab===1 && <TasksTab incId={id} isAnalyst={isAnalyst} isIT={isIT} myId={myId} isCommander={isCommander} closed={closed}/>}
+        {tab===2 && <EvidenceTab incId={id} canWrite={canWrite} isAnalyst={isAnalyst}/>}
+        {tab===3 && <ImpactTab   incId={id} isAnalyst={isAnalyst}/>}
+        {tab===4 && <ContainmentTab incId={id} isIT={isIT} isAnalyst={isAnalyst} myId={myId} commanderId={incident.commander_id} closed={closed}/>}
+        {tab===5 && <RecoveryTab    incId={id} canWrite={canWrite} isAnalyst={isAnalyst} isStakeholder={isStakeholder}/>}
+        {tab===6 && <CommunicationTab incId={id} isAnalyst={isAnalyst} isStakeholder={isStakeholder} myId={myId} isCommander={isCommander}/>}
+        {tab===7 && <PostmortemTab    incId={id} isAnalyst={isAnalyst} isCommander={isCommander} canTrack={canWrite} incident={incident} reload={reload}/>}
+        {tab===8 && <TimelineTab incId={id}/>}
       </div>
     </div>
   )

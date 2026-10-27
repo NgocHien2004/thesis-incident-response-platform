@@ -6,6 +6,7 @@ const navItems = [
   { path: '/alerts',    label: 'Cảnh báo',   icon: '🚨' },
   { path: '/incidents', label: 'Sự cố',      icon: '🔥' },
   { path: '/assets',    label: 'Tài sản',    icon: '🖥️' },
+  { path: '/playbooks', label: 'Playbook',   icon: '📘', roles: ['analyst_soc', 'it_helpdesk'] },
   { path: '/audit',     label: 'Nhật ký',    icon: '🧾', roles: ['analyst_soc'] },
   { path: '/accounts',  label: 'Tài khoản',  icon: '👤', roles: ['analyst_soc'] },
 ]

@@ -9,6 +9,9 @@ from app.models.alert import Alert, AlertStatus
 from app.models.containment import Containment, ContainmentStatus
 from app.models.recovery import RecoveryAction, RecoveryStatus
 from app.models.audit_log import AuditLog
+from app.models.task import Task, TaskStatus
+from app.models.playbook import Playbook
+from app.services.playbooks import instantiate_playbook
 from app.core.audit import label_for
 from sqlalchemy import or_, and_
 from app.schemas.incident import IncidentCreate, IncidentOut, IncidentStatusUpdate
@@ -46,6 +49,12 @@ def closure_unmet(db: Session, incident: Incident) -> list:
         unmet.append(f"{len(active)} hành động recovery chưa hoàn tất hoặc chưa được chủ hệ thống xác nhận")
     if not any(a.status == RecoveryStatus.done and a.is_confirmed for a in actions):
         unmet.append("chưa có hành động recovery nào được chủ hệ thống xác nhận")
+    open_required = db.query(Task).filter(
+        Task.incident_id == incident.id, Task.is_required == True,  # noqa: E712
+        Task.status.in_([TaskStatus.todo, TaskStatus.in_progress])
+    ).count()
+    if open_required:
+        unmet.append(f"{open_required} công việc bắt buộc theo playbook chưa hoàn thành hoặc chưa được bỏ qua kèm lý do")
     return unmet
 
 # Xem danh sách
@@ -114,6 +123,14 @@ def create_incident(
         "Thông báo stakeholder",
     ]
 
+    playbook = None
+    if payload.playbook_id is not None:
+        playbook = db.query(Playbook).filter(Playbook.id == payload.playbook_id).first()
+        if not playbook:
+            raise HTTPException(404, "Không tìm thấy playbook")
+        if not playbook.is_active:
+            raise HTTPException(400, "Playbook này đã ngừng sử dụng")
+
     commander_id = payload.commander_id or current_user.id
     commander = db.query(User).filter(User.id == commander_id).first()
     if not commander or not commander.is_active or commander.role != RoleEnum.analyst_soc:
@@ -135,6 +152,9 @@ def create_incident(
     for alert in alerts:
         alert.incident_id = incident.id
         alert.status = AlertStatus.escalated
+
+    if playbook:
+        instantiate_playbook(db, incident, playbook, current_user.id)
 
     db.commit()
     db.refresh(incident)

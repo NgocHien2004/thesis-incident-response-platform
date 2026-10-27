@@ -23,6 +23,10 @@ from app.models.communication import Communication
 from app.api.communication import router as communication_router
 from app.models.postmortem import Postmortem
 from app.api.postmortem import router as postmortem_router
+from app.models.playbook import Playbook, PlaybookStep
+from app.models.task import Task
+from app.api.playbooks import router as playbooks_router
+from app.api.tasks import router as tasks_router
 from app.api.dashboard import router as dashboard_router
 from app.api.ai import router as ai_router
 from app.models.audit_log import AuditLog
@@ -31,6 +35,12 @@ from app.api.audit import router as audit_router
 
 # Tạo bảng nếu chưa có
 Base.metadata.create_all(bind=engine)
+
+# Nạp playbook mẫu khi bảng còn trống
+from database import SessionLocal
+from app.services.default_playbooks import seed_default_playbooks
+with SessionLocal() as _db:
+    seed_default_playbooks(_db)
 
 app = FastAPI(title="Incident Response Platform")
 
@@ -49,6 +59,8 @@ app.include_router(evidences_router)
 app.include_router(impact_router)
 app.include_router(containment_router)
 app.include_router(recovery_router)
+app.include_router(playbooks_router)
+app.include_router(tasks_router)
 app.include_router(communication_router)
 app.include_router(postmortem_router)
 app.include_router(dashboard_router)

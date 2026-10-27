@@ -119,6 +119,18 @@ export default function Dashboard() {
           color="text-teal-600"
           sub="hoàn thành postmortem"
         />
+        <MetricCard
+          label="Công việc đang mở"
+          value={data?.tasks?.open}
+          color="text-gray-900"
+          sub={data?.tasks ? `${data.tasks.open_required} bắt buộc` : 'theo playbook'}
+        />
+        <MetricCard
+          label="Công việc quá hạn"
+          value={data?.tasks?.overdue}
+          color={data?.tasks?.overdue > 0 ? 'text-red-600' : 'text-green-600'}
+          sub="chưa xong sau hạn"
+        />
       </div>
 
       {/* Row 2 */}

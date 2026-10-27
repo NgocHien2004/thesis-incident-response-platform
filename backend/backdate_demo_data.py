@@ -24,6 +24,8 @@ from app.models.recovery import RecoveryAction                      # noqa: E402
 from app.models.communication import Communication                  # noqa: E402
 from app.models.postmortem import Postmortem                        # noqa: E402
 from app.models.audit_log import AuditLog                           # noqa: E402
+from app.models.task import Task, TaskStatus                        # noqa: E402
+from app.models.playbook import Playbook                            # noqa: E402,F401
 from app.core.audit import compute_hash, GENESIS                    # noqa: E402
 
 NOW = datetime.now(timezone.utc).replace(tzinfo=None)               # DB lưu UTC naive
@@ -140,6 +142,23 @@ for a in alerts_of(i4):
     set_alert(a, b, triage_delay=15)
 i4.detected_at, i4.created_at = b + M(30), b + M(30)
 
+# ── Công việc theo playbook: hạn tính từ lúc phát hiện, việc đã xong hoàn thành trong khoảng nửa thời hạn ──
+for inc in incs:
+    for t in db.query(Task).filter(Task.incident_id == inc.id).order_by(Task.id).all():
+        hours = round((t.due_at - t.created_at).total_seconds() / 3600) if t.due_at and t.created_at else None
+        base = inc.detected_at
+        t.created_at = base
+        t.due_at = base + timedelta(hours=hours) if hours is not None else None
+        if t.status in (TaskStatus.done, TaskStatus.skipped):
+            done_at = base + (timedelta(hours=hours * 0.5) if hours else M(30))
+            if inc.resolved_at:
+                done_at = min(done_at, inc.resolved_at - M(30))
+            t.completed_at = min(done_at, NOW - M(5))
+            t.updated_at = t.completed_at
+        else:
+            t.completed_at = None
+            t.updated_at = base
+
 # ── Cảnh báo lẻ (không thuộc incident nào) ──
 loose = db.query(Alert).filter(Alert.incident_id.is_(None)).order_by(Alert.id).all()
 for k, a in enumerate(loose):
@@ -167,6 +186,7 @@ conts = {x.id: x for x in db.query(Containment).all()}
 recs = {x.id: x for x in db.query(RecoveryAction).all()}
 comms = {x.id: x for x in db.query(Communication).all()}
 pms = {x.id: x for x in db.query(Postmortem).all()}
+tasks_d = {x.id: x for x in db.query(Task).all()}
 
 
 def audit_time(r):
@@ -216,6 +236,11 @@ def audit_time(r):
         o = pms[i]
         return {"postmortem.created": o.created_at, "postmortem.updated": o.created_at + M(5),
                 "postmortem.finalized": o.finalized_at}.get(a)
+    if e == "task" and i in tasks_d:
+        o = tasks_d[i]
+        return {"task.created": o.created_at, "task.done": o.completed_at or o.created_at,
+                "task.skipped": o.completed_at or o.created_at,
+                "task.in_progress": o.created_at + M(20)}.get(a, o.created_at + M(3))
     if a == "asset.created":
         return NOW - timedelta(days=5)
     if a == "user.created":
@@ -244,6 +269,6 @@ for r in rows:
 
 db.commit()
 db.close()
-print("Đã dịch lùi mốc thời gian cho 4 incident và các cảnh báo lẻ.")
+print("Đã dịch lùi mốc thời gian cho 4 incident, công việc theo playbook và các cảnh báo lẻ.")
 print("Đã tính lại chuỗi băm của nhật ký kiểm toán (chỉ làm với dữ liệu demo).")
 print("Mở GET /dashboard/ để xem MTTD/MTTA/MTTR mới.")

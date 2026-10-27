@@ -64,6 +64,11 @@ Hệ thống quản lý vòng đời sự cố an ninh mạng (Incident Response
 | Xác nhận đã nhận thông báo | ❌ | ❌ | ✅ |
 | Viết postmortem | ❌ | ✅ | ❌ |
 | Đánh dấu hoàn thành action item | ✅ | ✅ | ❌ |
+| Xem playbook và công việc của incident | ✅ | ✅ | ✅ |
+| Tạo, sửa, ngừng dùng playbook | ❌ | ✅ | ❌ |
+| Áp dụng playbook; giao việc, đặt hạn; tạo hoặc xóa công việc thủ công | ❌ | ✅ | ❌ |
+| Nhận việc, làm và hoàn thành công việc (việc giao cho mình, hoặc việc chưa giao thuộc IT) | ✅ | ✅ | ❌ |
+| Bỏ qua hoặc mở lại công việc | ❌ | ✅ (việc bắt buộc chỉ commander; luôn ghi lý do) | ❌ |
 | Đóng hoặc mở lại incident; chốt postmortem | ❌ | ✅ (chỉ commander của vụ) | ❌ |
 | Xem, xuất nhật ký kiểm toán; kiểm tra chuỗi băm | ❌ | ✅ | ❌ |
 | Cấp tài khoản mới | ❌ | ✅ | ❌ |
@@ -104,7 +109,7 @@ Mỗi bước mô tả ai làm gì, đầu vào, đầu ra và điều kiện ch
 
 ### Bước 5 — Tạo incident
 
-**Ai làm:** Analyst/SOC **Đầu vào:** Alert đã `triaged` **Đầu ra:** Incident với ID, commander, checklist ban đầu, liên kết đến các alert **Ghi chú:** Một incident có thể gộp nhiều alert liên quan; các alert chuyển sang `escalated`. Commander mặc định là người tạo, hoặc một Analyst khác được chỉ định; commander phải là tài khoản Analyst đang hoạt động.
+**Ai làm:** Analyst/SOC **Đầu vào:** Alert đã `triaged` **Đầu ra:** Incident với ID, commander, checklist ban đầu, liên kết đến các alert **Ghi chú:** Một incident có thể gộp nhiều alert liên quan; các alert chuyển sang `escalated`. Commander mặc định là người tạo, hoặc một Analyst khác được chỉ định; commander phải là tài khoản Analyst đang hoạt động. Khi tạo vụ có thể chọn một playbook; mỗi bước của playbook trở thành một công việc (task) của vụ, xem mục *Playbook và công việc*.
 
 ### Bước 6 — Thu thập bằng chứng
 
@@ -128,11 +133,46 @@ Mỗi bước mô tả ai làm gì, đầu vào, đầu ra và điều kiện ch
 
 ### Bước 11 — Đóng vụ & Postmortem
 
-**Ai làm:** Commander của vụ (đóng, chốt postmortem), Analyst (viết postmortem) **Tiêu chí đóng:** đã có mốc khống chế; không còn đề xuất containment chưa xử lý; mọi containment đã thực hiện đều được xác minh; không còn hành động recovery đang chờ hoặc đang làm; có ít nhất một hành động recovery được chủ hệ thống xác nhận. **Postmortem:** viết khi incident đã sang giai đoạn phục hồi hoặc đã đóng; chốt (finalize) khi incident đã đóng và có ít nhất một action item; chốt không thay đổi trạng thái hay thời điểm đóng của incident. **Mở lại:** commander có thể mở lại incident đã đóng kèm lý do bắt buộc. Incident đã đóng không nhận thêm bằng chứng, containment hay recovery.
+**Ai làm:** Commander của vụ (đóng, chốt postmortem), Analyst (viết postmortem) **Tiêu chí đóng:** đã có mốc khống chế; không còn đề xuất containment chưa xử lý; mọi containment đã thực hiện đều được xác minh; không còn hành động recovery đang chờ hoặc đang làm; có ít nhất một hành động recovery được chủ hệ thống xác nhận; không còn công việc bắt buộc theo playbook ở trạng thái chưa làm hoặc đang làm (công việc bắt buộc phải xong, hoặc được commander bỏ qua kèm lý do). **Postmortem:** viết khi incident đã sang giai đoạn phục hồi hoặc đã đóng; chốt (finalize) khi incident đã đóng và có ít nhất một action item; chốt không thay đổi trạng thái hay thời điểm đóng của incident. **Mở lại:** commander có thể mở lại incident đã đóng kèm lý do bắt buộc. Incident đã đóng không nhận thêm bằng chứng, containment hay recovery.
 
 ### Bước 12 — Đo lường
 
 **Ai làm:** Hệ thống tự động tính, tất cả role xem được **Đầu ra:** MTTD, MTTA, MTTR, số vụ mở, lỗi lặp, % hoàn thành action items, SLA breached alerts **Định nghĩa:** MTTD là thời gian từ cảnh báo đầu tiên của vụ đến khi mở incident; MTTA là thời gian từ lúc tạo cảnh báo đến khi được triage; MTTR là thời gian từ khi mở incident đến khi đóng. MTTD và MTTR tính trên các vụ đã đóng. Vi phạm SLA là cảnh báo đã triage, quá hạn mà chưa được nâng thành incident. **Hạn chế:** chỉ số "lỗi lặp" so khớp chuỗi nguyên nhân gốc nên chưa đáng tin.
+
+### Playbook và công việc (task)
+
+Đề yêu cầu chuyển các phase, checklist, điểm phê duyệt và tiêu chí đóng của playbook CISA thành mẫu cấu hình được cho doanh nghiệp vừa và nhỏ. Hệ thống cài đặt hai đối tượng:
+
+- **Playbook** là mẫu theo loại sự cố (`phishing`, `credential_compromise`, `malware`, `web_attack`, `other`), gồm các bước có thứ tự. Mỗi bước có tiêu đề, mô tả, giai đoạn (`analysis`, `evidence`, `containment`, `recovery`, `communication`, `closure`), vai trò thường đảm nhiệm (IT/Helpdesk hoặc Analyst/SOC), hạn tính bằng giờ kể từ lúc tạo vụ, và cờ bắt buộc. Hệ thống nạp sẵn 5 playbook mẫu: 4 playbook theo loại sự cố do tác giả soạn dựa trên CISA Incident and Vulnerability Response Playbooks và NIST SP 800-61 Rev. 3, và 1 playbook tham chiếu chuẩn bám cấu trúc checklist của CISA (xem mục sau). Analyst tạo, sửa hoặc ngừng dùng playbook trên giao diện. Nội dung mẫu là điều chỉnh của tác giả, không phải bản sao tài liệu gốc.
+- **Công việc (task)** là bản sao của một bước playbook gắn với một incident, hoặc do Analyst tạo tay. Task lưu tiêu đề, giai đoạn, hạn, cờ bắt buộc, người được giao, ghi chú và người hoàn thành. Vì là bản sao, sửa hoặc ngừng dùng playbook về sau không làm đổi các task đã tạo.
+
+### Playbook tham chiếu chuẩn và đối chiếu với CISA
+
+CISA không có playbook riêng theo loại sự cố: tài liệu chỉ có một playbook ứng phó sự cố chung và một playbook xử lý lỗ hổng, và playbook ứng phó chỉ áp dụng cho hoạt động độc hại đã xác nhận có thể thành sự cố lớn. Tài liệu còn nêu rõ không áp dụng cho các hoạt động không có khả năng thành sự cố lớn, ví dụ người dùng nhấp email phishing mà không bị chiếm quyền, hay mã độc thông thường trên một máy. Nhiều bước chỉ dành cho cơ quan liên bang Mỹ (báo CISA trong 1 giờ, báo OMB và Quốc hội, kích hoạt FNA). Vì vậy 4 playbook theo loại sự cố ở trên là chuyển thể của tác giả, còn playbook **"Tham chiếu chuẩn: ứng phó sự cố theo CISA (điều chỉnh)"** (31 bước) giữ nguyên thứ tự 11 bước của Phụ lục B (Incident Response Checklist, bản tháng 11/2021), diễn đạt lại bằng tiếng Việt, không dịch từng câu. Mỗi bước ghi mã mục tương ứng trong Phụ lục B ở cuối phần mô tả.
+
+| Bước CISA (Phụ lục B) | Mục | Công việc trong playbook (số thứ tự) | Ghi chú |
+| --- | --- | --- | --- |
+| 1. Declare Incident | 1a–1c | 1, 2, 3 | 1c chuyển thành báo lãnh đạo và đánh giá nghĩa vụ báo cáo; bỏ 1d (đầu mối liên lạc với CISA) |
+| 2. Determine Investigation Scope | 2a–2b | 4 | |
+| 3. Collect and Preserve Data | 3a–3b | 5 | Hệ thống tự ghi chain of custody |
+| 4. Perform Technical Analysis | 4a–4bb | 6 đến 12 | Gồm ánh xạ ATT&CK (4r–4y) và điều kiện kết thúc phân tích (4d); phần báo cáo cho CISA ở 4c, 4q chuyển thành chia sẻ nội bộ và với đối tác |
+| 5. Third-Party Analysis Support | 5a, 5c, 5d | 13 | Bỏ 5b (FNA của liên bang Mỹ) |
+| 6. Adjust Tools | 6a–6b | 14 | |
+| 7. Contain Activity | 7a–7n | 15 đến 19 | Bỏ 7j (dẫn kẻ tấn công vào sandbox, chỉ cho SOC nâng cao); 7l (báo CISA) chuyển thành cập nhật cho các bên liên quan; biện pháp cụ thể thực hiện ở tab Containment |
+| 8. Execute Eradication Plan | 8a–8m | 20 đến 22 | 8b (báo cáo tình trạng cho CISA) chuyển thành cập nhật cho các bên liên quan |
+| 9. Recovery (bản gốc đặt trùng tiêu đề với bước 8) | 9a–9l | 23 đến 26 | 9a và 9l trùng nội dung trong bản gốc; chủ hệ thống xác nhận ở tab Recovery |
+| 10. Post-Incident Activities | 10a–10r | 29 đến 31 | Bỏ 10g, 10h (báo CISA); 10e chuyển thành đánh giá nghĩa vụ báo cáo |
+| 11. Coordination with CISA | 11a–11h | 27, 28 | Chỉ giữ 11d–11f dưới dạng cập nhật nội bộ và chia sẻ với đối tác; bỏ 11a–11c, 11g, 11h |
+
+Phần chuẩn bị trước sự cố (Phụ lục C) không nằm trong playbook này; việc quản lý tài sản, giám sát và nhật ký do các chức năng khác của hệ thống đảm nhiệm. Bảng đối chiếu do tác giả lập từ bản CISA tháng 11/2021 và cần soát lại với bản gốc trước khi nộp. Hệ thống tự thêm playbook tham chiếu vào cơ sở dữ liệu đã có sẵn playbook khác khi khởi động; việc nhận biết dựa trên tên và trường nguồn tham chiếu nên không thêm lại nếu bạn đã đổi tên hoặc ngừng dùng playbook này.
+
+**Áp dụng playbook:** chọn lúc tạo incident (`playbook_id`) hoặc về sau (`POST /incidents/{id}/tasks/apply-playbook`). Áp dụng lại cùng playbook không tạo trùng: bước nào đã có task cùng playbook và cùng tiêu đề trong vụ thì bị bỏ qua. Không áp dụng được cho incident đã đóng. Giao diện gợi ý playbook theo loại triage hoặc tiêu đề của cảnh báo.
+
+**Quyền làm việc:** Analyst giao việc, đặt hạn, tạo hoặc xóa việc thủ công và làm mọi việc. IT/Helpdesk chỉ đổi trạng thái việc giao cho mình hoặc việc chưa giao thuộc vai trò IT; nhận một việc chưa giao thì tự được gán cho người nhận. Stakeholder chỉ xem. Bỏ qua một công việc luôn cần lý do; công việc bắt buộc chỉ commander của vụ được bỏ qua hoặc mở lại. Mở lại việc đã xong cần Analyst và lý do.
+
+**Liên hệ với tiêu chí đóng vụ:** vụ không đóng được khi còn công việc bắt buộc ở trạng thái chưa làm hoặc đang làm. Playbook mẫu đặt bước "viết bản nháp postmortem" là bắt buộc, vì postmortem cần được soạn trước khi đóng, còn việc chốt do commander thực hiện sau khi đóng (xem bước 11). Vì incident đã đóng không nhận thay đổi công việc, các việc sau khi đóng được theo dõi bằng action item của postmortem.
+
+**Giới hạn:** chưa có phụ thuộc giữa các công việc (việc B chỉ mở khi việc A xong), chưa có nhắc việc hoặc leo thang tự động khi quá hạn (chỉ đếm và tô đỏ trên giao diện và dashboard), chưa gắn công việc với từng bước phê duyệt của containment; người xác nhận một công việc đã xong chính là Analyst hoặc commander khi đóng vụ chứ không có bước xác nhận riêng cho từng việc.
 
 ## Luồng dữ liệu & State machine
 
@@ -221,6 +261,19 @@ Chỉ các chuyển trạng thái trong bảng được chấp nhận; mọi chu
 | `draft` (đã duyệt) | `sent` | Analyst gửi |
 | `sent` | `acknowledged` | Stakeholder xác nhận đã nhận |
 
+### State machine — Công việc (task)
+
+| Trạng thái | Chuyển sang | Điều kiện |
+| --- | --- | --- |
+| `todo` | `in_progress` | IT hoặc Analyst bắt đầu; IT chỉ với việc giao cho mình hoặc việc chưa giao thuộc IT (việc chưa giao thì gán cho người nhận) |
+| `todo` / `in_progress` | `done` | Như trên; ghi người hoàn thành và thời điểm |
+| `in_progress` | `todo` | Trả lại việc |
+| `todo` / `in_progress` | `skipped` | Chỉ Analyst, bắt buộc có lý do; việc bắt buộc chỉ commander |
+| `done` | `in_progress` | Chỉ Analyst, bắt buộc có lý do |
+| `skipped` | `todo` | Chỉ Analyst; việc bắt buộc chỉ commander |
+
+Incident đã đóng không nhận thay đổi công việc (409).
+
 ### State machine — Postmortem và action item
 
 | Trạng thái | Chuyển sang | Điều kiện |
@@ -229,11 +282,11 @@ Chỉ các chuyển trạng thái trong bảng được chấp nhận; mọi chu
 | đang soạn | `is_finalized: true` | Commander chốt khi incident đã đóng và có ít nhất một action item |
 | action item `done: false` | `done: true` | IT hoặc Analyst đánh dấu; tính vào chỉ số hoàn thành |
 
-Đối tượng **task** trong state machine tối thiểu của đề hiện chưa được cài đặt riêng: checklist ban đầu của incident chỉ là danh sách chữ.
+Đối tượng **approval** của state machine tối thiểu không tách thành bảng riêng: việc phê duyệt được ghi ngay trên containment (người duyệt, thời điểm, kết quả) và trên thông báo (người duyệt), cùng nhật ký kiểm toán. Checklist 5 dòng mặc định của incident vẫn tồn tại để tương thích, nhưng công việc có người phụ trách, hạn và trạng thái là đối tượng task ở trên.
 
 ## Nhật ký kiểm toán (audit log)
 
-Mọi thay đổi dữ liệu nghiệp vụ và mọi sự kiện đăng nhập được ghi tự động vào bảng `audit_log`. Các đối tượng được theo dõi: tài sản, alert, incident, bằng chứng, chain of custody, phân tích phạm vi, containment, recovery, thông báo, postmortem, cùng đăng nhập, đăng nhập sai, khóa tài khoản và cấp tài khoản.
+Mọi thay đổi dữ liệu nghiệp vụ và mọi sự kiện đăng nhập được ghi tự động vào bảng `audit_log`. Các đối tượng được theo dõi: tài sản, alert, incident, bằng chứng, chain of custody, phân tích phạm vi, containment, recovery, thông báo, postmortem, công việc, playbook, cùng đăng nhập, đăng nhập sai, khóa tài khoản và cấp tài khoản.
 
 - **Ghi tự động ở tầng dữ liệu:** một bộ lắng nghe trên session của SQLAlchemy ghi mỗi lần tạo, sửa, xóa các đối tượng trên, nên không thể quên ghi ở một endpoint nào đó. Mỗi bản ghi có người thực hiện (id, tên, vai trò), thời điểm UTC, hành động (ví dụ `containment.approved`), đối tượng, incident liên quan và chi tiết thay đổi (giá trị cũ và mới).
 - **Chỉ thêm vào:** không có endpoint sửa hoặc xóa nhật ký.
@@ -405,6 +458,22 @@ Base URL: `http://localhost:8000` | Docs: `http://localhost:8000/docs`
 | POST | `/incidents/{id}/postmortem/` | Viết postmortem | Analyst |
 | PATCH | `/incidents/{id}/postmortem/finalize` | Chốt postmortem (incident đã đóng, commander) | Analyst |
 
+### Playbook và công việc
+
+| Method | Endpoint | Mô tả | Role |
+| --- | --- | --- | --- |
+| GET | `/playbooks/` | Danh sách (lọc `incident_type`, `active_only`) | All |
+| GET | `/playbooks/{id}` | Chi tiết kèm các bước | All |
+| POST | `/playbooks/` | Tạo playbook | Analyst |
+| PUT | `/playbooks/{id}` | Sửa, thay toàn bộ bước, ngừng dùng | Analyst |
+| GET | `/incidents/{id}/tasks/` | Danh sách công việc của vụ | All |
+| GET | `/incidents/{id}/tasks/summary` | Tổng hợp: số việc, bắt buộc chưa xong, quá hạn, % xử lý | All |
+| GET | `/incidents/{id}/tasks/assignees` | Tài khoản có thể được giao việc | Analyst |
+| POST | `/incidents/{id}/tasks/apply-playbook` | Tạo công việc từ playbook, không tạo trùng | Analyst |
+| POST | `/incidents/{id}/tasks/` | Tạo công việc thủ công | Analyst |
+| PATCH | `/incidents/{id}/tasks/{tid}` | Đổi trạng thái; giao việc, đặt hạn (chỉ Analyst) | IT, Analyst |
+| DELETE | `/incidents/{id}/tasks/{tid}` | Xóa việc thủ công chưa xong | Analyst |
+
 ### Audit
 
 | Method | Endpoint | Mô tả | Role |
@@ -417,7 +486,7 @@ Base URL: `http://localhost:8000` | Docs: `http://localhost:8000/docs`
 
 | Method | Endpoint | Mô tả | Role |
 | --- | --- | --- | --- |
-| GET | `/dashboard/` | 6 chỉ số + stats | All |
+| GET | `/dashboard/` | 6 chỉ số + stats + thống kê công việc đang mở và quá hạn | All |
 | GET | `/dashboard/sla` | Alerts vi phạm SLA | All |
 | POST | `/ai/alert/suggest` | AI đề xuất severity + ATT&CK | All |
 | POST | `/ai/attck/search` | Tìm kiếm ATT&CK techniques | All |

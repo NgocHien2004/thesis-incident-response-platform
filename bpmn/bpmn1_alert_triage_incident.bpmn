@@ -81,13 +81,13 @@
     <bpmn:endEvent id="e1" name="Alert đóng: báo nhầm">
       <bpmn:incoming>Flow_13</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:userTask id="t8" name="Tạo incident từ các alert đã triage, chỉ định commander">
-      <bpmn:documentation>POST /incidents/. Chỉ Analyst. Mọi alert phải ở trạng thái triaged hoặc escalated. Commander mặc định là người tạo, hoặc một Analyst đang hoạt động được chỉ định. Checklist mặc định 5 dòng (chuỗi tĩnh).</bpmn:documentation>
+    <bpmn:userTask id="t8" name="Tạo incident từ alert đã triage, chỉ định commander, chọn playbook">
+      <bpmn:documentation>POST /incidents/. Chỉ Analyst. Mọi alert phải ở trạng thái triaged hoặc escalated. Commander mặc định là người tạo, hoặc một Analyst đang hoạt động được chỉ định. Có thể chọn playbook đang sử dụng (playbook_id); hệ thống gợi ý playbook theo loại triage của alert. Checklist 5 dòng mặc định vẫn được giữ.</bpmn:documentation>
       <bpmn:incoming>Flow_11</bpmn:incoming>
       <bpmn:outgoing>Flow_14</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:serviceTask id="t9" name="Tạo incident open, alert chuyển escalated">
-      <bpmn:documentation>detected_at = thời điểm tạo. Các alert được gắn incident_id và chuyển escalated.</bpmn:documentation>
+    <bpmn:serviceTask id="t9" name="Tạo incident open, alert chuyển escalated, tạo công việc từ playbook">
+      <bpmn:documentation>detected_at = thời điểm tạo. Các alert được gắn incident_id và chuyển escalated. Nếu có playbook, mỗi bước thành một công việc (task) với hạn tính từ lúc tạo vụ; xem BPMN 6.</bpmn:documentation>
       <bpmn:incoming>Flow_14</bpmn:incoming>
       <bpmn:outgoing>Flow_15</bpmn:outgoing>
     </bpmn:serviceTask>

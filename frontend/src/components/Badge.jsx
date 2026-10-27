@@ -17,6 +17,10 @@ const colors = {
   approved:  'bg-green-100 text-green-700',
   rejected:  'bg-red-100 text-red-700',
   executed:  'bg-blue-100 text-blue-700',
+  todo:        'bg-gray-100 text-gray-600',
+  in_progress: 'bg-blue-100 text-blue-700',
+  done:        'bg-green-100 text-green-700',
+  skipped:     'bg-gray-100 text-gray-500 line-through',
 }
 
 export default function Badge({ label, type }) {
