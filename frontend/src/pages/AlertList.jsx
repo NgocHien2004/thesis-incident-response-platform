@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getAlerts, createAlert, uploadCSV } from '../api/alerts'
 import Badge from '../components/Badge'
+import ZoneBadge, { ZONE_OPTIONS } from '../components/ZoneBadge'
 import Modal from '../components/Modal'
 import LoadingSpinner from '../components/LoadingSpinner'
 import toast from 'react-hot-toast'
@@ -16,6 +17,8 @@ export default function AlertList() {
   const [alerts, setAlerts]     = useState([])
   const [loading, setLoading]   = useState(true)
   const [status, setStatus]     = useState('')
+  const [zone, setZone]         = useState('')
+  const [byPriority, setByPriority] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [creating, setCreating] = useState(false)
   const [form, setForm]         = useState({
@@ -27,12 +30,12 @@ export default function AlertList() {
 
   const load = () => {
     setLoading(true)
-    getAlerts(status || undefined)
+    getAlerts(status || undefined, { zone: zone || undefined, order: byPriority ? 'priority' : undefined })
       .then(r => setAlerts(r.data))
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [status])
+  useEffect(() => { load() }, [status, zone, byPriority])
 
   const handleCreate = async (e) => {
     e.preventDefault()
@@ -67,7 +70,7 @@ export default function AlertList() {
   }
 
   const severityOrder = { critical: 0, high: 1, medium: 2, low: 3, info: 4 }
-  const sorted = [...alerts].sort((a, b) =>
+  const sorted = byPriority ? alerts : [...alerts].sort((a, b) =>
     (severityOrder[a.severity] ?? 5) - (severityOrder[b.severity] ?? 5)
   )
 
@@ -112,6 +115,19 @@ export default function AlertList() {
         ))}
       </div>
 
+      <div className="flex gap-2 flex-wrap items-center">
+        {ZONE_OPTIONS.map(([k, label]) => (
+          <button key={k} onClick={() => setZone(k)}
+            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+              zone === k ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+            }`}>{label}</button>
+        ))}
+        <label className="ml-auto flex items-center gap-2 text-xs text-gray-600">
+          <input type="checkbox" checked={byPriority} onChange={e => setByPriority(e.target.checked)} className="rounded border-gray-300" />
+          Xếp theo điểm ưu tiên AI
+        </label>
+      </div>
+
       {/* Table */}
       {loading ? <LoadingSpinner /> : (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -121,6 +137,7 @@ export default function AlertList() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 w-10">#</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Tiêu đề</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Mức độ</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Ưu tiên AI</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Trạng thái</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">Nguồn</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">IOC</th>
@@ -130,7 +147,7 @@ export default function AlertList() {
             <tbody className="divide-y divide-gray-100">
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400">
+                  <td colSpan={8} className="text-center py-12 text-gray-400">
                     Không có cảnh báo nào
                   </td>
                 </tr>
@@ -150,6 +167,9 @@ export default function AlertList() {
                   </td>
                   <td className="px-4 py-3">
                     <Badge label={a.severity} type={a.severity} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <ZoneBadge zone={a.ml_zone} score={a.ml_priority} />
                   </td>
                   <td className="px-4 py-3">
                     <Badge label={a.status} type={a.status} />

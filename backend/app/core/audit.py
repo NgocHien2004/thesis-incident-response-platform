@@ -40,7 +40,7 @@ TRACKED = {
 # Các cột do hệ thống tự cập nhật, không đáng ghi nhật ký
 NOISE = {
     "*": {"updated_at", "created_at"},
-    "alert": {"group_id", "ioc", "title"},
+    "alert": {"group_id", "ioc", "title", "ml_result"},
 }
 SKIP_ON_CREATE = {"id", "created_at", "updated_at", "content", "raw_data", "description"}
 
@@ -92,6 +92,8 @@ def _semantic_action(entity, kind, changes):
         return f"{entity}.{kind}"
     if "status" in changes:
         return f"{entity}.{changes['status'][1]}"
+    if entity == "alert" and "ml_zone" in changes:
+        return "alert.scored"
     flags = {
         "evidence": ("is_locked", "locked"),
         "communication": ("is_approved", "approved"),
@@ -226,6 +228,8 @@ LABELS = {
     "alert.escalated": "Cảnh báo được nâng thành incident",
     "alert.false_positive": "Cảnh báo được đánh dấu báo nhầm",
     "alert.closed": "Cảnh báo được đóng",
+    "alert.scored": "AI chấm điểm và chia vùng ưu tiên",
+    "alert.new": "Cảnh báo được mở lại",
     "incident.created": "Incident được tạo",
     "incident.open": "Incident mở lại",
     "incident.investigating": "Bắt đầu điều tra",

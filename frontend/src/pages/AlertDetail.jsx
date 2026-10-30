@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { getAlert, triageAlert, markFalsePositive, suggestAI } from '../api/alerts'
+import ScorePanel from '../components/ScorePanel'
 import { createIncident, getIncidents } from '../api/incidents'
 import { getPlaybooks } from '../api/playbooks'
 import { guessPlaybookType } from '../utils/playbook'
@@ -227,6 +228,10 @@ export default function AlertDetail() {
           ))}
         </div>
       </div>
+
+      {/* Điểm ưu tiên AI */}
+      <ScorePanel alert={alert} isAnalyst={isAnalyst} canScore={isAnalyst || isIT}
+        onChanged={() => getAlert(id).then(r => setAlert(r.data))} />
 
       {/* AI Suggestion */}
       {aiSuggest && (

@@ -1,5 +1,5 @@
 import api from './client'
-export const getAlerts = (status) => api.get('/alerts/', { params: { status } })
+export const getAlerts = (status, extra = {}) => api.get('/alerts/', { params: { status, ...extra } })
 export const getAlert = (id) => api.get(`/alerts/${id}`)
 export const createAlert = (data) => api.post('/alerts/', data)
 export const triageAlert = (id, data) => api.patch(`/alerts/${id}/triage`, data)
@@ -10,3 +10,6 @@ export const uploadCSV = (file) => {
   return api.post('/alerts/upload/csv', form)
 }
 export const suggestAI = (data) => api.post('/ai/alert/suggest', data)
+export const scoreAlert = (id) => api.post(`/alerts/${id}/score`)
+export const closeAlert = (id, note) => api.patch(`/alerts/${id}/close`, { note })
+export const reopenAlert = (id, note) => api.patch(`/alerts/${id}/reopen`, { note })

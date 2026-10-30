@@ -1,4 +1,5 @@
-from pydantic import BaseModel
+import json
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
 from app.models.alert import AlertSource, AlertStatus, AlertSeverity
@@ -28,8 +29,24 @@ class AlertOut(BaseModel):
     created_by: Optional[int]
     created_at: datetime
     updated_at: datetime
+    ml_priority: Optional[int] = None
+    ml_zone: Optional[str] = None
+    ml_result: Optional[dict] = None
+
+    @field_validator("ml_result", mode="before")
+    @classmethod
+    def parse_ml_result(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except ValueError:
+                return None
+        return v
 
     model_config = {"from_attributes": True}
+
+class AlertNote(BaseModel):
+    note: str
 
 class TriageRequest(BaseModel):
     triage_type: str

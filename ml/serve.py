@@ -38,11 +38,18 @@ app.add_middleware(
 class NetworkFeatures(BaseModel):
     features: dict   # {feature_name: value}
 
+class FeatureContribution(BaseModel):
+    name: str
+    value: float
+    importance: float   # độ quan trọng toàn cục của đặc trưng trong rừng cây
+    score: float        # importance × |giá trị đã chuẩn hóa|: mức nổi bật của đặc trưng với luồng này
+
 class ClassifyResponse(BaseModel):
     is_attack: bool
     attack_probability: float
     severity_suggestion: str
     zone: str          # auto_close / review / urgent
+    top_features: List[FeatureContribution] = []
     ai_generated: bool = True
     model_version: str = "rf_binary_v1"
 
@@ -150,12 +157,28 @@ def classify_alert(payload: NetworkFeatures):
     X_scaled = scaler.transform(X)
     prob = float(rf_model.predict_proba(X_scaled)[0][1])
 
+    importances = rf_model.feature_importances_
+    contrib = importances * np.abs(X_scaled[0])
+    top = [
+        FeatureContribution(
+            name=str(feature_cols[i]).strip(), value=round(feature_vec[i], 4),
+            importance=round(float(importances[i]), 4), score=round(float(contrib[i]), 4),
+        )
+        for i in np.argsort(-contrib)[:5] if contrib[i] > 0
+    ]
+
     return ClassifyResponse(
         is_attack=prob >= THRESHOLDS["review"],
         attack_probability=round(prob, 4),
         severity_suggestion=get_severity(prob),
         zone=get_zone(prob),
+        top_features=top,
     )
+
+@app.get("/classify/schema")
+def classify_schema():
+    """Danh sách đặc trưng mô hình RF cần, để nơi gửi cảnh báo biết cần điền gì."""
+    return {"features": [str(c) for c in feature_cols], "model_version": "rf_binary_v1"}
 
 @app.post("/attck/search", response_model=AttckResponse)
 def search_techniques(payload: AttckRequest):

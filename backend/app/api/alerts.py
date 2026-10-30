@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+from sqlalchemy import func
 import json, csv, io
 from database import get_db
 from app.models.alert import Alert, AlertSource, AlertStatus
-from app.schemas.alert import AlertCreate, AlertOut
+from app.schemas.alert import AlertCreate, AlertOut, AlertNote
+from app.models.asset import Asset
+from app.services.scoring import score_alert, score_alert_safe
 from app.core.dependencies import get_current_user, require_roles
 from app.models.user import RoleEnum, User
 from app.services.dedup import process_alert
@@ -14,16 +17,42 @@ from datetime import datetime, timezone, timedelta
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
+
+def resolve_asset_id(db: Session, row: dict):
+    """Gắn cảnh báo nhập từ ngoài vào tài sản: theo affected_asset (id), asset_hostname hoặc asset_ip."""
+    aid = row.get("affected_asset")
+    if aid not in (None, ""):
+        try:
+            aid = int(aid)
+        except (TypeError, ValueError):
+            aid = None
+        if aid and db.query(Asset.id).filter(Asset.id == aid).first():
+            return aid
+    host = str(row.get("asset_hostname") or "").strip().lower()
+    ip = str(row.get("asset_ip") or "").strip()
+    found = None
+    if host:
+        found = db.query(Asset).filter(func.lower(Asset.hostname) == host).first()
+    if not found and ip:
+        found = db.query(Asset).filter(Asset.ip_address == ip).first()
+    return found.id if found else None
+
 # Xem danh sách
 @router.get("/", response_model=List[AlertOut])
 def list_alerts(
     status: str = None,
+    zone: Optional[str] = None,
+    order: str = "created",
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     query = db.query(Alert)
     if status:
         query = query.filter(Alert.status == status)
+    if zone:
+        query = query.filter(Alert.ml_zone == zone)
+    if order == "priority":
+        return query.order_by(Alert.ml_priority.is_(None), Alert.ml_priority.desc(), Alert.created_at.desc()).all()
     return query.order_by(Alert.created_at.desc()).all()
 
 # Xem chi tiết
@@ -50,6 +79,7 @@ def create_alert(
     db.commit()
     db.refresh(alert)
     alert = process_alert(alert, db)
+    score_alert_safe(db, alert)
     return alert
 
 # Webhook — nhận POST từ hệ thống ngoài
@@ -66,6 +96,7 @@ def receive_webhook(
         severity=payload.get("severity", "medium"),
         source_ref=payload.get("source_ref"),
         ioc=payload.get("ioc"),
+        affected_asset=resolve_asset_id(db, payload),
         raw_data=json.dumps(payload),
         created_by=current_user.id
     )
@@ -73,6 +104,7 @@ def receive_webhook(
     db.commit()
     db.refresh(alert)
     alert = process_alert(alert, db)
+    score_alert_safe(db, alert)
     return alert
 
 # Upload CSV
@@ -95,6 +127,7 @@ def upload_csv(
             severity=row.get("severity", "medium"),
             source_ref=row.get("source_ref"),
             ioc=row.get("ioc"),
+            affected_asset=resolve_asset_id(db, row),
             raw_data=json.dumps(row),
             created_by=current_user.id
         )
@@ -104,6 +137,7 @@ def upload_csv(
     for a in alerts:
         db.refresh(a)
         process_alert(a, db)
+        score_alert_safe(db, a)
     return alerts
 
 # Upload JSON
@@ -127,6 +161,7 @@ def upload_json(
             severity=row.get("severity", "medium"),
             source_ref=row.get("source_ref"),
             ioc=row.get("ioc"),
+            affected_asset=resolve_asset_id(db, row),
             raw_data=json.dumps(row),
             created_by=current_user.id
         )
@@ -136,7 +171,63 @@ def upload_json(
     for a in alerts:
         db.refresh(a)
         process_alert(a, db)
+        score_alert_safe(db, a)
     return alerts
+
+# Chấm điểm và chia vùng ưu tiên bằng AI (có thể chạy lại)
+@router.post("/{alert_id}/score", response_model=AlertOut)
+def rescore_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleEnum.it_helpdesk, RoleEnum.analyst_soc))
+):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(404, "Không tìm thấy cảnh báo")
+    score_alert(db, alert)
+    return alert
+
+# Đóng cảnh báo không cần xử lý (ví dụ theo đề xuất tự đóng của AI) — chỉ Analyst
+@router.patch("/{alert_id}/close", response_model=AlertOut)
+def close_alert(
+    alert_id: int,
+    payload: AlertNote,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
+):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(404, "Không tìm thấy cảnh báo")
+    if not payload.note.strip():
+        raise HTTPException(400, "Cần ghi lý do đóng cảnh báo")
+    if alert.status not in (AlertStatus.new, AlertStatus.reviewing, AlertStatus.triaged):
+        raise HTTPException(400, f"Không thể đóng cảnh báo đang ở trạng thái '{alert.status.value}'")
+    alert.status = AlertStatus.closed
+    alert.triage_note = ((alert.triage_note + "\n") if alert.triage_note else "") + f"[Đóng] {payload.note.strip()}"
+    db.commit()
+    db.refresh(alert)
+    return alert
+
+# Mở lại cảnh báo đã đóng (kể cả cảnh báo bị luật tự đóng) — chỉ Analyst
+@router.patch("/{alert_id}/reopen", response_model=AlertOut)
+def reopen_alert(
+    alert_id: int,
+    payload: AlertNote,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
+):
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(404, "Không tìm thấy cảnh báo")
+    if not payload.note.strip():
+        raise HTTPException(400, "Cần ghi lý do mở lại cảnh báo")
+    if alert.status != AlertStatus.closed:
+        raise HTTPException(400, "Chỉ mở lại được cảnh báo đã đóng")
+    alert.status = AlertStatus.new
+    alert.triage_note = ((alert.triage_note + "\n") if alert.triage_note else "") + f"[Mở lại] {payload.note.strip()}"
+    db.commit()
+    db.refresh(alert)
+    return alert
 
 # Đóng false positive
 @router.patch("/{alert_id}/false-positive")

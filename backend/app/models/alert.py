@@ -56,3 +56,8 @@ class Alert(Base):
     triaged_at          = Column(DateTime, nullable=True)
 
     incident_id = Column(Integer, ForeignKey("incidents.id"), nullable=True)
+
+    # Chấm điểm và ưu tiên bằng AI (điểm 0-100, vùng, giải thích dạng JSON)
+    ml_priority = Column(Integer, nullable=True)
+    ml_zone     = Column(Unicode(20), nullable=True)
+    ml_result   = Column(UnicodeText, nullable=True)

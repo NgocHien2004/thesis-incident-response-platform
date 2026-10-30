@@ -65,6 +65,20 @@ async def attck_search(
     return result
 
 # Health check AI service
+# Danh sách đặc trưng luồng mạng mà mô hình RF cần
+@router.get("/classify/schema")
+async def classify_schema(current_user: User = Depends(get_current_user)):
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(f"{AI_SERVICE_URL}/classify/schema")
+            resp.raise_for_status()
+            return resp.json()
+    except httpx.ConnectError:
+        raise HTTPException(503, "AI service không khả dụng — thử lại sau")
+    except Exception as e:
+        raise HTTPException(500, f"Lỗi AI service: {str(e)}")
+
+
 @router.get("/health")
 async def ai_health(current_user: User = Depends(get_current_user)):
     try:

@@ -97,11 +97,15 @@ Mỗi bước mô tả ai làm gì, đầu vào, đầu ra và điều kiện ch
 
 ### Bước 2 — Tiếp nhận cảnh báo
 
-**Ai làm:** IT/Helpdesk, Analyst/SOC **Đầu vào:** File CSV/JSON, POST webhook, hoặc nhập thủ công **Đầu ra:** Alert với status `new`, có ID, timestamp, nguồn gốc **Ghi chú:** Mọi cảnh báo đều vào hàng chờ, chưa phán xét. Nhân viên báo cáo nghi phishing qua email hoặc điện thoại, helpdesk nhập vào hệ thống (nhân viên thường không có tài khoản). Chưa hỗ trợ nhập trực tiếp tệp email (.eml).
+**Ai làm:** IT/Helpdesk, Analyst/SOC **Đầu vào:** File CSV/JSON, POST webhook, hoặc nhập thủ công **Đầu ra:** Alert với status `new`, có ID, timestamp, nguồn gốc **Ghi chú:** Mọi cảnh báo đều vào hàng chờ, chưa phán xét. Nhân viên báo cáo nghi phishing qua email hoặc điện thoại, helpdesk nhập vào hệ thống (nhân viên thường không có tài khoản). Chưa hỗ trợ nhập trực tiếp tệp email (.eml). Cảnh báo nhập từ ngoài (webhook, CSV, JSON) có thể kèm `affected_asset` (id), `asset_hostname` hoặc `asset_ip` để gắn đúng tài sản, và `flow_features` (đặc trưng luồng mạng) để được chấm điểm bằng mô hình Random Forest; không có thì cảnh báo vẫn nhập được và được chấm điểm theo cách dự phòng.
 
 ### Bước 3 — Chuẩn hóa & chống trùng
 
 **AI làm:** Hệ thống tự động (gọi sau mỗi lần tạo alert) **Đầu vào:** Alert mới tạo **Đầu ra:** Alert được gán `group_id`, các alert cùng IOC trong 60 phút được gom nhóm **Ghi chú:** Chuẩn hóa IOC về lowercase, loại trùng. Giữ link về alert gốc. Tham số cửa sổ thời gian (60 phút) có thể cấu hình.
+
+### Bước 3b — Chấm điểm và chia vùng ưu tiên
+
+**Ai làm:** Hệ thống tự động (sau chuẩn hóa và chống trùng); IT, Analyst chấm lại được **Đầu vào:** Cảnh báo, mức quan trọng của tài sản, độ tin cậy của nguồn, đặc trưng luồng mạng nếu có **Đầu ra:** Điểm ưu tiên 0 đến 100, vùng (`urgent`, `review`, `auto_close`), giải thích và các cảnh báo tương tự, lưu trên alert **Ghi chú:** Chi tiết ở mục *Chấm điểm và chia vùng ưu tiên* của phần AI/ML. Chấm điểm lỗi không làm hỏng việc tiếp nhận. Kết quả là gợi ý do AI tạo; Analyst quyết định.
 
 ### Bước 4 — Triage
 
@@ -213,6 +217,8 @@ Dashboard (MTTD, MTTA, MTTR, SLA...)
 | `new` | `reviewing` | Analyst mở xem |
 | `new` / `reviewing` | `triaged` | Triage thành công (IT hoặc Analyst) |
 | `new` / `reviewing` | `false_positive` | Analyst đánh dấu báo nhầm |
+| `new` / `reviewing` / `triaged` | `closed` | Analyst đóng kèm lý do (không áp dụng cho alert đã thành incident); hoặc luật tự đóng an toàn nếu được bật |
+| `closed` | `new` | Analyst mở lại kèm lý do |
 | `triaged` | `escalated` | Tạo incident gộp alert này |
 | `escalated` | — | Trạng thái cuối (theo dõi qua incident) |
 
@@ -323,6 +329,34 @@ AI service chạy độc lập tại `http://localhost:8001`, backend gọi qua 
 | review | 0.15 ≤ prob < 0.80 | Analyst xem xét |
 | urgent | prob ≥ 0.80 | Ưu tiên khẩn |
 
+Đây là ngưỡng của riêng mô hình RF, đã được đánh giá trên tập kiểm thử. Backend không dùng nó trực tiếp để đóng cảnh báo mà hợp nhất xác suất với mức quan trọng của tài sản và độ tin cậy của nguồn (mục tiếp theo); riêng ngưỡng 0.15 được dùng làm một trong các luật an toàn để đề xuất tự đóng.
+
+### Chấm điểm và chia vùng ưu tiên
+
+Mô-đun này nối mô hình RF vào luồng cảnh báo và trả lời yêu cầu của đề: hợp nhất điểm với mức quan trọng của tài sản và độ tin cậy của nguồn, chia ba vùng, và trả về loại cảnh báo, xác suất độc hại, mức ưu tiên đề xuất, đặc trưng chính và cảnh báo tương tự.
+
+**Xác suất độc hại (P).** Nếu cảnh báo có `flow_features`, backend gọi `/classify` của AI service và dùng xác suất của mô hình RF. Nếu không có (email, endpoint, báo cáo thủ công), P được suy từ mức độ khai báo: `info` 0,10; `low` 0,25; `medium` 0,50; `high` 0,75; `critical` 0,90. Cách suy này chỉ là heuristic, kết quả ghi rõ nguồn xác suất (`rf` hay `declared_severity`). Nếu AI service không phản hồi, hệ thống dùng cách dự phòng và ghi lỗi vào kết quả. Hiện chưa có mô hình ML cho email (đề xuất TF-IDF kết hợp SVM của đề chưa cài đặt).
+
+**Điểm ưu tiên** = 100 × P × (0,5 + 0,3 × A + 0,2 × S), trong đó A là hệ số tài sản (`critical` 1,0; `high` 0,75; `medium` 0,5; `low` 0,25; không rõ tính như `medium`) và S là độ tin cậy của nguồn (`endpoint` 0,9; `ids_ips` 0,8; `webhook` 0,7; `manual` 0,7; `email` 0,6; `csv_upload` 0,6). Các trọng số và hệ số do tác giả chọn để công thức dễ giải thích, không được học từ dữ liệu; cần ghi rõ điều này trong phần hạn chế.
+
+**Ba vùng:**
+
+| Vùng | Điều kiện |
+| --- | --- |
+| `urgent` (ưu tiên khẩn) | Điểm từ 65, hoặc P từ 0,80 trên tài sản mức cao trở lên |
+| `auto_close` (đề xuất tự đóng) | Đạt đủ 6 luật an toàn bên dưới và không rơi vào vùng khẩn |
+| `review` (cần Analyst xem) | Các trường hợp còn lại |
+
+**Luật an toàn để đề xuất tự đóng** (phải đạt tất cả): xác suất do mô hình RF tính chứ không phải suy từ mức độ khai báo; P dưới 0,15; tài sản đã biết với mức quan trọng thấp hoặc trung bình; mức độ khai báo không phải cao hoặc nghiêm trọng; không phải báo cáo thủ công của con người; không có cảnh báo nào cùng nhóm đang ở vùng cần xem hoặc khẩn. Nghĩa là cảnh báo không có mô hình ML không bao giờ được đề xuất tự đóng.
+
+**Tự đóng thật sự là tùy chọn và mặc định tắt.** Mặc định hệ thống chỉ đề xuất, Analyst bấm "Đóng theo đề xuất" kèm lý do. Đặt biến môi trường `ALERT_AUTO_CLOSE=1` để hệ thống tự đóng cảnh báo `new` ở vùng `auto_close`; khi đó nhật ký ghi người thực hiện là "hệ thống (luật tự đóng an toàn)" và Analyst có thể mở lại. Việc tự đóng chỉ đổi trạng thái cảnh báo, hệ thống không tự thực thi containment trên hệ thống thật.
+
+**Giải thích.** Kết quả gồm thành phần của điểm (xác suất, tài sản, nguồn), các luật đã kiểm tra, lý do chọn vùng, tối đa 5 đặc trưng luồng nổi bật và tối đa 3 cảnh báo tương tự. Đặc trưng nổi bật được tính bằng độ quan trọng toàn cục của đặc trưng trong rừng cây nhân với độ lệch chuẩn hóa của giá trị trong luồng này; đây là cách giải thích gần đúng, không phải SHAP. Cảnh báo tương tự dùng cosine TF-IDF trên tiêu đề, mô tả và IOC của 300 cảnh báo gần nhất, ngưỡng 0,35. Mọi kết quả được đánh dấu là nội dung do AI tạo.
+
+**Đánh giá.** `tests/test_scoring.py` kiểm tra công thức, từng luật tự đóng, phân quyền và nhật ký (chạy được ngay cả khi không có AI service ở phần hàm thuần). `tests/evaluate_flow_scoring.py` lấy mẫu luồng từ tập kiểm thử CIC-IDS2017, gửi qua webhook, gắn lần lượt vào các tài sản hiện có và báo bảng vùng theo nhãn thật: số tấn công bị đề xuất tự đóng, tỷ lệ lành tính được tự đóng, tỷ lệ cảnh báo analyst phải xem. Kết quả phụ thuộc vào cách gắn tài sản nên là đánh giá toàn hệ thống chứ không phải đánh giá riêng mô hình.
+
+**Giới hạn:** trọng số do tác giả chọn, chưa kiểm chứng với mức ưu tiên do chuyên gia gán; mô hình RF chỉ nhận luồng mạng kiểu CIC-IDS2017 nên cảm biến phải cung cấp đủ đặc trưng; độ tương tự chỉ dựa trên từ vựng, không nhận ra cảnh báo diễn đạt khác nhau; tài sản chỉ được gắn khi nguồn gửi kèm id, tên máy hoặc địa chỉ IP trùng với danh mục.
+
 ### ATT&CK Retrieval + Reranking
 
 **Dữ liệu:** MITRE ATT&CK Enterprise (snapshot tải từ mitre/cti) — 697 techniques (không revoked, không deprecated). Snapshot được định danh bằng ngày sửa đổi mới nhất của dữ liệu (nhãn `ent-YYYY-MM-DD`) và SHA-256 của file, ghi trong `ml/models/attck_version.json`.
@@ -413,13 +447,16 @@ Base URL: `http://localhost:8000` | Docs: `http://localhost:8000/docs`
 
 | Method | Endpoint | Mô tả | Role |
 | --- | --- | --- | --- |
-| GET | `/alerts/` | Danh sách (filter theo status) | All |
+| GET | `/alerts/` | Danh sách (lọc theo `status`, `zone`; `order=priority` xếp theo điểm ưu tiên) | All |
 | POST | `/alerts/` | Tạo thủ công | IT, Analyst |
 | POST | `/alerts/webhook` | Nhận từ hệ thống ngoài | IT, Analyst |
 | POST | `/alerts/upload/csv` | Upload CSV | IT, Analyst |
 | POST | `/alerts/upload/json` | Upload JSON | IT, Analyst |
 | PATCH | `/alerts/{id}/triage` | Triage alert | IT, Analyst |
 | PATCH | `/alerts/{id}/false-positive` | Đánh dấu FP | Analyst |
+| POST | `/alerts/{id}/score` | Chấm điểm và chia vùng ưu tiên lại | IT, Analyst |
+| PATCH | `/alerts/{id}/close` | Đóng cảnh báo kèm lý do | Analyst |
+| PATCH | `/alerts/{id}/reopen` | Mở lại cảnh báo đã đóng kèm lý do | Analyst |
 | GET | `/alerts/groups/list` | Xem nhóm dedup | All |
 
 ### Incidents
@@ -490,4 +527,5 @@ Base URL: `http://localhost:8000` | Docs: `http://localhost:8000/docs`
 | GET | `/dashboard/sla` | Alerts vi phạm SLA | All |
 | POST | `/ai/alert/suggest` | AI đề xuất severity + ATT&CK | All |
 | POST | `/ai/attck/search` | Tìm kiếm ATT&CK techniques | All |
+| GET | `/ai/classify/schema` | Danh sách đặc trưng luồng mạng mà mô hình RF cần | All |
 | GET | `/ai/health` | Kiểm tra AI service | All |

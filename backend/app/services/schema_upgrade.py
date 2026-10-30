@@ -1,16 +1,26 @@
 from sqlalchemy import inspect, text
 
+# (bảng, cột, kiểu SQL Server, kiểu SQLite): các cột thêm sau khi bảng đã được tạo
+NEW_COLUMNS = [
+    ("playbook_steps", "reference", "NVARCHAR(100) NULL", "VARCHAR(100)"),
+    ("alerts", "ml_priority", "INT NULL", "INTEGER"),
+    ("alerts", "ml_zone", "NVARCHAR(20) NULL", "VARCHAR(20)"),
+    ("alerts", "ml_result", "NVARCHAR(MAX) NULL", "TEXT"),
+]
+
 
 def ensure_schema(engine):
-    """Bổ sung các cột thêm sau khi bảng đã được tạo (create_all không sửa bảng có sẵn)."""
+    """Bổ sung các cột còn thiếu (create_all không sửa bảng có sẵn)."""
     insp = inspect(engine)
-    if "playbook_steps" not in insp.get_table_names():
-        return
-    cols = {c["name"] for c in insp.get_columns("playbook_steps")}
-    if "reference" not in cols:
+    tables = set(insp.get_table_names())
+    for table, column, mssql_type, sqlite_type in NEW_COLUMNS:
+        if table not in tables:
+            continue
+        if column in {c["name"] for c in insp.get_columns(table)}:
+            continue
         if engine.dialect.name == "mssql":
-            ddl = "ALTER TABLE playbook_steps ADD reference NVARCHAR(100) NULL"
+            ddl = f"ALTER TABLE {table} ADD {column} {mssql_type}"
         else:
-            ddl = "ALTER TABLE playbook_steps ADD COLUMN reference VARCHAR(100)"
+            ddl = f"ALTER TABLE {table} ADD COLUMN {column} {sqlite_type}"
         with engine.begin() as conn:
             conn.execute(text(ddl))
