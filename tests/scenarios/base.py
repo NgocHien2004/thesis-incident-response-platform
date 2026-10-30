@@ -3,7 +3,7 @@ import time
 import json
 import uuid
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "http://127.0.0.1:8000"
 
 class ScenarioRunner:
     def __init__(self, username: str, password: str):

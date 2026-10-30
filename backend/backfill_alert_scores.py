@@ -2,7 +2,7 @@ import sys
 
 import requests
 
-BASE = "http://localhost:8000"
+BASE = "http://127.0.0.1:8000"
 USER, PASSWORD = "analyst01", "Test@1234"
 
 

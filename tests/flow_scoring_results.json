@@ -1,48 +1,48 @@
 {
   "summary": {
-    "n_alerts": 209,
-    "n_attack": 69,
-    "n_benign": 140,
-    "from_rf": 209,
+    "n_alerts": 300,
+    "n_attack": 100,
+    "n_benign": 200,
+    "from_rf": 300,
     "zone_by_label": {
       "urgent": {
-        "attack": 69,
+        "attack": 100,
         "benign": 0
       },
       "review": {
         "attack": 0,
-        "benign": 102
+        "benign": 152
       },
       "auto_close": {
         "attack": 0,
-        "benign": 38
+        "benign": 48
       }
     },
     "zone_by_asset_criticality": {
       "critical": {
-        "urgent": 32,
-        "review": 47
+        "urgent": 41,
+        "review": 73
       },
       "high": {
-        "urgent": 23,
-        "review": 55
+        "urgent": 33,
+        "review": 79
       },
       "medium": {
-        "auto_close": 38,
-        "urgent": 14
+        "auto_close": 48,
+        "urgent": 26
       }
     },
     "attack_in_auto_close": 0,
     "attack_recall_urgent_or_review": 1.0,
-    "benign_auto_close_rate": 0.2714,
+    "benign_auto_close_rate": 0.24,
     "benign_urgent_rate": 0.0,
-    "analyst_workload_share": 0.8182,
+    "analyst_workload_share": 0.84,
     "seed": 42,
     "note": "Cảnh báo mẫu được gắn lần lượt vào các tài sản hiện có nên vùng phụ thuộc cả mức quan trọng của tài sản."
   },
   "rows": [
     {
-      "id": 221,
+      "id": 430,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -52,7 +52,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 222,
+      "id": 431,
       "label": 1,
       "attack_type": "DoS Slowhttptest",
       "zone": "urgent",
@@ -62,7 +62,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 223,
+      "id": 432,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -72,7 +72,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 224,
+      "id": 433,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -82,7 +82,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 225,
+      "id": 434,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -92,7 +92,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 226,
+      "id": 435,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -102,7 +102,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 227,
+      "id": 436,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -112,7 +112,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 228,
+      "id": 437,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -122,7 +122,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 229,
+      "id": 438,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -132,7 +132,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 230,
+      "id": 439,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -142,7 +142,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 231,
+      "id": 440,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -152,7 +152,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 232,
+      "id": 441,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -162,7 +162,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 233,
+      "id": 442,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -172,7 +172,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 234,
+      "id": 443,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -182,7 +182,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 235,
+      "id": 444,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -192,7 +192,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 236,
+      "id": 445,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -202,7 +202,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 237,
+      "id": 446,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -212,7 +212,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 238,
+      "id": 447,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -222,7 +222,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 239,
+      "id": 448,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -232,7 +232,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 240,
+      "id": 449,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -242,7 +242,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 241,
+      "id": 450,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -252,7 +252,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 242,
+      "id": 451,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -262,7 +262,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 243,
+      "id": 452,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -272,7 +272,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 244,
+      "id": 453,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -282,7 +282,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 245,
+      "id": 454,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -292,7 +292,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 246,
+      "id": 455,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -302,7 +302,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 247,
+      "id": 456,
       "label": 1,
       "attack_type": "DoS GoldenEye",
       "zone": "urgent",
@@ -312,7 +312,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 248,
+      "id": 457,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -322,7 +322,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 249,
+      "id": 458,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -332,7 +332,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 250,
+      "id": 459,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -342,7 +342,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 251,
+      "id": 460,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -352,7 +352,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 252,
+      "id": 461,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -362,7 +362,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 253,
+      "id": 462,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -372,7 +372,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 254,
+      "id": 463,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -382,7 +382,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 255,
+      "id": 464,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -392,7 +392,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 256,
+      "id": 465,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -402,7 +402,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 257,
+      "id": 466,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -412,7 +412,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 258,
+      "id": 467,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -422,7 +422,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 259,
+      "id": 468,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -432,7 +432,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 260,
+      "id": 469,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -442,7 +442,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 261,
+      "id": 470,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -452,7 +452,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 262,
+      "id": 471,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -462,7 +462,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 263,
+      "id": 472,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -472,7 +472,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 264,
+      "id": 473,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -482,7 +482,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 265,
+      "id": 474,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -492,7 +492,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 266,
+      "id": 475,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -502,7 +502,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 267,
+      "id": 476,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -512,7 +512,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 268,
+      "id": 477,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -522,7 +522,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 269,
+      "id": 478,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -532,7 +532,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 270,
+      "id": 479,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -542,7 +542,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 271,
+      "id": 480,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -552,7 +552,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 272,
+      "id": 481,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -562,7 +562,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 273,
+      "id": 482,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -572,7 +572,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 274,
+      "id": 483,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -582,7 +582,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 275,
+      "id": 484,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -592,7 +592,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 276,
+      "id": 485,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -602,7 +602,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 277,
+      "id": 486,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -612,7 +612,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 278,
+      "id": 487,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -622,7 +622,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 279,
+      "id": 488,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -632,7 +632,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 280,
+      "id": 489,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -642,7 +642,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 281,
+      "id": 490,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -652,7 +652,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 282,
+      "id": 491,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -662,7 +662,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 283,
+      "id": 492,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -672,7 +672,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 284,
+      "id": 493,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -682,7 +682,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 285,
+      "id": 494,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -692,7 +692,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 286,
+      "id": 495,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -702,7 +702,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 287,
+      "id": 496,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -712,7 +712,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 288,
+      "id": 497,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -722,7 +722,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 289,
+      "id": 498,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -732,7 +732,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 290,
+      "id": 499,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -742,7 +742,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 291,
+      "id": 500,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -752,7 +752,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 292,
+      "id": 501,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -762,7 +762,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 293,
+      "id": 502,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -772,7 +772,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 294,
+      "id": 503,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -782,7 +782,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 295,
+      "id": 504,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -792,7 +792,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 296,
+      "id": 505,
       "label": 1,
       "attack_type": "DoS slowloris",
       "zone": "urgent",
@@ -802,7 +802,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 297,
+      "id": 506,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -812,7 +812,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 298,
+      "id": 507,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -822,7 +822,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 299,
+      "id": 508,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -832,7 +832,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 300,
+      "id": 509,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -842,7 +842,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 301,
+      "id": 510,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -852,7 +852,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 302,
+      "id": 511,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -862,7 +862,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 303,
+      "id": 512,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -872,7 +872,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 304,
+      "id": 513,
       "label": 1,
       "attack_type": "SSH-Patator",
       "zone": "urgent",
@@ -882,7 +882,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 305,
+      "id": 514,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -892,7 +892,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 306,
+      "id": 515,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -902,7 +902,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 307,
+      "id": 516,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -912,7 +912,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 308,
+      "id": 517,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -922,7 +922,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 309,
+      "id": 518,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -932,7 +932,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 310,
+      "id": 519,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -942,7 +942,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 311,
+      "id": 520,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -952,7 +952,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 312,
+      "id": 521,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -962,7 +962,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 313,
+      "id": 522,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -972,7 +972,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 314,
+      "id": 523,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -982,7 +982,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 315,
+      "id": 524,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -992,7 +992,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 316,
+      "id": 525,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -1002,7 +1002,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 317,
+      "id": 526,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1012,7 +1012,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 318,
+      "id": 527,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1022,7 +1022,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 319,
+      "id": 528,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1032,7 +1032,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 320,
+      "id": 529,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1042,7 +1042,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 321,
+      "id": 530,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1052,7 +1052,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 322,
+      "id": 531,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1062,7 +1062,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 323,
+      "id": 532,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1072,7 +1072,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 324,
+      "id": 533,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1082,7 +1082,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 325,
+      "id": 534,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1092,7 +1092,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 326,
+      "id": 535,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1102,7 +1102,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 327,
+      "id": 536,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -1112,7 +1112,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 328,
+      "id": 537,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1122,7 +1122,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 329,
+      "id": 538,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1132,7 +1132,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 330,
+      "id": 539,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1142,7 +1142,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 331,
+      "id": 540,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -1152,7 +1152,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 332,
+      "id": 541,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1162,7 +1162,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 333,
+      "id": 542,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1172,7 +1172,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 334,
+      "id": 543,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1182,7 +1182,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 335,
+      "id": 544,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1192,7 +1192,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 336,
+      "id": 545,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1202,7 +1202,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 337,
+      "id": 546,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1212,7 +1212,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 338,
+      "id": 547,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1222,7 +1222,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 339,
+      "id": 548,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -1232,7 +1232,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 340,
+      "id": 549,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1242,7 +1242,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 341,
+      "id": 550,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -1252,7 +1252,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 342,
+      "id": 551,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1262,7 +1262,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 343,
+      "id": 552,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -1272,7 +1272,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 344,
+      "id": 553,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1282,7 +1282,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 345,
+      "id": 554,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1292,7 +1292,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 346,
+      "id": 555,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1302,7 +1302,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 347,
+      "id": 556,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1312,7 +1312,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 348,
+      "id": 557,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1322,7 +1322,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 349,
+      "id": 558,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1332,7 +1332,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 350,
+      "id": 559,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1342,7 +1342,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 351,
+      "id": 560,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1352,7 +1352,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 352,
+      "id": 561,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1362,7 +1362,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 353,
+      "id": 562,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1372,7 +1372,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 354,
+      "id": 563,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1382,7 +1382,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 355,
+      "id": 564,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1392,7 +1392,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 356,
+      "id": 565,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1402,7 +1402,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 357,
+      "id": 566,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1412,7 +1412,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 358,
+      "id": 567,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1422,7 +1422,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 359,
+      "id": 568,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -1432,7 +1432,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 360,
+      "id": 569,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1442,7 +1442,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 361,
+      "id": 570,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -1452,7 +1452,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 362,
+      "id": 571,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1462,7 +1462,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 363,
+      "id": 572,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1472,7 +1472,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 364,
+      "id": 573,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1482,7 +1482,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 365,
+      "id": 574,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1492,7 +1492,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 366,
+      "id": 575,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1502,7 +1502,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 367,
+      "id": 576,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1512,7 +1512,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 368,
+      "id": 577,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1522,7 +1522,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 369,
+      "id": 578,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1532,7 +1532,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 370,
+      "id": 579,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1542,7 +1542,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 371,
+      "id": 580,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1552,7 +1552,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 372,
+      "id": 581,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -1562,7 +1562,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 373,
+      "id": 582,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -1572,7 +1572,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 374,
+      "id": 583,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1582,7 +1582,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 375,
+      "id": 584,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -1592,7 +1592,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 376,
+      "id": 585,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1602,7 +1602,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 377,
+      "id": 586,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1612,7 +1612,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 378,
+      "id": 587,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1622,7 +1622,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 379,
+      "id": 588,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1632,7 +1632,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 380,
+      "id": 589,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1642,7 +1642,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 381,
+      "id": 590,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1652,7 +1652,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 382,
+      "id": 591,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1662,7 +1662,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 383,
+      "id": 592,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1672,7 +1672,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 384,
+      "id": 593,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1682,7 +1682,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 385,
+      "id": 594,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1692,7 +1692,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 386,
+      "id": 595,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1702,7 +1702,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 387,
+      "id": 596,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1712,7 +1712,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 388,
+      "id": 597,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1722,7 +1722,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 389,
+      "id": 598,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1732,7 +1732,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 390,
+      "id": 599,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1742,7 +1742,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 391,
+      "id": 600,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1752,7 +1752,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 392,
+      "id": 601,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1762,7 +1762,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 393,
+      "id": 602,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1772,7 +1772,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 394,
+      "id": 603,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1782,7 +1782,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 395,
+      "id": 604,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1792,7 +1792,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 396,
+      "id": 605,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1802,7 +1802,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 397,
+      "id": 606,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1812,7 +1812,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 398,
+      "id": 607,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1822,7 +1822,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 399,
+      "id": 608,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1832,7 +1832,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 400,
+      "id": 609,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1842,7 +1842,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 401,
+      "id": 610,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1852,7 +1852,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 402,
+      "id": 611,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1862,7 +1862,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 403,
+      "id": 612,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1872,7 +1872,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 404,
+      "id": 613,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1882,7 +1882,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 405,
+      "id": 614,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -1892,7 +1892,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 406,
+      "id": 615,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1902,7 +1902,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 407,
+      "id": 616,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1912,7 +1912,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 408,
+      "id": 617,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -1922,7 +1922,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 409,
+      "id": 618,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1932,7 +1932,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 410,
+      "id": 619,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1942,7 +1942,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 411,
+      "id": 620,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -1952,7 +1952,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 412,
+      "id": 621,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1962,7 +1962,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 413,
+      "id": 622,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1972,7 +1972,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 414,
+      "id": 623,
       "label": 1,
       "attack_type": "DoS Hulk",
       "zone": "urgent",
@@ -1982,7 +1982,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 415,
+      "id": 624,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -1992,7 +1992,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 416,
+      "id": 625,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -2002,7 +2002,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 417,
+      "id": 626,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -2012,7 +2012,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 418,
+      "id": 627,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -2022,7 +2022,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 419,
+      "id": 628,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -2032,7 +2032,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 420,
+      "id": 629,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -2042,7 +2042,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 421,
+      "id": 630,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -2052,7 +2052,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 422,
+      "id": 631,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -2062,7 +2062,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 423,
+      "id": 632,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -2072,7 +2072,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 424,
+      "id": 633,
       "label": 1,
       "attack_type": "PortScan",
       "zone": "urgent",
@@ -2082,7 +2082,7 @@
       "asset_criticality": "critical"
     },
     {
-      "id": 425,
+      "id": 634,
       "label": 1,
       "attack_type": "DDoS",
       "zone": "urgent",
@@ -2092,7 +2092,7 @@
       "asset_criticality": "high"
     },
     {
-      "id": 426,
+      "id": 635,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -2102,7 +2102,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 427,
+      "id": 636,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "auto_close",
@@ -2112,7 +2112,7 @@
       "asset_criticality": "medium"
     },
     {
-      "id": 428,
+      "id": 637,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
@@ -2122,12 +2122,922 @@
       "asset_criticality": "high"
     },
     {
-      "id": 429,
+      "id": 638,
       "label": 0,
       "attack_type": "BENIGN",
       "zone": "review",
       "priority": 0,
       "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 639,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 640,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 641,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 4,
+      "probability": 0.0437,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 642,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 643,
+      "label": 1,
+      "attack_type": "DDoS",
+      "zone": "urgent",
+      "priority": 79,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 644,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 79,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 645,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 646,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 647,
+      "label": 1,
+      "attack_type": "DDoS",
+      "zone": "urgent",
+      "priority": 86,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 648,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 649,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 650,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0001,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 651,
+      "label": 1,
+      "attack_type": "DoS Hulk",
+      "zone": "urgent",
+      "priority": 79,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 652,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "auto_close",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 653,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 86,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 654,
+      "label": 1,
+      "attack_type": "Web Attack � XSS",
+      "zone": "urgent",
+      "priority": 88,
+      "probability": 0.9415,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 655,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 86,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 656,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 657,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 658,
+      "label": 1,
+      "attack_type": "DDoS",
+      "zone": "urgent",
+      "priority": 86,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 659,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 79,
+      "probability": 0.9985,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 660,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 79,
+      "probability": 0.999,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 661,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 662,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 663,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 664,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 1,
+      "probability": 0.0083,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 665,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 666,
+      "label": 1,
+      "attack_type": "FTP-Patator",
+      "zone": "urgent",
+      "priority": 86,
+      "probability": 0.9999,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 667,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "auto_close",
+      "priority": 1,
+      "probability": 0.016,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 668,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "auto_close",
+      "priority": 0,
+      "probability": 0.0002,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 669,
+      "label": 1,
+      "attack_type": "FTP-Patator",
+      "zone": "urgent",
+      "priority": 86,
+      "probability": 0.9999,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 670,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 94,
+      "probability": 0.998,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 671,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 672,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 2,
+      "probability": 0.0262,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 673,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 94,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 674,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 9,
+      "probability": 0.1025,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 675,
+      "label": 1,
+      "attack_type": "DoS Hulk",
+      "zone": "urgent",
+      "priority": 79,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 676,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "auto_close",
+      "priority": 0,
+      "probability": 0.0001,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 677,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 678,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 679,
+      "label": 1,
+      "attack_type": "DoS Hulk",
+      "zone": "urgent",
+      "priority": 86,
+      "probability": 0.995,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 680,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 1,
+      "probability": 0.0087,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 681,
+      "label": 1,
+      "attack_type": "DDoS",
+      "zone": "urgent",
+      "priority": 94,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 682,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 683,
+      "label": 1,
+      "attack_type": "DoS Hulk",
+      "zone": "urgent",
+      "priority": 79,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 684,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "auto_close",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 685,
+      "label": 1,
+      "attack_type": "DoS Hulk",
+      "zone": "urgent",
+      "priority": 86,
+      "probability": 0.9985,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 686,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 94,
+      "probability": 0.9979,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 687,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0001,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 688,
+      "label": 1,
+      "attack_type": "DoS Hulk",
+      "zone": "urgent",
+      "priority": 94,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 689,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 690,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0001,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 691,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "auto_close",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 692,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "auto_close",
+      "priority": 0,
+      "probability": 0.0001,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 693,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 694,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 695,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 696,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 697,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 698,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0003,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 699,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "auto_close",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 700,
+      "label": 1,
+      "attack_type": "DoS Hulk",
+      "zone": "urgent",
+      "priority": 79,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 701,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 702,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 703,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 704,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 705,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 706,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0002,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 707,
+      "label": 1,
+      "attack_type": "DDoS",
+      "zone": "urgent",
+      "priority": 79,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 708,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "auto_close",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 709,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 710,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 94,
+      "probability": 0.9986,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 711,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0008,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 712,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 94,
+      "probability": 0.9984,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 713,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 714,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 715,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 75,
+      "probability": 0.9512,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 716,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 79,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 717,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 718,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0001,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 719,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0001,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 720,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 721,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0001,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 722,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0002,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 723,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "auto_close",
+      "priority": 2,
+      "probability": 0.0232,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 724,
+      "label": 1,
+      "attack_type": "PortScan",
+      "zone": "urgent",
+      "priority": 79,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "medium"
+    },
+    {
+      "id": 725,
+      "label": 1,
+      "attack_type": "DDoS",
+      "zone": "urgent",
+      "priority": 86,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 726,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 727,
+      "label": 1,
+      "attack_type": "DoS Hulk",
+      "zone": "urgent",
+      "priority": 86,
+      "probability": 1.0,
+      "p_source": "rf",
+      "asset_criticality": "high"
+    },
+    {
+      "id": 728,
+      "label": 0,
+      "attack_type": "BENIGN",
+      "zone": "review",
+      "priority": 0,
+      "probability": 0.0003,
+      "p_source": "rf",
+      "asset_criticality": "critical"
+    },
+    {
+      "id": 729,
+      "label": 1,
+      "attack_type": "DDoS",
+      "zone": "urgent",
+      "priority": 94,
+      "probability": 1.0,
       "p_source": "rf",
       "asset_criticality": "critical"
     }

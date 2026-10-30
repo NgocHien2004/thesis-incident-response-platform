@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -7,7 +8,7 @@ from app.models.user import User
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
-AI_SERVICE_URL = "http://localhost:8001"
+AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://127.0.0.1:8001")
 
 class AlertSuggestRequest(BaseModel):
     title: str

@@ -6,7 +6,7 @@ import httpx
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ap = argparse.ArgumentParser()
-ap.add_argument("--ai", default="http://localhost:8001")
+ap.add_argument("--ai", default="http://127.0.0.1:8001")
 ap.add_argument("--set", default=os.path.join(HERE, "attck_eval_set.json"))
 ap.add_argument("--data", default=os.path.join(HERE, "..", "ml", "data", "attck_enterprise.json"))
 ap.add_argument("--out", default=os.path.join(HERE, "attck_eval_results.json"))

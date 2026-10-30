@@ -5,7 +5,7 @@ import httpx
 
 args = [a for a in sys.argv[1:] if not a.startswith("--")]
 FORCE = "--force" in sys.argv
-BASE = args[0] if args else "http://localhost:8000"
+BASE = args[0] if args else "http://127.0.0.1:8000"
 PWD = "Test@1234"
 
 # Mốc thời gian cho timeline postmortem: khớp với backdate_demo_data.py (sự cố phishing xảy ra 3 ngày trước)

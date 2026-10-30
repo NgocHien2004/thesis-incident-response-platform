@@ -2,10 +2,12 @@ import argparse
 import json
 import os
 import sys
+import time
 from collections import Counter, defaultdict
 
 import joblib
 import numpy as np
+import requests
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -14,6 +16,20 @@ from tests.scenarios.base import login_all
 DEFAULT_DATA = os.path.join(ROOT, "ml", "data", "processed")
 OUT_FILE = os.path.join(ROOT, "tests", "flow_scoring_results.json")
 ZONES = ["urgent", "review", "auto_close"]
+
+
+RELOGINS = 0
+
+
+def post_alert(runner, payload):
+    """Gửi cảnh báo; token hết hạn khi chạy lâu thì đăng nhập lại rồi gửi lại một lần."""
+    global RELOGINS
+    r = runner.raw("POST", "/alerts/webhook", payload)
+    if r.status_code == 401:
+        RELOGINS += 1
+        runner.login()
+        r = runner.raw("POST", "/alerts/webhook", payload)
+    return r
 
 
 def main(args):
@@ -33,7 +49,16 @@ def main(args):
     idx = rng.permutation(np.concatenate([att, ben]))
     raw = scaler.inverse_transform(X[idx])
 
-    u = login_all()
+    try:
+        u = login_all()
+    except requests.exceptions.ConnectionError:
+        print("Không kết nối được backend ở cổng 8000.")
+        print("Cần đang chạy: backend (cổng 8000) và AI service (cổng 8001), rồi chạy lại lệnh này.")
+        sys.exit(1)
+    except requests.exceptions.HTTPError as e:
+        print(f"Đăng nhập thất bại (HTTP {e.response.status_code}).")
+        print("Cần nạp dữ liệu demo trước để có các tài khoản analyst01, analyst02, it01, stakeholder01.")
+        sys.exit(1)
     it, analyst = u["it"], u["analyst"]
     assets = [a for a in analyst.raw("GET", "/assets/").json()]
     if not assets:
@@ -41,7 +66,12 @@ def main(args):
         sys.exit(1)
 
     rows = []
+    total = len(idx)
+    started = time.perf_counter()
     for k, (i, vec) in enumerate(zip(idx, raw)):
+        if k and k % 25 == 0:
+            elapsed = time.perf_counter() - started
+            print(f"  đã gửi {k}/{total} | {elapsed:.0f}s | còn khoảng {elapsed / k * (total - k):.0f}s")
         asset = assets[k % len(assets)]
         label = int(y[i])
         kind = (names[int(ym[i])] if names is not None else str(int(ym[i])))
@@ -54,7 +84,7 @@ def main(args):
             "label": "attack" if label else "benign", "attack_type": kind,
             "flow_features": {str(c): float(v) for c, v in zip(cols, vec)},
         }
-        r = it.raw("POST", "/alerts/webhook", payload)
+        r = post_alert(it, payload)
         if r.status_code != 200:
             print(f"Lỗi nhập cảnh báo {k + 1}: {r.status_code} {r.text[:120]}")
             continue
@@ -64,6 +94,7 @@ def main(args):
                      "priority": a.get("ml_priority"), "probability": m.get("probability"),
                      "p_source": m.get("probability_source"), "asset_criticality": asset["criticality"]})
 
+    per_alert = (time.perf_counter() - started) / max(len(idx), 1)
     n = len(rows)
     n_att = sum(r["label"] for r in rows)
     n_ben = n - n_att
@@ -102,6 +133,10 @@ def main(args):
     print("=" * 64)
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump({"summary": summary, "rows": rows}, f, ensure_ascii=False, indent=2)
+    print(f"Thời gian trung bình mỗi cảnh báo: {per_alert:.2f}s" + (f" | đã đăng nhập lại {RELOGINS} lần vì token hết hạn" if RELOGINS else ""))
+    if per_alert > 1.0:
+        print("Chậm bất thường. Trên Windows, địa chỉ localhost có thể bị trễ vài giây mỗi kết nối: "
+              "kiểm tra backend và AI service đang chạy ở 127.0.0.1.")
     print(f"Kết quả lưu tại {os.path.relpath(args.out, ROOT)}")
 
 
