@@ -25,7 +25,7 @@ const markUtc = (v) => {
 // Tự động redirect về login nếu token hết hạn
 api.interceptors.response.use(
   res => {
-    res.data = markUtc(res.data)
+    if (res.config?.responseType !== 'blob') res.data = markUtc(res.data)
     return res
   },
   err => {

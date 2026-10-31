@@ -305,6 +305,19 @@ try:
     rep([e.id for e in ev_all if e.is_locked and cust[e.id] < 2],
         "Bằng chứng đã khóa có ≥2 bản ghi custody (thu thập + khóa)", "Bằng chứng khóa nhưng thiếu bản ghi custody")
 
+    file_evs = [e for e in ev_all if e.storage_key]
+    if file_evs:
+        from app.core import evidence_store
+        bad_files = []
+        for e in file_evs:
+            res = evidence_store.hash_file(e.storage_key)
+            if res is None or res[0] != (e.file_hash or "").lower() or res[1] != e.size_bytes:
+                bad_files.append(f"#{e.id} {e.original_filename}")
+        rep(bad_files, f"Cả {len(file_evs)} bằng chứng dạng tệp còn trong kho và SHA-256 khớp mã băm ghi nhận",
+            "Tệp bằng chứng bị mất hoặc không còn khớp mã băm")
+    else:
+        log("INFO", "Chưa có bằng chứng dạng tệp để kiểm tra kho lưu trữ")
+
     C = db.query(Containment).all()
     rep([c.id for c in C if str(getattr(c.status, 'value', c.status)) in ("approved", "executed", "verified")
          and not c.reviewed_by], "Containment đã duyệt/thực hiện đều có người duyệt", "Containment thiếu người duyệt")

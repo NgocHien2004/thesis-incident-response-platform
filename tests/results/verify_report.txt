@@ -1,10 +1,10 @@
-IR Platform — báo cáo kiểm tra 2026-10-31 11:20:10
-TỔNG KẾT: 47 đạt · 0 cảnh báo · 0 lỗi
+IR Platform — báo cáo kiểm tra 2026-10-31 21:36:19
+TỔNG KẾT: 42 đạt · 1 cảnh báo · 1 lỗi
 
 
 [HEAD] A. Kết nối
-[INFO] Python 3.14.3 · Windows · 2026-10-31 11:19:57
-[OK] Backend chạy tại http://127.0.0.1:8000 (77 endpoint)
+[INFO] Python 3.14.3 · Windows · 2026-10-31 21:36:11
+[OK] Backend chạy tại http://127.0.0.1:8000 (80 endpoint)
 [OK] Đăng nhập được 4 tài khoản (analyst01, analyst02, it01, stakeholder01)
 [OK] AI service /ai/health: HTTP 200 {"ai_service": "up", "detail": {"service": "AI Service", "models": ["rf_binary_v1", "attck_ent-2026-08-04"], "attck_vers
 
@@ -14,25 +14,20 @@ TỔNG KẾT: 47 đạt · 0 cảnh báo · 0 lỗi
 [OK] CORS cho phép http://localhost:5173
 
 [HEAD] C. Tải dữ liệu từng trang theo role (mô phỏng các lời gọi API của frontend)
-[OK] 162 lời gọi tải trang đều thành công (4 incident × 3 role)
+[OK] 414 lời gọi tải trang đều thành công (11 incident × 3 role)
 [OK] Quyền xem nhật ký kiểm toán đúng: Analyst xem được, IT và Stakeholder bị chặn
 
 [HEAD] D. Số liệu dashboard
-[INFO] Incident: tổng=4 mở=3 đóng=1 theo trạng thái={'open': 1, 'investigating': 1, 'contained': 0, 'recovering': 1, 'closed': 1}
-[INFO] Metrics: {'mttd_minutes': 40.0, 'mtta_minutes': 19.5, 'mttr_minutes': 350.0, 'repeat_incidents': 0, 'sla_breached_alerts': 1, 'action_item_completion_pct': 50.0}
+[INFO] Incident: tổng=11 mở=8 đóng=3 theo trạng thái={'open': 3, 'investigating': 4, 'contained': 0, 'recovering': 1, 'closed': 3}
+[INFO] Metrics: {'mttd_minutes': 13.3, 'mtta_minutes': 7.1, 'mttr_minutes': 116.7, 'repeat_incidents': 0, 'sla_breached_alerts': 1, 'action_item_completion_pct': 66.7}
 [OK] Tổng incident theo trạng thái khớp tổng
 [OK] Tổng alert theo trạng thái khớp tổng
-[OK] mttd_minutes = 40.0 phút (không âm)
-[OK] mtta_minutes = 19.5 phút (không âm)
-[OK] mttr_minutes = 350.0 phút (không âm)
-[INFO] SLA breached: alert #10 'Thiết bị lạ kết nối mạng nội bộ' (-312.8 phút)
+[OK] mttd_minutes = 13.3 phút (không âm)
+[OK] mtta_minutes = 7.1 phút (không âm)
+[OK] mttr_minutes = 116.7 phút (không âm)
+[INFO] SLA breached: alert #10 'Thiết bị lạ kết nối mạng nội bộ' (-928.9 phút)
 [INFO] Nhận ra bộ dữ liệu seed — so sánh với giá trị mong đợi (khi chưa có dữ liệu thêm)
 [OK] Trạng thái 4 incident seed đúng: ['closed', 'recovering', 'investigating', 'open']
-[OK] mttd_minutes = 40.0 (mong đợi ≈ 40.0)
-[OK] mtta_minutes = 19.5 (mong đợi ≈ 19.5)
-[OK] mttr_minutes = 350.0 (mong đợi ≈ 350.0)
-[OK] Vi phạm SLA = 1 như thiết kế
-[OK] Action item hoàn thành 50%
 
 [HEAD] E. Unicode tiếng Việt và múi giờ
 [OK] API trả lại đúng 100% chuỗi tiếng Việt vừa lưu
@@ -43,20 +38,22 @@ TỔNG KẾT: 47 đạt · 0 cảnh báo · 0 lỗi
 [OK] Đọc thẳng từ DB: chuỗi tiếng Việt lưu đúng (cột Unicode)
 [OK] Mọi cột chữ tự do đều là NVARCHAR/NTEXT
 [INFO] Collation của DB: SQL_Latin1_General_CP1_CI_AS
-[INFO] SQL Server: GETDATE()=2026-10-31 11:20:09.630000  GETUTCDATE()=2026-10-31 04:20:09.630000
-[OK] Cả 443 alert đều có group_id (chống trùng đã chạy)
+[INFO] SQL Server: GETDATE()=2026-10-31 21:36:17.033000  GETUTCDATE()=2026-10-31 14:36:17.030000
+[OK] Cả 461 alert đều có group_id (chống trùng đã chạy)
 [OK] Alert thuộc incident đều ở trạng thái escalated/closed
 [OK] Mọi alert: triaged_at ≥ created_at
 [OK] Hạn SLA luôn sau thời điểm triage
 [OK] Mọi incident: detected_at ≥ alert đầu tiên
 [OK] Mốc contained/resolved nhất quán với trạng thái incident
-[OK] Cả 4 bằng chứng đều có nhật ký chain of custody
+[OK] Cả 15 bằng chứng đều có nhật ký chain of custody
 [OK] Bằng chứng đã khóa có ≥2 bản ghi custody (thu thập + khóa)
+[FAIL] Tệp bằng chứng bị mất hoặc không còn khớp mã băm: ['#10 log.txt']
 [OK] Containment đã duyệt/thực hiện đều có người duyệt
 [OK] Containment đã thực hiện đều có người thực hiện
 [OK] Recovery đã xác nhận đều ở trạng thái done
 [OK] Thông báo đã gửi đều đã được phê duyệt
 [OK] Postmortem finalized đều có action item
+[WARN] Incident đã đóng nhưng chưa có postmortem: [7]
 [OK] Không containment nào do chính người đề xuất phê duyệt
 [OK] Containment đã xác minh đều do người khác người thực hiện xác minh
 [OK] Containment rủi ro cao đều do commander của vụ phê duyệt
@@ -66,13 +63,13 @@ TỔNG KẾT: 47 đạt · 0 cảnh báo · 0 lỗi
 [OK] Mọi incident đã đóng đều thỏa tiêu chí đóng
 [OK] Mọi incident đều có bản ghi tạo trong nhật ký kiểm toán
 [OK] Mọi incident đã đóng đều có bản ghi đóng trong nhật ký
-[OK] Chuỗi băm nhật ký kiểm toán nguyên vẹn (1050 bản ghi)
-[INFO] Tài khoản theo vai trò: {'analyst_soc': 2, 'it_helpdesk': 1, 'stakeholder': 1}
-[INFO] Số lượng bản ghi: alert=443 incident=4 evidence=4 containment=3 recovery=4 communication=2 postmortem=1
+[OK] Chuỗi băm nhật ký kiểm toán nguyên vẹn (1239 bản ghi)
+[INFO] Tài khoản theo vai trò: {'analyst_soc': 2, 'it_helpdesk': 1, 'stakeholder': 2}
+[INFO] Số lượng bản ghi: alert=461 incident=11 evidence=15 containment=7 recovery=7 communication=5 postmortem=2
 [INFO] Đã xóa tài sản thử Unicode (HTTP 200)
 
 [HEAD] G. Frontend
 [OK] Dev server localhost:5173: HTTP 200
-[INFO] Đang chạy 'npm run build' (thư mục tạm, không đụng dist/ của bạn)...
+[INFO] Đang chạy 'npm run build' (xuất ra thư mục tạm, không ghi đè dist/)...
 [OK] Frontend build thành công (mọi trang compile được)
 [INFO] [INEFFECTIVE_DYNAMIC_IMPORT] src/api/incidents.js is dynamically imported by src/pages/incidents/IncidentDetail.jsx but also statically imported by src/pages/AlertDetail.jsx, src/pages/IncidentList.jsx, src/pages/incidents/IncidentDetail.jsx, src/pages/incidents/TasksTab.jsx, dynamic import will not move module into another chunk.

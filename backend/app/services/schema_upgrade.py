@@ -6,6 +6,10 @@ NEW_COLUMNS = [
     ("alerts", "ml_priority", "INT NULL", "INTEGER"),
     ("alerts", "ml_zone", "NVARCHAR(20) NULL", "VARCHAR(20)"),
     ("alerts", "ml_result", "NVARCHAR(MAX) NULL", "TEXT"),
+    ("evidences", "original_filename", "NVARCHAR(255) NULL", "VARCHAR(255)"),
+    ("evidences", "content_type", "NVARCHAR(100) NULL", "VARCHAR(100)"),
+    ("evidences", "size_bytes", "BIGINT NULL", "BIGINT"),
+    ("evidences", "storage_key", "NVARCHAR(300) NULL", "VARCHAR(300)"),
 ]
 
 

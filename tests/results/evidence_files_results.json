@@ -1,0 +1,273 @@
+{
+  "passed": 53,
+  "failed": 0,
+  "total": 53,
+  "pass_rate_pct": 100.0,
+  "details": [
+    {
+      "test": "IT tải tệp lên thành công",
+      "pass": true,
+      "note": "HTTP 200, mong đợi 200"
+    },
+    {
+      "test": "SHA-256 tính đúng trên byte của tệp",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Ghi đúng kích thước",
+      "pass": true,
+      "note": "10243 byte"
+    },
+    {
+      "test": "Tên tệp chỉ giữ phần tên, bỏ đường dẫn và ký tự điều khiển",
+      "pass": true,
+      "note": "'Báo cáo đính kèm?.bin'"
+    },
+    {
+      "test": "Đánh dấu có tệp, không có nội dung chữ",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không lộ khóa lưu trữ nội bộ ra API",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Bằng chứng mới chưa khóa",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tệp trong kho giống hệt byte đã tải lên",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tên tệp trong kho do server sinh, không dùng tên người dùng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chain of custody có 'collected' kèm mã băm",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tệp rỗng bị từ chối",
+      "pass": true,
+      "note": "HTTP 400, mong đợi 400"
+    },
+    {
+      "test": "Thiếu tiêu đề bị từ chối",
+      "pass": true,
+      "note": "HTTP 422, mong đợi 422"
+    },
+    {
+      "test": "Tệp vượt 20 MB bị từ chối",
+      "pass": true,
+      "note": "HTTP 413, mong đợi 413"
+    },
+    {
+      "test": "Tệp bị từ chối không tạo bằng chứng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tệp bị từ chối không để lại rác trong kho",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Stakeholder không được tải tệp lên",
+      "pass": true,
+      "note": "HTTP 403, mong đợi 403"
+    },
+    {
+      "test": "Không đăng nhập không tải tệp lên được",
+      "pass": true,
+      "note": "HTTP 401, mong đợi 401/403"
+    },
+    {
+      "test": "IT tải bản sao làm việc",
+      "pass": true,
+      "note": "HTTP 200, mong đợi 200"
+    },
+    {
+      "test": "Nội dung bản sao giống hệt tệp gốc",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Phát dạng tải về (attachment), không hiển thị trong trình duyệt",
+      "pass": true,
+      "note": "attachment; filename*=utf-8''B%C3%A1o%20c%C3%A1o%20%C4%91%C3%ADnh%20k%C3%A8m%3F.bin"
+    },
+    {
+      "test": "Kiểu nội dung trung tính và chặn đoán kiểu",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chain of custody ghi 'working_copy_issued' kèm mã băm",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Analyst cũng tải được bản sao",
+      "pass": true,
+      "note": "HTTP 200, mong đợi 200"
+    },
+    {
+      "test": "Stakeholder không tải được tệp bằng chứng",
+      "pass": true,
+      "note": "HTTP 403, mong đợi 403"
+    },
+    {
+      "test": "Bằng chứng của incident khác trả 404",
+      "pass": true,
+      "note": "HTTP 404, mong đợi 404"
+    },
+    {
+      "test": "Bằng chứng không tồn tại trả 404",
+      "pass": true,
+      "note": "HTTP 404, mong đợi 404"
+    },
+    {
+      "test": "Stakeholder vẫn xem được danh sách (thấy có tệp, không thấy khóa lưu trữ)",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Kiểm tra toàn vẹn tệp nguyên vẹn",
+      "pass": true,
+      "note": "HTTP 200, mong đợi 200"
+    },
+    {
+      "test": "Kết quả đạt, đã băm lại tệp",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chain of custody ghi 'verified'",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Stakeholder không được chạy kiểm tra toàn vẹn",
+      "pass": true,
+      "note": "HTTP 403, mong đợi 403"
+    },
+    {
+      "test": "Bằng chứng dạng chữ cũng kiểm tra được (băm lại nội dung)",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Mã băm do client khai sai bị phát hiện",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Phát hiện sai được ghi 'integrity_failed'",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Bằng chứng không có dữ liệu để băm bị từ chối kiểm tra",
+      "pass": true,
+      "note": "HTTP 400, mong đợi 400"
+    },
+    {
+      "test": "Bằng chứng chữ không có tệp thì tải về trả 404",
+      "pass": true,
+      "note": "HTTP 404, mong đợi 404"
+    },
+    {
+      "test": "file_path do client khai không bao giờ được dùng để đọc tệp",
+      "pass": true,
+      "note": "HTTP 404, mong đợi 404"
+    },
+    {
+      "test": "Tệp bị sửa 1 byte: kiểm tra toàn vẹn báo không khớp",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chain of custody ghi 'integrity_failed' kèm cả hai mã băm",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không cấp bản sao làm việc của tệp đã bị sửa",
+      "pass": true,
+      "note": "HTTP 409, mong đợi 409"
+    },
+    {
+      "test": "Không ghi 'working_copy_issued' khi từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không khóa được bằng chứng đã bị sửa",
+      "pass": true,
+      "note": "HTTP 409, mong đợi 409"
+    },
+    {
+      "test": "Bằng chứng vẫn chưa khóa sau lần khóa bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tệp bị mất khỏi kho: báo không khớp, không lỗi máy chủ",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tệp bị mất thì không cấp bản sao",
+      "pass": true,
+      "note": "HTTP 409, mong đợi 409"
+    },
+    {
+      "test": "Khóa bằng chứng dạng tệp nguyên vẹn",
+      "pass": true,
+      "note": "HTTP 200, mong đợi 200"
+    },
+    {
+      "test": "Ghi chú khóa nêu mã băm đã kiểm tra khớp",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không khóa lần hai",
+      "pass": true,
+      "note": "HTTP 400, mong đợi 400"
+    },
+    {
+      "test": "Sau khi khóa vẫn tải bản sao và kiểm tra được",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tải tệp vào incident đã đóng bị từ chối",
+      "pass": true,
+      "note": "HTTP 409, mong đợi 409"
+    },
+    {
+      "test": "Bị từ chối thì không để lại tệp trong kho",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Timeline có sự kiện thu thập bằng chứng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chuỗi băm nhật ký kiểm toán nguyên vẹn",
+      "pass": true,
+      "note": ""
+    }
+  ]
+}

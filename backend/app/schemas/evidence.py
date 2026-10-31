@@ -21,6 +21,10 @@ class EvidenceOut(BaseModel):
     source: Optional[str]
     file_hash: Optional[str]
     file_path: Optional[str]
+    original_filename: Optional[str] = None
+    content_type: Optional[str] = None
+    size_bytes: Optional[int] = None
+    has_file: bool = False
     content: Optional[str]
     is_locked: bool
     collected_by: int
@@ -28,6 +32,16 @@ class EvidenceOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+class IntegrityOut(BaseModel):
+    ok: bool
+    algorithm: str = "SHA-256"
+    checked: str                      # "file" hoặc "content": dữ liệu nào đã được băm lại
+    expected: Optional[str]
+    actual: Optional[str]
+    size_bytes: Optional[int] = None
+    checked_at: datetime
+    message: str
 
 class CustodyLogOut(BaseModel):
     id: int

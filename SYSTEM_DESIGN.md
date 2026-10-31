@@ -117,7 +117,11 @@ Mỗi bước mô tả ai làm gì, đầu vào, đầu ra và điều kiện ch
 
 ### Bước 6 — Thu thập bằng chứng
 
-**Ai làm:** IT/Helpdesk, Analyst/SOC **Đầu vào:** Log, email, file, hash, screenshot **Đầu ra:** Evidence với SHA-256 hash tự tính, chain of custody log **Ghi chú:** Mỗi thao tác (thu thập, xem, lock) đều ghi vào chain of custody. Sau khi lock, bằng chứng không thể sửa.
+**Ai làm:** IT/Helpdesk, Analyst/SOC **Đầu vào:** Log, email, tệp tải lên, hash, screenshot **Đầu ra:** Evidence với SHA-256 hash tự tính, chain of custody log **Ghi chú:** Mỗi thao tác (thu thập, xem, cấp bản sao làm việc, kiểm tra toàn vẹn, lock) đều ghi vào chain of custody. Sau khi lock, bằng chứng không thể sửa.
+
+**Bằng chứng dạng tệp (theo NIST SP 800-86: thu thập, bảo quản, bản sao làm việc, chain of custody).** `POST /incidents/{id}/evidences/upload` nhận tệp (tối đa 20 MB, đổi bằng biến môi trường `EVIDENCE_MAX_MB`). SHA-256 được tính trên đúng các byte nhận được, ngay khi ghi vào kho `backend/evidence_store/` (đổi bằng `EVIDENCE_STORAGE_DIR`, đã nằm trong `.gitignore`). Tệp lưu dưới tên do máy chủ sinh (`{incident_id}/{uuid}`), không dùng tên người dùng; tên gốc đã bỏ đường dẫn và ký tự điều khiển, chỉ để hiển thị; tệp được đặt chế độ chỉ đọc (cố gắng tối đa theo hệ điều hành). API không trả khóa lưu trữ, và `file_path` do client khai chỉ là ghi chú, không bao giờ dùng để đọc tệp. Tệp gốc không bao giờ được phát trực tiếp: `GET .../download` cấp **bản sao làm việc** sau khi băm lại tệp gốc và thấy khớp mã băm ghi nhận, rồi ghi `working_copy_issued` kèm mã băm vào chain of custody. Tệp có thể là mã độc nên được phát dạng tải về (`attachment`, `application/octet-stream`, `nosniff`); giao diện tự băm lại bản sao vừa tải để so với mã băm ghi nhận. `POST .../verify` băm lại dữ liệu đang lưu (tệp hoặc nội dung chữ) và ghi `verified` hoặc `integrity_failed`; khóa bằng chứng dạng tệp cũng kiểm tra trước và từ chối nếu tệp đã khác. Chỉ IT và Analyst tải lên, tải về và kiểm tra; Stakeholder chỉ xem danh sách. `tests/verify_system.py` kiểm tra mọi tệp có trong DB còn nằm trong kho và khớp mã băm.
+
+**Hạn chế của bằng chứng dạng tệp:** mã băm nằm cùng DB và tệp nằm cùng máy chủ, nên người có quyền quản trị cả hai vẫn có thể thay tệp và sửa mã băm (chuỗi băm của nhật ký kiểm toán phát hiện sửa bản ghi nhưng không chứng minh nội dung tệp trước lúc tải lên); chuỗi bảo quản chỉ bắt đầu khi tệp tới hệ thống, không chứng minh tệp trùng bản gốc trên máy nguồn (người thu thập nên ghi hash nguồn vào mô tả); bản sao làm việc là luồng byte giống bản gốc, hệ thống không kiểm soát người nhận dùng nó thế nào; máy chủ vẫn nhận xong tệp tạm trước khi từ chối tệp quá lớn (kiểm tra `Content-Length` chỉ chặn sớm yêu cầu khai báo quá lớn); không quét mã độc, không mã hóa tệp khi lưu, chưa có chính sách lưu giữ hay xóa tệp, chưa có dấu thời gian từ bên thứ ba.
 
 ### Bước 7 — Phân tích & phạm vi ảnh hưởng
 
@@ -249,7 +253,7 @@ Chỉ các chuyển trạng thái trong bảng được chấp nhận; mọi chu
 | Trạng thái | Chuyển sang | Điều kiện |
 | --- | --- | --- |
 | `is_locked: false` | `is_locked: true` | IT hoặc Analyst khóa |
-| `is_locked: true` | — | Không thể sửa sau khi khóa; mỗi lần thu thập, xem, khóa đều ghi vào chain of custody |
+| `is_locked: true` | — | Không thể sửa sau khi khóa; mỗi lần thu thập, xem, cấp bản sao làm việc, kiểm tra toàn vẹn và khóa đều ghi vào chain of custody; bằng chứng dạng tệp chỉ khóa được khi tệp còn khớp mã băm |
 
 ### State machine — Recovery check
 
@@ -300,7 +304,7 @@ Mọi thay đổi dữ liệu nghiệp vụ và mọi sự kiện đăng nhập 
 - **Truy cập:** chỉ Analyst xem và xuất CSV.
 - **Timeline** của incident được dựng từ nhật ký (gồm cả các sự kiện của cảnh báo trước khi có incident), nên luôn khớp với nhật ký.
 
-**Hạn chế:** chuỗi băm phát hiện chỉnh sửa nhưng không ngăn được người có quyền quản trị trực tiếp cơ sở dữ liệu; hai thao tác ghi đồng thời có thể làm chuỗi rẽ nhánh; lượt đọc dữ liệu không được ghi (riêng lượt xem bằng chứng được ghi trong chain of custody).
+**Hạn chế:** chuỗi băm phát hiện chỉnh sửa nhưng không ngăn được người có quyền quản trị trực tiếp cơ sở dữ liệu; hai thao tác ghi đồng thời có thể làm chuỗi rẽ nhánh; lượt đọc dữ liệu không được ghi (riêng các thao tác xem chi tiết, cấp bản sao làm việc và kiểm tra toàn vẹn bằng chứng được ghi trong chain of custody).
 
 ## Module AI/ML
 
@@ -474,7 +478,10 @@ Base URL: `http://localhost:8000` | Docs: `http://localhost:8000/docs`
 
 | Method | Endpoint | Mô tả | Role |
 | --- | --- | --- | --- |
-| POST | `/incidents/{id}/evidences/` | Thu thập bằng chứng | IT, Analyst |
+| POST | `/incidents/{id}/evidences/` | Thu thập bằng chứng dạng chữ (JSON) | IT, Analyst |
+| POST | `/incidents/{id}/evidences/upload` | Thu thập bằng chứng dạng tệp (multipart; SHA-256 tính trên byte) | IT, Analyst |
+| POST | `/incidents/{id}/evidences/{eid}/verify` | Kiểm tra toàn vẹn: băm lại và so mã băm ghi nhận | IT, Analyst |
+| GET | `/incidents/{id}/evidences/{eid}/download` | Cấp bản sao làm việc (đã kiểm tra khớp bản gốc) | IT, Analyst |
 | PATCH | `/incidents/{id}/evidences/{eid}/lock` | Lock bằng chứng | IT, Analyst |
 | GET | `/incidents/{id}/evidences/{eid}/custody` | Chain of custody | All |
 

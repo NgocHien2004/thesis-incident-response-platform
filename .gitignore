@@ -5,3 +5,4 @@ backend/.env
 backend/smoke_test_all_endpoints.py
 backend/verify_system.py
 backend/verify_report.txt
+backend/evidence_store/

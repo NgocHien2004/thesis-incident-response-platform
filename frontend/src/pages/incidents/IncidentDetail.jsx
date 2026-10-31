@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getIncident, updateStatus, getEvidences, addEvidence, lockEvidence,
+import { getIncident, updateStatus, getEvidences, addEvidence, uploadEvidence, verifyEvidence,
+  downloadEvidence, lockEvidence,
   getCustody, getContainments, proposeContainment, reviewContainment,
   executeContainment, getRecovery, addRecovery, updateRecoveryStatus,
   confirmRecovery, getCommunications, createCommunication,
@@ -214,26 +215,74 @@ function OverviewTab({ incident, incId }) {
 }
 
 // ── Tab 1: Bằng chứng ──────────────────────────────
+const MAX_EVIDENCE_MB = 20
+const CUSTODY_LABEL = {
+  collected: 'Thu thập', accessed: 'Truy cập', locked: 'Khóa', verified: 'Đã kiểm tra',
+  integrity_failed: 'Sai lệch mã băm', working_copy_issued: 'Cấp bản sao',
+}
+const CUSTODY_STYLE = {
+  collected: 'bg-green-100 text-green-700', locked: 'bg-red-100 text-red-700',
+  verified: 'bg-green-100 text-green-700', integrity_failed: 'bg-red-100 text-red-700',
+  working_copy_issued: 'bg-blue-100 text-blue-700',
+}
+const formatBytes = (n) => n == null ? '' : n < 1024 ? `${n} B` : n < 1048576 ? `${(n/1024).toFixed(1)} KB` : `${(n/1048576).toFixed(1)} MB`
+
+// Lỗi của yêu cầu tải về có thân là Blob nên phải đọc thành chữ mới lấy được thông báo
+const errorDetail = async (err) => {
+  let data = err.response?.data
+  if (data instanceof Blob) { try { data = JSON.parse(await data.text()) } catch { data = null } }
+  return typeof data?.detail === 'string' ? data.detail : 'Thất bại'
+}
+
+const sha256Hex = async (blob) => {
+  if (!window.crypto?.subtle) return null
+  const digest = await window.crypto.subtle.digest('SHA-256', await blob.arrayBuffer())
+  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
 function EvidenceTab({ incId, canWrite, isAnalyst }) {
   const [evidences, setEvidences] = useState([])
   const [custody, setCustody]     = useState(null)
   const [showAdd, setShowAdd]     = useState(false)
   const [adding, setAdding]       = useState(false)
+  const [file, setFile]           = useState(null)
+  const [fileKey, setFileKey]     = useState(0)
+  const [integrity, setIntegrity] = useState({})
+  const [busy, setBusy]           = useState(null)
   const [form, setForm] = useState({ title:'', evidence_type:'log', source:'', content:'' })
 
   const load = () => getEvidences(incId).then(r => setEvidences(r.data))
   useEffect(() => { load() }, [incId])
 
+  const resetForm = () => {
+    setForm({ title:'', evidence_type:'log', source:'', content:'' })
+    setFile(null)
+    setFileKey(k => k + 1)
+  }
+
   const handleAdd = async (e) => {
     e.preventDefault()
+    if (file && file.size > MAX_EVIDENCE_MB * 1048576) {
+      toast.error(`Tệp vượt quá giới hạn ${MAX_EVIDENCE_MB} MB`)
+      return
+    }
     setAdding(true)
     try {
-      await addEvidence(incId, form)
+      if (file) {
+        const fd = new FormData()
+        fd.append('title', form.title)
+        fd.append('evidence_type', form.evidence_type)
+        if (form.source) fd.append('source', form.source)
+        fd.append('file', file)
+        await uploadEvidence(incId, fd)
+      } else {
+        await addEvidence(incId, form)
+      }
       toast.success('Thêm bằng chứng thành công')
       setShowAdd(false)
-      setForm({ title:'', evidence_type:'log', source:'', content:'' })
+      resetForm()
       load()
-    } catch { toast.error('Thất bại') }
+    } catch (err) { toast.error(await errorDetail(err)) }
     finally { setAdding(false) }
   }
 
@@ -251,6 +300,35 @@ function EvidenceTab({ incId, canWrite, isAnalyst }) {
     setCustody({ evId, logs: res.data })
   }
 
+  const handleVerify = async (evId) => {
+    setBusy(`v${evId}`)
+    try {
+      const res = await verifyEvidence(incId, evId)
+      setIntegrity(prev => ({ ...prev, [evId]: res.data }))
+    } catch (err) { toast.error(await errorDetail(err)) }
+    finally { setBusy(null) }
+  }
+
+  const handleDownload = async (ev) => {
+    setBusy(`d${ev.id}`)
+    try {
+      const res = await downloadEvidence(incId, ev.id)
+      const blob = res.data
+      const local = await sha256Hex(blob)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = ev.original_filename || `bang-chung-${ev.id}`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      if (local && local !== ev.file_hash) toast.error('Đã tải nhưng SHA-256 của bản sao KHÔNG khớp mã băm ghi nhận')
+      else toast.success(local ? 'Đã tải bản sao làm việc, SHA-256 khớp bản gốc' : 'Đã tải bản sao làm việc')
+    } catch (err) { toast.error(await errorDetail(err)) }
+    finally { setBusy(null) }
+  }
+
   return (
     <div className="space-y-4">
       {canWrite && (
@@ -264,7 +342,9 @@ function EvidenceTab({ incId, canWrite, isAnalyst }) {
 
       {evidences.length === 0 ? (
         <Card><p className="text-sm text-gray-400">Chưa có bằng chứng</p></Card>
-      ) : evidences.map(ev => (
+      ) : evidences.map(ev => {
+        const result = integrity[ev.id]
+        return (
         <Card key={ev.id} title={
           <div className="flex items-center gap-2">
             <span>{ev.title}</span>
@@ -273,6 +353,18 @@ function EvidenceTab({ incId, canWrite, isAnalyst }) {
           </div>
         } action={
           <div className="flex gap-2">
+            {canWrite && (ev.has_file || ev.content) && ev.file_hash && (
+              <button onClick={() => handleVerify(ev.id)} disabled={busy === `v${ev.id}`}
+                className="text-xs text-gray-500 hover:text-primary-600 disabled:opacity-50">
+                {busy === `v${ev.id}` ? 'Đang kiểm tra...' : 'Kiểm tra toàn vẹn'}
+              </button>
+            )}
+            {canWrite && ev.has_file && (
+              <button onClick={() => handleDownload(ev)} disabled={busy === `d${ev.id}`}
+                className="text-xs text-gray-500 hover:text-primary-600 disabled:opacity-50">
+                {busy === `d${ev.id}` ? 'Đang tải...' : 'Tải bản sao làm việc'}
+              </button>
+            )}
             <button onClick={() => loadCustody(ev.id)}
               className="text-xs text-gray-500 hover:text-primary-600">Chain of custody</button>
             {!ev.is_locked && canWrite && (
@@ -283,9 +375,21 @@ function EvidenceTab({ incId, canWrite, isAnalyst }) {
         }>
           <div className="space-y-2 text-sm">
             {ev.source && <p className="text-gray-500 text-xs">Nguồn: {ev.source}</p>}
+            {ev.has_file && (
+              <p className="text-gray-500 text-xs">
+                Tệp: <span className="font-medium text-gray-700">{ev.original_filename}</span> · {formatBytes(ev.size_bytes)}
+              </p>
+            )}
             {ev.file_hash && (
-              <p className="text-xs font-mono text-gray-500 bg-gray-50 px-2 py-1 rounded">
+              <p className="text-xs font-mono text-gray-500 bg-gray-50 px-2 py-1 rounded break-all">
                 SHA-256: {ev.file_hash}
+              </p>
+            )}
+            {result && (
+              <p className={`text-xs px-2 py-1 rounded ${result.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {result.ok ? '✓ ' : '✗ '}{result.message}
+                {!result.ok && result.actual && <span className="font-mono break-all"> (hiện tại: {result.actual})</span>}
+                {' · '}{new Date(result.checked_at).toLocaleTimeString('vi-VN')}
               </p>
             )}
             {ev.content && (
@@ -295,7 +399,8 @@ function EvidenceTab({ incId, canWrite, isAnalyst }) {
             )}
           </div>
         </Card>
-      ))}
+        )
+      })}
 
       {/* Chain of custody modal */}
       <Modal open={!!custody} onClose={() => setCustody(null)} title="Chain of Custody">
@@ -303,15 +408,13 @@ function EvidenceTab({ incId, canWrite, isAnalyst }) {
           <div className="space-y-2">
             {custody.logs.map(log => (
               <div key={log.id} className="flex items-start gap-3 text-sm border-b border-gray-100 pb-2">
-                <div className="w-20 flex-shrink-0">
-                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-                    log.action==='locked'   ? 'bg-red-100 text-red-700' :
-                    log.action==='collected'? 'bg-green-100 text-green-700' :
-                                              'bg-gray-100 text-gray-600'
-                  }`}>{log.action}</span>
+                <div className="w-32 flex-shrink-0">
+                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${CUSTODY_STYLE[log.action] || 'bg-gray-100 text-gray-600'}`}>
+                    {CUSTODY_LABEL[log.action] || log.action}
+                  </span>
                 </div>
-                <div className="flex-1">
-                  <p className="text-gray-600 text-xs">{log.note}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-gray-600 text-xs break-words">{log.note}</p>
                   <p className="text-gray-400 text-xs mt-0.5">
                     #{log.performed_by} · {new Date(log.performed_at).toLocaleString('vi-VN')}
                   </p>
@@ -323,7 +426,7 @@ function EvidenceTab({ incId, canWrite, isAnalyst }) {
       </Modal>
 
       {/* Modal thêm bằng chứng */}
-      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Thu thập bằng chứng">
+      <Modal open={showAdd} onClose={() => { setShowAdd(false); resetForm() }} title="Thu thập bằng chứng">
         <form onSubmit={handleAdd} className="space-y-3">
           <div>
             <label className="block text-xs text-gray-600 mb-1">Tiêu đề *</label>
@@ -349,12 +452,20 @@ function EvidenceTab({ incId, canWrite, isAnalyst }) {
             </div>
           </div>
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Nội dung / Log</label>
-            <textarea value={form.content} onChange={e=>setForm({...form,content:e.target.value})}
-              rows={4} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary-400 resize-none"/>
+            <label className="block text-xs text-gray-600 mb-1">Tệp đính kèm (tối đa {MAX_EVIDENCE_MB} MB)</label>
+            <input key={fileKey} type="file" onChange={e => setFile(e.target.files?.[0] || null)}
+              className="w-full text-sm text-gray-600"/>
+            <p className="text-xs text-gray-400 mt-1">
+              Hệ thống tính SHA-256 trên byte của tệp và giữ bản gốc không sửa; tải về luôn là bản sao làm việc.
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Nội dung / Log {file && '(bỏ qua khi đã chọn tệp)'}</label>
+            <textarea value={form.content} onChange={e=>setForm({...form,content:e.target.value})} disabled={!!file}
+              rows={4} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary-400 resize-none disabled:bg-gray-50"/>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={()=>setShowAdd(false)}
+            <button type="button" onClick={() => { setShowAdd(false); resetForm() }}
               className="flex-1 border border-gray-200 text-gray-600 rounded-lg py-2 text-sm hover:bg-gray-50">Hủy</button>
             <button type="submit" disabled={adding}
               className="flex-1 bg-primary-600 text-white rounded-lg py-2 text-sm hover:bg-primary-700 disabled:opacity-50">
