@@ -3,6 +3,7 @@ import sys
 import json
 import base64
 import platform
+import re
 import subprocess
 from datetime import datetime, timezone
 
@@ -251,10 +252,15 @@ try:
         rows = db.execute(text(
             "SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS "
             "WHERE DATA_TYPE IN ('varchar','text','char')")).fetchall()
-        # cột Enum (giá trị tiếng Anh cố định) được phép là varchar
-        enum_like = {"status", "severity", "source", "role", "asset_type", "criticality", "comm_type",
-                     "action_type", "evidence_type", "triage_severity"}
-        suspicious = [f"{t}.{c} ({d})" for t, c, d in rows if c not in enum_like]
+        # cột Enum (giá trị tiếng Anh cố định) được phép là varchar: lấy từ khai báo của mọi model, không liệt kê tay
+        import importlib, pkgutil
+        import app.models as _models_pkg
+        for _m in pkgutil.iter_modules(_models_pkg.__path__):
+            importlib.import_module(f"app.models.{_m.name}")
+        from database import Base
+        from sqlalchemy import Enum as SAEnum
+        enum_cols = {(t.name, c.name) for t in Base.metadata.tables.values() for c in t.columns if isinstance(c.type, SAEnum)}
+        suspicious = [f"{t}.{c} ({d})" for t, c, d in rows if (t, c) not in enum_cols]
         check(not suspicious, "Mọi cột chữ tự do đều là NVARCHAR/NTEXT",
               "Cột chữ còn là VARCHAR/TEXT (mất dấu tiếng Việt): " + ", ".join(suspicious[:12]))
         col_row = db.execute(text("SELECT CAST(DATABASEPROPERTYEX(DB_NAME(),'Collation') AS NVARCHAR(100))")).scalar()
@@ -385,16 +391,18 @@ if WITH_FRONTEND:
     if not os.path.isdir(os.path.join(fe, "node_modules")):
         log("WARN", f"Chưa có {fe}\\node_modules — chạy 'npm install' trong thư mục frontend trước")
     else:
-        log("INFO", "Đang chạy 'npm run build' (thư mục tạm, không đụng dist/ của bạn)...")
+        log("INFO", "Đang chạy 'npm run build' (xuất ra thư mục tạm, không ghi đè dist/)...")
         out_dir = os.path.join(os.environ.get("TEMP", "/tmp"), "ir_fe_build_check")
         try:
             p = subprocess.run(f'npm run build -- --outDir "{out_dir}" --emptyOutDir', cwd=fe, shell=True,
                                capture_output=True, text=True, timeout=400, encoding="utf-8", errors="replace")
-            tail = "\n".join((p.stdout + p.stderr).strip().splitlines()[-12:])
+            tail = re.sub(r"\x1b\[[0-9;]*m", "", "\n".join((p.stdout + p.stderr).strip().splitlines()[-12:]))   # bỏ mã màu ANSI của npm
             check(p.returncode == 0, "Frontend build thành công (mọi trang compile được)",
                   "Frontend build THẤT BẠI:\n" + tail)
             if p.returncode == 0:
-                log("INFO", tail.splitlines()[-1] if tail else "")
+                last = [ln for ln in tail.splitlines() if ln.strip()]
+                if last:
+                    log("INFO", last[-1].strip())
         except Exception as e:                                  # noqa
             log("FAIL", f"Không chạy được build: {e}")
 else:

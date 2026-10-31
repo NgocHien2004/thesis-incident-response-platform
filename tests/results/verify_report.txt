@@ -1,9 +1,9 @@
-IR Platform — báo cáo kiểm tra 2026-10-31 11:16:26
-TỔNG KẾT: 46 đạt · 0 cảnh báo · 1 lỗi
+IR Platform — báo cáo kiểm tra 2026-10-31 11:20:10
+TỔNG KẾT: 47 đạt · 0 cảnh báo · 0 lỗi
 
 
 [HEAD] A. Kết nối
-[INFO] Python 3.14.3 · Windows · 2026-10-31 11:16:21
+[INFO] Python 3.14.3 · Windows · 2026-10-31 11:19:57
 [OK] Backend chạy tại http://127.0.0.1:8000 (77 endpoint)
 [OK] Đăng nhập được 4 tài khoản (analyst01, analyst02, it01, stakeholder01)
 [OK] AI service /ai/health: HTTP 200 {"ai_service": "up", "detail": {"service": "AI Service", "models": ["rf_binary_v1", "attck_ent-2026-08-04"], "attck_vers
@@ -25,7 +25,7 @@ TỔNG KẾT: 46 đạt · 0 cảnh báo · 1 lỗi
 [OK] mttd_minutes = 40.0 phút (không âm)
 [OK] mtta_minutes = 19.5 phút (không âm)
 [OK] mttr_minutes = 350.0 phút (không âm)
-[INFO] SLA breached: alert #10 'Thiết bị lạ kết nối mạng nội bộ' (-309.1 phút)
+[INFO] SLA breached: alert #10 'Thiết bị lạ kết nối mạng nội bộ' (-312.8 phút)
 [INFO] Nhận ra bộ dữ liệu seed — so sánh với giá trị mong đợi (khi chưa có dữ liệu thêm)
 [OK] Trạng thái 4 incident seed đúng: ['closed', 'recovering', 'investigating', 'open']
 [OK] mttd_minutes = 40.0 (mong đợi ≈ 40.0)
@@ -41,9 +41,9 @@ TỔNG KẾT: 46 đạt · 0 cảnh báo · 1 lỗi
 
 [HEAD] F. Toàn vẹn dữ liệu trong DB
 [OK] Đọc thẳng từ DB: chuỗi tiếng Việt lưu đúng (cột Unicode)
-[FAIL] Cột chữ còn là VARCHAR/TEXT (mất dấu tiếng Việt): playbooks.incident_type (varchar), playbook_steps.phase (varchar), playbook_steps.owner_role (varchar), tasks.phase (varchar), tasks.owner_role (varchar)
+[OK] Mọi cột chữ tự do đều là NVARCHAR/NTEXT
 [INFO] Collation của DB: SQL_Latin1_General_CP1_CI_AS
-[INFO] SQL Server: GETDATE()=2026-10-31 11:16:24.553000  GETUTCDATE()=2026-10-31 04:16:24.553000
+[INFO] SQL Server: GETDATE()=2026-10-31 11:20:09.630000  GETUTCDATE()=2026-10-31 04:20:09.630000
 [OK] Cả 443 alert đều có group_id (chống trùng đã chạy)
 [OK] Alert thuộc incident đều ở trạng thái escalated/closed
 [OK] Mọi alert: triaged_at ≥ created_at
@@ -66,7 +66,7 @@ TỔNG KẾT: 46 đạt · 0 cảnh báo · 1 lỗi
 [OK] Mọi incident đã đóng đều thỏa tiêu chí đóng
 [OK] Mọi incident đều có bản ghi tạo trong nhật ký kiểm toán
 [OK] Mọi incident đã đóng đều có bản ghi đóng trong nhật ký
-[OK] Chuỗi băm nhật ký kiểm toán nguyên vẹn (1044 bản ghi)
+[OK] Chuỗi băm nhật ký kiểm toán nguyên vẹn (1050 bản ghi)
 [INFO] Tài khoản theo vai trò: {'analyst_soc': 2, 'it_helpdesk': 1, 'stakeholder': 1}
 [INFO] Số lượng bản ghi: alert=443 incident=4 evidence=4 containment=3 recovery=4 communication=2 postmortem=1
 [INFO] Đã xóa tài sản thử Unicode (HTTP 200)
@@ -75,4 +75,4 @@ TỔNG KẾT: 46 đạt · 0 cảnh báo · 1 lỗi
 [OK] Dev server localhost:5173: HTTP 200
 [INFO] Đang chạy 'npm run build' (thư mục tạm, không đụng dist/ của bạn)...
 [OK] Frontend build thành công (mọi trang compile được)
-[INFO] [39m
+[INFO] [INEFFECTIVE_DYNAMIC_IMPORT] src/api/incidents.js is dynamically imported by src/pages/incidents/IncidentDetail.jsx but also statically imported by src/pages/AlertDetail.jsx, src/pages/IncidentList.jsx, src/pages/incidents/IncidentDetail.jsx, src/pages/incidents/TasksTab.jsx, dynamic import will not move module into another chunk.
