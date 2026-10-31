@@ -1,0 +1,425 @@
+{
+ "meta": {
+  "sklearn": "1.9.1",
+  "numpy": "2.5.3",
+  "seed": 42,
+  "n_train": 200000,
+  "n_test": 565576,
+  "attack_ratio_train": 0.1977,
+  "attack_ratio_test": 0.1968,
+  "max_train_limit": 200000,
+  "bootstrap": 0,
+  "thresholds": {
+   "auto_close": 0.15,
+   "review": 0.5,
+   "urgent": 0.8
+  },
+  "pr_auc_method": "average_precision_score"
+ },
+ "models": {
+  "Random Forest": {
+   "pr_auc": 0.99976,
+   "roc_auc": 0.99994,
+   "at_0.5": {
+    "tp": 111229,
+    "fp": 546,
+    "fn": 82,
+    "tn": 453719,
+    "precision": 0.9951,
+    "recall": 0.9993,
+    "f1": 0.9972
+   },
+   "policy_zones": {
+    "attacks_in_auto_close": 24,
+    "pct_attacks_in_auto_close": 0.0216,
+    "pct_benign_auto_closed": 99.69,
+    "pct_flows_for_analyst": 19.93,
+    "urgent_flows": 111133,
+    "urgent_precision": 0.9974
+   },
+   "oracle_auto_close": {
+    "0.0002": {
+     "threshold": 0.12182,
+     "attacks_missed": 22,
+     "pct_attacks_missed": 0.0198,
+     "pct_benign_auto_closed": 99.62
+    },
+    "0.001": {
+     "threshold": 0.54145,
+     "attacks_missed": 111,
+     "pct_attacks_missed": 0.0997,
+     "pct_benign_auto_closed": 99.89
+    },
+    "0.005": {
+     "threshold": 0.84777,
+     "attacks_missed": 556,
+     "pct_attacks_missed": 0.4995,
+     "pct_benign_auto_closed": 99.94
+    }
+   },
+   "per_class": {
+    "Bot": {
+     "n": 393,
+     "recall_0.5": 0.8728,
+     "auto_closed_pct": 2.29,
+     "high_severity": true
+    },
+    "DDoS": {
+     "n": 25775,
+     "recall_0.5": 0.9997,
+     "auto_closed_pct": 0.01,
+     "high_severity": true
+    },
+    "DoS GoldenEye": {
+     "n": 2058,
+     "recall_0.5": 0.9995,
+     "auto_closed_pct": 0.0,
+     "high_severity": true
+    },
+    "DoS Hulk": {
+     "n": 45887,
+     "recall_0.5": 0.9999,
+     "auto_closed_pct": 0.0,
+     "high_severity": true
+    },
+    "DoS Slowhttptest": {
+     "n": 1075,
+     "recall_0.5": 0.9991,
+     "auto_closed_pct": 0.0,
+     "high_severity": true
+    },
+    "DoS slowloris": {
+     "n": 1129,
+     "recall_0.5": 0.9965,
+     "auto_closed_pct": 0.27,
+     "high_severity": true
+    },
+    "FTP-Patator": {
+     "n": 1591,
+     "recall_0.5": 1.0,
+     "auto_closed_pct": 0.0,
+     "high_severity": false
+    },
+    "Heartbleed": {
+     "n": 2,
+     "recall_0.5": 1.0,
+     "auto_closed_pct": 0.0,
+     "high_severity": true
+    },
+    "Infiltration": {
+     "n": 6,
+     "recall_0.5": 0.6667,
+     "auto_closed_pct": 16.67,
+     "high_severity": true
+    },
+    "PortScan": {
+     "n": 31757,
+     "recall_0.5": 0.9999,
+     "auto_closed_pct": 0.01,
+     "high_severity": false
+    },
+    "SSH-Patator": {
+     "n": 1200,
+     "recall_0.5": 0.9975,
+     "auto_closed_pct": 0.0,
+     "high_severity": false
+    },
+    "Web Attack - Brute Force": {
+     "n": 312,
+     "recall_0.5": 0.9936,
+     "auto_closed_pct": 0.0,
+     "high_severity": false
+    },
+    "Web Attack - Sql Injection": {
+     "n": 2,
+     "recall_0.5": 1.0,
+     "auto_closed_pct": 0.0,
+     "high_severity": true
+    },
+    "Web Attack - XSS": {
+     "n": 124,
+     "recall_0.5": 0.9758,
+     "auto_closed_pct": 2.42,
+     "high_severity": false
+    }
+   },
+   "high_severity_recall_0.5": 0.9991,
+   "train_seconds": null,
+   "fit": {
+    "note": "mô hình đã huấn luyện sẵn (train.py)"
+   },
+   "predict_us_per_flow": 1.53,
+   "model_size_mb": 35.32
+  },
+  "Logistic Regression": {
+   "pr_auc": 0.91414,
+   "roc_auc": 0.97774,
+   "at_0.5": {
+    "tp": 106367,
+    "fp": 44112,
+    "fn": 4944,
+    "tn": 410153,
+    "precision": 0.7069,
+    "recall": 0.9556,
+    "f1": 0.8126
+   },
+   "policy_zones": {
+    "attacks_in_auto_close": 574,
+    "pct_attacks_in_auto_close": 0.5157,
+    "pct_benign_auto_closed": 81.75,
+    "pct_flows_for_analyst": 34.24,
+    "urgent_flows": 103776,
+    "urgent_precision": 0.8427
+   },
+   "oracle_auto_close": {
+    "0.0002": {
+     "threshold": 0.0,
+     "attacks_missed": 22,
+     "pct_attacks_missed": 0.0198,
+     "pct_benign_auto_closed": 3.4
+    },
+    "0.001": {
+     "threshold": 0.00132,
+     "attacks_missed": 111,
+     "pct_attacks_missed": 0.0997,
+     "pct_benign_auto_closed": 31.77
+    },
+    "0.005": {
+     "threshold": 0.13437,
+     "attacks_missed": 556,
+     "pct_attacks_missed": 0.4995,
+     "pct_benign_auto_closed": 80.63
+    }
+   },
+   "per_class": {
+    "Bot": {
+     "n": 393,
+     "recall_0.5": 0.2494,
+     "auto_closed_pct": 38.17,
+     "high_severity": true
+    },
+    "DDoS": {
+     "n": 25775,
+     "recall_0.5": 0.9995,
+     "auto_closed_pct": 0.03,
+     "high_severity": true
+    },
+    "DoS GoldenEye": {
+     "n": 2058,
+     "recall_0.5": 0.8946,
+     "auto_closed_pct": 6.61,
+     "high_severity": true
+    },
+    "DoS Hulk": {
+     "n": 45887,
+     "recall_0.5": 0.9802,
+     "auto_closed_pct": 0.1,
+     "high_severity": true
+    },
+    "DoS Slowhttptest": {
+     "n": 1075,
+     "recall_0.5": 0.8726,
+     "auto_closed_pct": 10.7,
+     "high_severity": true
+    },
+    "DoS slowloris": {
+     "n": 1129,
+     "recall_0.5": 0.9229,
+     "auto_closed_pct": 5.4,
+     "high_severity": true
+    },
+    "FTP-Patator": {
+     "n": 1591,
+     "recall_0.5": 0.5123,
+     "auto_closed_pct": 0.0,
+     "high_severity": false
+    },
+    "Heartbleed": {
+     "n": 2,
+     "recall_0.5": 1.0,
+     "auto_closed_pct": 0.0,
+     "high_severity": true
+    },
+    "Infiltration": {
+     "n": 6,
+     "recall_0.5": 0.0,
+     "auto_closed_pct": 83.33,
+     "high_severity": true
+    },
+    "PortScan": {
+     "n": 31757,
+     "recall_0.5": 0.9723,
+     "auto_closed_pct": 0.02,
+     "high_severity": false
+    },
+    "SSH-Patator": {
+     "n": 1200,
+     "recall_0.5": 0.0092,
+     "auto_closed_pct": 0.83,
+     "high_severity": false
+    },
+    "Web Attack - Brute Force": {
+     "n": 312,
+     "recall_0.5": 0.0,
+     "auto_closed_pct": 9.29,
+     "high_severity": false
+    },
+    "Web Attack - Sql Injection": {
+     "n": 2,
+     "recall_0.5": 0.0,
+     "auto_closed_pct": 50.0,
+     "high_severity": true
+    },
+    "Web Attack - XSS": {
+     "n": 124,
+     "recall_0.5": 0.0161,
+     "auto_closed_pct": 4.03,
+     "high_severity": false
+    }
+   },
+   "high_severity_recall_0.5": 0.9782,
+   "train_seconds": 4.5,
+   "fit": {
+    "iterations": 201,
+    "converged": true
+   },
+   "predict_us_per_flow": 0.08,
+   "model_size_mb": 0.0
+  },
+  "Gradient Boosting": {
+   "pr_auc": 0.99979,
+   "roc_auc": 0.99994,
+   "at_0.5": {
+    "tp": 111215,
+    "fp": 458,
+    "fn": 96,
+    "tn": 453807,
+    "precision": 0.9959,
+    "recall": 0.9991,
+    "f1": 0.9975
+   },
+   "policy_zones": {
+    "attacks_in_auto_close": 51,
+    "pct_attacks_in_auto_close": 0.0458,
+    "pct_benign_auto_closed": 99.88,
+    "pct_flows_for_analyst": 19.77,
+    "urgent_flows": 111457,
+    "urgent_precision": 0.9969
+   },
+   "oracle_auto_close": {
+    "0.0002": {
+     "threshold": 0.01541,
+     "attacks_missed": 22,
+     "pct_attacks_missed": 0.0198,
+     "pct_benign_auto_closed": 99.76
+    },
+    "0.001": {
+     "threshold": 0.55368,
+     "attacks_missed": 109,
+     "pct_attacks_missed": 0.0979,
+     "pct_benign_auto_closed": 99.9
+    },
+    "0.005": {
+     "threshold": 0.96587,
+     "attacks_missed": 547,
+     "pct_attacks_missed": 0.4914,
+     "pct_benign_auto_closed": 99.94
+    }
+   },
+   "per_class": {
+    "Bot": {
+     "n": 393,
+     "recall_0.5": 0.9109,
+     "auto_closed_pct": 4.33,
+     "high_severity": true
+    },
+    "DDoS": {
+     "n": 25775,
+     "recall_0.5": 0.9997,
+     "auto_closed_pct": 0.02,
+     "high_severity": true
+    },
+    "DoS GoldenEye": {
+     "n": 2058,
+     "recall_0.5": 0.999,
+     "auto_closed_pct": 0.0,
+     "high_severity": true
+    },
+    "DoS Hulk": {
+     "n": 45887,
+     "recall_0.5": 0.9999,
+     "auto_closed_pct": 0.0,
+     "high_severity": true
+    },
+    "DoS Slowhttptest": {
+     "n": 1075,
+     "recall_0.5": 0.9963,
+     "auto_closed_pct": 0.37,
+     "high_severity": true
+    },
+    "DoS slowloris": {
+     "n": 1129,
+     "recall_0.5": 0.9956,
+     "auto_closed_pct": 0.35,
+     "high_severity": true
+    },
+    "FTP-Patator": {
+     "n": 1591,
+     "recall_0.5": 0.9981,
+     "auto_closed_pct": 0.0,
+     "high_severity": false
+    },
+    "Heartbleed": {
+     "n": 2,
+     "recall_0.5": 1.0,
+     "auto_closed_pct": 0.0,
+     "high_severity": true
+    },
+    "Infiltration": {
+     "n": 6,
+     "recall_0.5": 0.1667,
+     "auto_closed_pct": 50.0,
+     "high_severity": true
+    },
+    "PortScan": {
+     "n": 31757,
+     "recall_0.5": 0.9994,
+     "auto_closed_pct": 0.03,
+     "high_severity": false
+    },
+    "SSH-Patator": {
+     "n": 1200,
+     "recall_0.5": 0.995,
+     "auto_closed_pct": 0.42,
+     "high_severity": false
+    },
+    "Web Attack - Brute Force": {
+     "n": 312,
+     "recall_0.5": 0.9968,
+     "auto_closed_pct": 0.0,
+     "high_severity": false
+    },
+    "Web Attack - Sql Injection": {
+     "n": 2,
+     "recall_0.5": 1.0,
+     "auto_closed_pct": 0.0,
+     "high_severity": true
+    },
+    "Web Attack - XSS": {
+     "n": 124,
+     "recall_0.5": 0.9677,
+     "auto_closed_pct": 3.23,
+     "high_severity": false
+    }
+   },
+   "high_severity_recall_0.5": 0.9992,
+   "train_seconds": 26.0,
+   "fit": {
+    "iterations": 113,
+    "early_stopped": true
+   },
+   "predict_us_per_flow": 2.16,
+   "model_size_mb": 0.83
+  }
+ }
+}
