@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from sqlalchemy import func
+from sqlalchemy import func, case
 import json, csv, io
 from database import get_db
 from app.models.alert import Alert, AlertSource, AlertStatus
@@ -37,6 +37,22 @@ def resolve_asset_id(db: Session, row: dict):
         found = db.query(Asset).filter(Asset.ip_address == ip).first()
     return found.id if found else None
 
+
+# Nguồn mà bên gửi được phép khai báo khi nhập tự động. "manual" không nhận vì đó là báo cáo
+# của con người, chỉ tạo qua POST /alerts/ (luật an toàn tự đóng loại trừ nguồn này).
+DECLARABLE_SOURCES = {AlertSource.ids_ips, AlertSource.endpoint, AlertSource.email}
+
+
+def resolve_source(row: dict, default: AlertSource) -> AlertSource:
+    """Lấy nguồn từ trường source của payload nếu hợp lệ, ngược lại dùng kênh nhập (default)."""
+    raw = str(row.get("source") or "").strip().lower()
+    try:
+        declared = AlertSource(raw)
+    except ValueError:
+        return default
+    return declared if declared in DECLARABLE_SOURCES else default
+
+
 # Xem danh sách
 @router.get("/", response_model=List[AlertOut])
 def list_alerts(
@@ -52,7 +68,9 @@ def list_alerts(
     if zone:
         query = query.filter(Alert.ml_zone == zone)
     if order == "priority":
-        return query.order_by(Alert.ml_priority.is_(None), Alert.ml_priority.desc(), Alert.created_at.desc()).all()
+        # CASE thay cho "ml_priority IS NULL" vì SQL Server không cho dùng biểu thức logic trong ORDER BY
+        unscored_last = case((Alert.ml_priority.is_(None), 1), else_=0)
+        return query.order_by(unscored_last, Alert.ml_priority.desc(), Alert.created_at.desc()).all()
     return query.order_by(Alert.created_at.desc()).all()
 
 # Xem chi tiết
@@ -92,7 +110,7 @@ def receive_webhook(
     alert = Alert(
         title=payload.get("title", "Webhook Alert"),
         description=payload.get("description"),
-        source=AlertSource.webhook,
+        source=resolve_source(payload, AlertSource.webhook),
         severity=payload.get("severity", "medium"),
         source_ref=payload.get("source_ref"),
         ioc=payload.get("ioc"),
@@ -123,7 +141,7 @@ def upload_csv(
         alert = Alert(
             title=row.get("title", "CSV Alert"),
             description=row.get("description"),
-            source=AlertSource.csv_upload,
+            source=resolve_source(row, AlertSource.csv_upload),
             severity=row.get("severity", "medium"),
             source_ref=row.get("source_ref"),
             ioc=row.get("ioc"),
@@ -157,7 +175,7 @@ def upload_json(
         alert = Alert(
             title=row.get("title", "JSON Alert"),
             description=row.get("description"),
-            source=AlertSource.csv_upload,
+            source=resolve_source(row, AlertSource.csv_upload),
             severity=row.get("severity", "medium"),
             source_ref=row.get("source_ref"),
             ioc=row.get("ioc"),

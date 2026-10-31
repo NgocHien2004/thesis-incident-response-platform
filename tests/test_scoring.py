@@ -163,6 +163,45 @@ def api_tests():
     check("Tài sản không rõ tính như mức trung bình",
           w3.json()["ml_result"]["components"]["asset"]["weight"] == sr.asset_weight("medium"))
 
+    print("\n── 5b. Trường source trong payload nhập từ ngoài ──")
+    wh = lambda extra: R(IT, "POST", "/alerts/webhook", {"title": f"Nguồn {tag}", "severity": "low", "ioc": ioc(),
+                                                         "affected_asset": low["id"], **extra})
+    src_of = lambda resp: resp.json().get("source")
+    rel_of = lambda resp: resp.json()["ml_result"]["components"]["source"]["reliability"]
+    base_w = wh({})
+    check("Webhook không có source thì dùng kênh nhập (webhook, S=0,7)", src_of(base_w) == "webhook" and rel_of(base_w) == sr.source_reliability("webhook"))
+    ids_w = wh({"source": "ids_ips"})
+    check("Webhook source=ids_ips được ghi nhận, S=0,8", src_of(ids_w) == "ids_ips" and rel_of(ids_w) == sr.source_reliability("ids_ips") == 0.8)
+    check("Cùng tài sản và mức độ, nguồn ids_ips có điểm cao hơn webhook", ids_w.json()["ml_result"]["priority"] > base_w.json()["ml_result"]["priority"])
+    check("Kết quả chấm điểm với nguồn khai báo vẫn khớp công thức", consistent(ids_w.json()) and zone_ok(ids_w.json()["ml_result"]))
+    ep_w = wh({"source": "endpoint"})
+    check("Webhook source=endpoint được ghi nhận, S=0,9", src_of(ep_w) == "endpoint" and rel_of(ep_w) == 0.9)
+    em_w = wh({"source": "email"})
+    check("Webhook source=email được ghi nhận, S=0,6 nên điểm thấp hơn webhook thường",
+          src_of(em_w) == "email" and rel_of(em_w) == 0.6 and em_w.json()["ml_result"]["priority"] < base_w.json()["ml_result"]["priority"])
+    check("source viết hoa và có khoảng trắng vẫn nhận", src_of(wh({"source": "  IDS_IPS "})) == "ids_ips")
+    man_w = wh({"source": "manual"})
+    check("source=manual bị bỏ qua (báo cáo thủ công chỉ tạo qua POST /alerts/)", src_of(man_w) == "webhook" and rel_of(man_w) == 0.7)
+    check("source=csv_upload trong webhook bị bỏ qua", src_of(wh({"source": "csv_upload"})) == "webhook")
+    for bad in ("không-hợp-lệ", "", None, 123, ["ids_ips"]):
+        check(f"source không hợp lệ ({bad!r}) thì dùng kênh nhập", src_of(wh({"source": bad})) == "webhook")
+
+    rows_in = [{"title": f"Dòng IDS {tag}", "severity": "low", "ioc": ioc(), "source": "ids_ips", "affected_asset": low["id"]},
+               {"title": f"Dòng thủ công {tag}", "severity": "low", "ioc": ioc(), "source": "manual", "affected_asset": low["id"]},
+               {"title": f"Dòng không nguồn {tag}", "severity": "low", "ioc": ioc(), "affected_asset": low["id"]},
+               {"title": f"Dòng endpoint {tag}", "severity": "low", "ioc": ioc(), "source": "endpoint", "affected_asset": low["id"]}]
+    want = ["ids_ips", "csv_upload", "csv_upload", "endpoint"]
+    cols = ["title", "severity", "ioc", "source", "affected_asset"]
+    csv_src = ",".join(cols) + "\n" + "\n".join(",".join(str(r.get(c, "")) for c in cols) for r in rows_in) + "\n"
+    up = requests.post(f"{BASE}/alerts/upload/csv", headers=IT.headers(), files={"file": (f"src-{tag}.csv", csv_src.encode("utf-8"), "text/csv")})
+    expect("Nhập CSV có cột source", up, 200)
+    check("CSV: mỗi dòng nhận đúng nguồn (hợp lệ giữ, manual và để trống dùng csv_upload)",
+          up.status_code == 200 and [a["source"] for a in up.json()] == want)
+    upj = requests.post(f"{BASE}/alerts/upload/json", headers=IT.headers(),
+                        files={"file": (f"src-{tag}.json", json.dumps(rows_in).encode("utf-8"), "application/json")})
+    expect("Nhập JSON có trường source", upj, 200)
+    check("JSON: mỗi phần tử nhận đúng nguồn", upj.status_code == 200 and [a["source"] for a in upj.json()] == want)
+
     print("\n── 6. Mô hình RF qua đặc trưng luồng mạng ──")
     sch = R(A, "GET", "/ai/classify/schema")
     if sch.status_code != 200:

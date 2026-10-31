@@ -97,7 +97,7 @@ Mỗi bước mô tả ai làm gì, đầu vào, đầu ra và điều kiện ch
 
 ### Bước 2 — Tiếp nhận cảnh báo
 
-**Ai làm:** IT/Helpdesk, Analyst/SOC **Đầu vào:** File CSV/JSON, POST webhook, hoặc nhập thủ công **Đầu ra:** Alert với status `new`, có ID, timestamp, nguồn gốc **Ghi chú:** Mọi cảnh báo đều vào hàng chờ, chưa phán xét. Nhân viên báo cáo nghi phishing qua email hoặc điện thoại, helpdesk nhập vào hệ thống (nhân viên thường không có tài khoản). Chưa hỗ trợ nhập trực tiếp tệp email (.eml). Cảnh báo nhập từ ngoài (webhook, CSV, JSON) có thể kèm `affected_asset` (id), `asset_hostname` hoặc `asset_ip` để gắn đúng tài sản, và `flow_features` (đặc trưng luồng mạng) để được chấm điểm bằng mô hình Random Forest; không có thì cảnh báo vẫn nhập được và được chấm điểm theo cách dự phòng.
+**Ai làm:** IT/Helpdesk, Analyst/SOC **Đầu vào:** File CSV/JSON, POST webhook, hoặc nhập thủ công **Đầu ra:** Alert với status `new`, có ID, timestamp, nguồn gốc **Ghi chú:** Mọi cảnh báo đều vào hàng chờ, chưa phán xét. Nhân viên báo cáo nghi phishing qua email hoặc điện thoại, helpdesk nhập vào hệ thống (nhân viên thường không có tài khoản). Chưa hỗ trợ nhập trực tiếp tệp email (.eml). Cảnh báo nhập từ ngoài (webhook, CSV, JSON) có thể kèm `affected_asset` (id), `asset_hostname` hoặc `asset_ip` để gắn đúng tài sản, và `flow_features` (đặc trưng luồng mạng) để được chấm điểm bằng mô hình Random Forest; không có thì cảnh báo vẫn nhập được và được chấm điểm theo cách dự phòng. Payload cũng có thể kèm `source` (`ids_ips`, `endpoint` hoặc `email`) để cảnh báo được tính đúng độ tin cậy của nguồn; thiếu, sai hoặc là `manual` thì dùng kênh nhập (`webhook` với webhook, `csv_upload` với CSV và JSON). `manual` không nhận từ nhập tự động vì đó là báo cáo của con người, chỉ tạo qua `POST /alerts/`.
 
 ### Bước 3 — Chuẩn hóa & chống trùng
 
@@ -337,7 +337,7 @@ Mô-đun này nối mô hình RF vào luồng cảnh báo và trả lời yêu c
 
 **Xác suất độc hại (P).** Nếu cảnh báo có `flow_features`, backend gọi `/classify` của AI service và dùng xác suất của mô hình RF. Nếu không có (email, endpoint, báo cáo thủ công), P được suy từ mức độ khai báo: `info` 0,10; `low` 0,25; `medium` 0,50; `high` 0,75; `critical` 0,90. Cách suy này chỉ là heuristic, kết quả ghi rõ nguồn xác suất (`rf` hay `declared_severity`). Nếu AI service không phản hồi, hệ thống dùng cách dự phòng và ghi lỗi vào kết quả. Hiện chưa có mô hình ML cho email (đề xuất TF-IDF kết hợp SVM của đề chưa cài đặt).
 
-**Điểm ưu tiên** = 100 × P × (0,5 + 0,3 × A + 0,2 × S), trong đó A là hệ số tài sản (`critical` 1,0; `high` 0,75; `medium` 0,5; `low` 0,25; không rõ tính như `medium`) và S là độ tin cậy của nguồn (`endpoint` 0,9; `ids_ips` 0,8; `webhook` 0,7; `manual` 0,7; `email` 0,6; `csv_upload` 0,6). Các trọng số và hệ số do tác giả chọn để công thức dễ giải thích, không được học từ dữ liệu; cần ghi rõ điều này trong phần hạn chế.
+**Điểm ưu tiên** = 100 × P × (0,5 + 0,3 × A + 0,2 × S), trong đó A là hệ số tài sản (`critical` 1,0; `high` 0,75; `medium` 0,5; `low` 0,25; không rõ tính như `medium`) và S là độ tin cậy của nguồn (`endpoint` 0,9; `ids_ips` 0,8; `webhook` 0,7; `manual` 0,7; `email` 0,6; `csv_upload` 0,6); với cảnh báo nhập tự động, S theo `source` khai báo trong payload nếu hợp lệ, nếu không thì theo kênh nhập (xem Bước 2). Các trọng số và hệ số do tác giả chọn để công thức dễ giải thích, không được học từ dữ liệu; cần ghi rõ điều này trong phần hạn chế.
 
 **Ba vùng:**
 
@@ -353,9 +353,9 @@ Mô-đun này nối mô hình RF vào luồng cảnh báo và trả lời yêu c
 
 **Giải thích.** Kết quả gồm thành phần của điểm (xác suất, tài sản, nguồn), các luật đã kiểm tra, lý do chọn vùng, tối đa 5 đặc trưng luồng nổi bật và tối đa 3 cảnh báo tương tự. Đặc trưng nổi bật được tính bằng độ quan trọng toàn cục của đặc trưng trong rừng cây nhân với độ lệch chuẩn hóa của giá trị trong luồng này; đây là cách giải thích gần đúng, không phải SHAP. Cảnh báo tương tự dùng cosine TF-IDF trên tiêu đề, mô tả và IOC của 300 cảnh báo gần nhất, ngưỡng 0,35. Mọi kết quả được đánh dấu là nội dung do AI tạo.
 
-**Đánh giá.** `tests/test_scoring.py` kiểm tra công thức, từng luật tự đóng, phân quyền và nhật ký (chạy được ngay cả khi không có AI service ở phần hàm thuần). `tests/evaluate_flow_scoring.py` lấy mẫu luồng từ tập kiểm thử CIC-IDS2017, gửi qua webhook, gắn lần lượt vào các tài sản hiện có và báo bảng vùng theo nhãn thật: số tấn công bị đề xuất tự đóng, tỷ lệ lành tính được tự đóng, tỷ lệ cảnh báo analyst phải xem. Kết quả phụ thuộc vào cách gắn tài sản nên là đánh giá toàn hệ thống chứ không phải đánh giá riêng mô hình.
+**Đánh giá.** `tests/test_scoring.py` kiểm tra công thức, từng luật tự đóng, phân quyền và nhật ký (chạy được ngay cả khi không có AI service ở phần hàm thuần). `tests/evaluate_flow_scoring.py` lấy mẫu luồng từ tập kiểm thử CIC-IDS2017 (mặc định ngẫu nhiên theo `--attacks` và `--benign`; `--per-class N` lấy tối thiểu N luồng cho mỗi lớp tấn công để lớp hiếm như Bot, Infiltration không bị bỏ qua, khi đó chỉ đọc kết quả theo từng lớp vì tỷ lệ tấn công trong mẫu không còn phản ánh tập kiểm thử), gửi qua webhook kèm `source` là `ids_ips`, gắn lần lượt vào các tài sản hiện có và báo bảng vùng theo nhãn thật: số tấn công bị đề xuất tự đóng, tỷ lệ lành tính được tự đóng, tỷ lệ cảnh báo analyst phải xem. Kết quả phụ thuộc vào cách gắn tài sản nên là đánh giá toàn hệ thống chứ không phải đánh giá riêng mô hình.
 
-**Giới hạn:** trọng số do tác giả chọn, chưa kiểm chứng với mức ưu tiên do chuyên gia gán; mô hình RF chỉ nhận luồng mạng kiểu CIC-IDS2017 nên cảm biến phải cung cấp đủ đặc trưng; độ tương tự chỉ dựa trên từ vựng, không nhận ra cảnh báo diễn đạt khác nhau; tài sản chỉ được gắn khi nguồn gửi kèm id, tên máy hoặc địa chỉ IP trùng với danh mục.
+**Giới hạn:** nguồn cảnh báo do bên gửi tự khai báo trong payload, hệ thống chưa xác thực từng cảm biến (ví dụ bằng khóa API riêng), nên người có quyền nhập có thể khai nguồn tin cậy hơn thực tế để tăng điểm; trọng số do tác giả chọn, chưa kiểm chứng với mức ưu tiên do chuyên gia gán; mô hình RF chỉ nhận luồng mạng kiểu CIC-IDS2017 nên cảm biến phải cung cấp đủ đặc trưng; độ tương tự chỉ dựa trên từ vựng, không nhận ra cảnh báo diễn đạt khác nhau; tài sản chỉ được gắn khi nguồn gửi kèm id, tên máy hoặc địa chỉ IP trùng với danh mục.
 
 ### ATT&CK Retrieval + Reranking
 
@@ -449,9 +449,9 @@ Base URL: `http://localhost:8000` | Docs: `http://localhost:8000/docs`
 | --- | --- | --- | --- |
 | GET | `/alerts/` | Danh sách (lọc theo `status`, `zone`; `order=priority` xếp theo điểm ưu tiên) | All |
 | POST | `/alerts/` | Tạo thủ công | IT, Analyst |
-| POST | `/alerts/webhook` | Nhận từ hệ thống ngoài | IT, Analyst |
-| POST | `/alerts/upload/csv` | Upload CSV | IT, Analyst |
-| POST | `/alerts/upload/json` | Upload JSON | IT, Analyst |
+| POST | `/alerts/webhook` | Nhận từ hệ thống ngoài (`source` hợp lệ trong payload được ghi nhận) | IT, Analyst |
+| POST | `/alerts/upload/csv` | Upload CSV (cột `source` tùy chọn) | IT, Analyst |
+| POST | `/alerts/upload/json` | Upload JSON (trường `source` tùy chọn) | IT, Analyst |
 | PATCH | `/alerts/{id}/triage` | Triage alert | IT, Analyst |
 | PATCH | `/alerts/{id}/false-positive` | Đánh dấu FP | Analyst |
 | POST | `/alerts/{id}/score` | Chấm điểm và chia vùng ưu tiên lại | IT, Analyst |

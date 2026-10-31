@@ -39,15 +39,28 @@ def main(args):
     scaler = joblib.load(os.path.join(args.data, "scaler.pkl"))
     cols = joblib.load(os.path.join(args.data, "feature_cols.pkl"))
     try:
-        names = list(joblib.load(os.path.join(args.data, "label_encoder.pkl")).classes_)
+        # CSV gốc của CIC-IDS2017 không phải UTF-8 nên dấu gạch ở "Web Attack – XSS" thành \ufffd
+        names = [str(n).replace("\ufffd", "-") for n in joblib.load(os.path.join(args.data, "label_encoder.pkl")).classes_]
     except Exception:  # noqa: BLE001
         names = None
 
     rng = np.random.default_rng(args.seed)
-    att = rng.choice(np.where(y == 1)[0], size=min(args.attacks, int((y == 1).sum())), replace=False)
+    if args.per_class:
+        att_pool = np.where(y == 1)[0]
+        parts = []
+        for c in np.unique(ym[att_pool]):
+            pool = att_pool[ym[att_pool] == c]
+            parts.append(rng.choice(pool, size=min(args.per_class, len(pool)), replace=False))
+        att = np.concatenate(parts)
+    else:
+        att = rng.choice(np.where(y == 1)[0], size=min(args.attacks, int((y == 1).sum())), replace=False)
     ben = rng.choice(np.where(y == 0)[0], size=min(args.benign, int((y == 0).sum())), replace=False)
     idx = rng.permutation(np.concatenate([att, ben]))
     raw = scaler.inverse_transform(X[idx])
+    kind_of = lambda i: (names[int(ym[i])] if names is not None else str(int(ym[i])))
+    print(f"Mẫu: {len(att)} luồng tấn công + {len(ben)} lành tính" + (f" (tối thiểu mỗi lớp {args.per_class}, lớp ít hơn lấy hết)" if args.per_class else ""))
+    for k_, v_ in sorted(Counter(kind_of(i) for i in att).items()):
+        print(f"  {k_:<34}{v_:>5}")
 
     try:
         u = login_all()
@@ -92,7 +105,8 @@ def main(args):
         m = a.get("ml_result") or {}
         rows.append({"id": a["id"], "label": label, "attack_type": kind, "zone": a.get("ml_zone"),
                      "priority": a.get("ml_priority"), "probability": m.get("probability"),
-                     "p_source": m.get("probability_source"), "asset_criticality": asset["criticality"]})
+                     "p_source": m.get("probability_source"), "asset_criticality": asset["criticality"],
+                     "alert_source": a.get("source")})
 
     per_alert = (time.perf_counter() - started) / max(len(idx), 1)
     n = len(rows)
@@ -106,12 +120,27 @@ def main(args):
     for r in rows:
         by_crit[r["asset_criticality"]][r["zone"]] += 1
 
+    by_class = {}
+    for r in rows:
+        c = by_class.setdefault(r["attack_type"], {"label": "attack" if r["label"] else "benign", "n": 0, **{z: 0 for z in ZONES}})
+        c["n"] += 1
+        if r["zone"] in ZONES:
+            c[r["zone"]] += 1
+    for c in by_class.values():
+        if c["label"] == "attack":
+            c["bi_de_xuat_dong"] = round(c["auto_close"] / c["n"], 4)
+            # quy tắc 3/n: nếu 0 bỏ sót trong n mẫu thì tỷ lệ bỏ sót thật có thể tới khoảng 3/n (tin cậy 95%)
+            c["can_tren_95_neu_0_bo_sot"] = round(min(1.0, 3 / c["n"]), 4) if c["auto_close"] == 0 else None
+
     attack_missed = table["auto_close"]["attack"]
     summary = {
         "n_alerts": n, "n_attack": n_att, "n_benign": n_ben,
         "from_rf": sum(1 for r in rows if r["p_source"] == "rf"),
         "zone_by_label": table,
         "zone_by_asset_criticality": {k: dict(v) for k, v in by_crit.items()},
+        "zone_by_class": dict(sorted(by_class.items(), key=lambda kv: (kv[1]["label"] == "benign", kv[0]))),
+        "alert_source": dict(Counter(r["alert_source"] for r in rows)),
+        "sampling": {"mode": "per_class" if args.per_class else "random", "per_class": args.per_class or None},
         "attack_in_auto_close": attack_missed,
         "attack_recall_urgent_or_review": round(1 - attack_missed / n_att, 4) if n_att else None,
         "benign_auto_close_rate": round(table["auto_close"]["benign"] / n_ben, 4) if n_ben else None,
@@ -119,7 +148,10 @@ def main(args):
         "analyst_workload_share": round((table["urgent"]["attack"] + table["urgent"]["benign"]
                                          + table["review"]["attack"] + table["review"]["benign"]) / n, 4) if n else None,
         "seed": args.seed,
-        "note": "Cảnh báo mẫu được gắn lần lượt vào các tài sản hiện có nên vùng phụ thuộc cả mức quan trọng của tài sản.",
+        "note": ("Cảnh báo mẫu được gắn lần lượt vào các tài sản hiện có nên vùng phụ thuộc cả mức quan trọng của tài sản. "
+                 + ("Mẫu lấy tối thiểu mỗi lớp tấn công một số luồng cố định nên tỷ lệ tấn công trong mẫu không phản ánh tập kiểm thử; "
+                    "chỉ đọc kết quả theo từng lớp, không đọc các tỷ lệ gộp. " if args.per_class else "")
+                 + "Trọng số và ngưỡng chấm điểm không được chỉnh theo mẫu này."),
     }
 
     print("\n" + "=" * 64)
@@ -127,6 +159,13 @@ def main(args):
     print(f"{'Vùng':<14}{'Tấn công':>10}{'Lành tính':>12}")
     for z in ZONES:
         print(f"{z:<14}{table[z]['attack']:>10}{table[z]['benign']:>12}")
+    print(f"\n{'Lớp':<34}{'n':>5}{'khẩn':>7}{'xem':>6}{'tự đóng':>9}  ghi chú")
+    for name, c in summary["zone_by_class"].items():
+        note = ""
+        if c["label"] == "attack":
+            note = f"bỏ sót 0, cận trên 95% ≈ {c['can_tren_95_neu_0_bo_sot']:.0%}" if c["auto_close"] == 0 else f"BỊ ĐỀ XUẤT ĐÓNG {c['bi_de_xuat_dong']:.0%}"
+        print(f"{name:<34}{c['n']:>5}{c['urgent']:>7}{c['review']:>6}{c['auto_close']:>9}  {note}")
+    print()
     print(f"Tấn công bị đề xuất tự đóng: {attack_missed}  |  recall (khẩn hoặc cần xem): {summary['attack_recall_urgent_or_review']}")
     print(f"Lành tính được đề xuất tự đóng: {summary['benign_auto_close_rate']}  |  lành tính ở vùng khẩn: {summary['benign_urgent_rate']}")
     print(f"Tỷ lệ cảnh báo analyst phải xem: {summary['analyst_workload_share']}")
@@ -144,6 +183,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Đánh giá chấm điểm và chia vùng trên luồng mạng của tập kiểm thử")
     ap.add_argument("--attacks", type=int, default=100, help="số luồng tấn công")
     ap.add_argument("--benign", type=int, default=200, help="số luồng lành tính")
+    ap.add_argument("--per-class", type=int, default=0, dest="per_class",
+                    help="lấy tối thiểu số luồng này cho mỗi lớp tấn công (lớp ít hơn lấy hết); thay cho --attacks")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--data", default=DEFAULT_DATA, help="thư mục data/processed của mô hình")
     ap.add_argument("--out", default=OUT_FILE)
