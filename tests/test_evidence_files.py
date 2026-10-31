@@ -184,6 +184,13 @@ def run():
         check("Tệp bị mất khỏi kho: báo không khớp, không lỗi máy chủ", vm.status_code == 200 and vm.json().get("ok") is False
               and vm.json().get("actual") is None)
         expect("Tệp bị mất thì không cấp bản sao", get(IT, f"/{ev2['id']}/download"), 409)
+        # trả kho về trạng thái nhất quán để verify_system không báo lỗi sau khi test chạy
+        with open(p2, "wb") as f:
+            f.write(data2)
+        os.chmod(p2, 0o444)
+        vr = post(IT, f"/{ev2['id']}/verify")
+        check("Khôi phục đúng byte gốc thì kiểm tra lại đạt (so theo nội dung)", vr.status_code == 200 and vr.json().get("ok") is True)
+        expect("Sau khi khôi phục lại cấp được bản sao làm việc", get(IT, f"/{ev2['id']}/download"), 200)
 
     # ── 6 ──────────────────────────────────────────────
     print("\n── 6. Khóa bằng chứng dạng tệp ──")
