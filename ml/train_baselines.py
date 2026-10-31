@@ -15,7 +15,7 @@ from sklearn.metrics import average_precision_score, roc_auc_score
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data", "processed")
 MODELS = os.path.join(HERE, "models")
-RESULTS = os.path.join(os.path.dirname(HERE), "tests", "results")
+RESULTS = os.path.join(HERE, "results")
 
 THRESHOLDS = {"auto_close": 0.15, "review": 0.50, "urgent": 0.80}
 HIGH_KEYWORDS = ["ddos", "dos", "bot", "infiltration", "heartbleed", "sql"]

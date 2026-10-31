@@ -10,6 +10,7 @@ if not os.path.isdir(os.path.join(ML, "models")):
     ML = os.path.abspath(os.path.join(HERE, "..", "..", "ml"))
 DATA = os.path.join(ML, "data", "processed")
 MODELS = os.path.join(ML, "models")
+RESULTS = os.path.join(ML, "results")
 
 THRESHOLDS = {"auto_close": 0.15, "review": 0.50, "urgent": 0.80}
 HIGH_KEYWORDS = ["ddos", "dos", "bot", "infiltration", "heartbleed", "sql"]
@@ -88,7 +89,8 @@ if high_mask.any():
     out["high_severity_recall"] = round(float((prob[high_mask] >= review_t).mean()), 4)
     print(f"\nRecall nhóm mức độ cao (gộp): {out['high_severity_recall']}")
 
-json.dump(out, open(os.path.join(MODELS, "threshold_eval.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
-print(f"\nĐã ghi {os.path.join(MODELS, 'threshold_eval.json')}")
+os.makedirs(RESULTS, exist_ok=True)
+json.dump(out, open(os.path.join(RESULTS, "threshold_eval.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+print(f"\nĐã ghi {os.path.join(RESULTS, 'threshold_eval.json')}")
 print("Lưu ý: tập test lấy từ chia ngẫu nhiên 80/20 trên CIC-IDS2017 (các luồng gần giống nhau có thể nằm ở cả hai tập), "
       "nên số liệu có thể cao hơn khi gặp lưu lượng của môi trường khác.")

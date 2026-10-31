@@ -3,12 +3,12 @@
   "sklearn": "1.9.1",
   "numpy": "2.5.3",
   "seed": 42,
-  "n_train": 200000,
+  "n_train": 2262300,
   "n_test": 565576,
-  "attack_ratio_train": 0.1977,
+  "attack_ratio_train": 0.1968,
   "attack_ratio_test": 0.1968,
-  "max_train_limit": 200000,
-  "bootstrap": 0,
+  "max_train_limit": null,
+  "bootstrap": 100,
   "thresholds": {
    "auto_close": 0.15,
    "review": 0.5,
@@ -148,89 +148,93 @@
    "fit": {
     "note": "mô hình đã huấn luyện sẵn (train.py)"
    },
-   "predict_us_per_flow": 1.53,
-   "model_size_mb": 35.32
+   "predict_us_per_flow": 1.45,
+   "model_size_mb": 35.32,
+   "pr_auc_ci95": [
+    0.99972,
+    0.9998
+   ]
   },
   "Logistic Regression": {
-   "pr_auc": 0.91414,
-   "roc_auc": 0.97774,
+   "pr_auc": 0.92117,
+   "roc_auc": 0.97945,
    "at_0.5": {
-    "tp": 106367,
-    "fp": 44112,
-    "fn": 4944,
-    "tn": 410153,
-    "precision": 0.7069,
-    "recall": 0.9556,
-    "f1": 0.8126
+    "tp": 107026,
+    "fp": 42859,
+    "fn": 4285,
+    "tn": 411406,
+    "precision": 0.7141,
+    "recall": 0.9615,
+    "f1": 0.8195
    },
    "policy_zones": {
-    "attacks_in_auto_close": 574,
-    "pct_attacks_in_auto_close": 0.5157,
-    "pct_benign_auto_closed": 81.75,
-    "pct_flows_for_analyst": 34.24,
-    "urgent_flows": 103776,
-    "urgent_precision": 0.8427
+    "attacks_in_auto_close": 549,
+    "pct_attacks_in_auto_close": 0.4932,
+    "pct_benign_auto_closed": 82.18,
+    "pct_flows_for_analyst": 33.9,
+    "urgent_flows": 103418,
+    "urgent_precision": 0.8466
    },
    "oracle_auto_close": {
     "0.0002": {
      "threshold": 0.0,
      "attacks_missed": 22,
      "pct_attacks_missed": 0.0198,
-     "pct_benign_auto_closed": 3.4
+     "pct_benign_auto_closed": 4.75
     },
     "0.001": {
-     "threshold": 0.00132,
+     "threshold": 0.00099,
      "attacks_missed": 111,
      "pct_attacks_missed": 0.0997,
-     "pct_benign_auto_closed": 31.77
+     "pct_benign_auto_closed": 32.09
     },
     "0.005": {
-     "threshold": 0.13437,
+     "threshold": 0.16211,
      "attacks_missed": 556,
      "pct_attacks_missed": 0.4995,
-     "pct_benign_auto_closed": 80.63
+     "pct_benign_auto_closed": 82.87
     }
    },
    "per_class": {
     "Bot": {
      "n": 393,
-     "recall_0.5": 0.2494,
-     "auto_closed_pct": 38.17,
+     "recall_0.5": 0.257,
+     "auto_closed_pct": 37.66,
      "high_severity": true
     },
     "DDoS": {
      "n": 25775,
-     "recall_0.5": 0.9995,
-     "auto_closed_pct": 0.03,
+     "recall_0.5": 0.9996,
+     "auto_closed_pct": 0.04,
      "high_severity": true
     },
     "DoS GoldenEye": {
      "n": 2058,
-     "recall_0.5": 0.8946,
-     "auto_closed_pct": 6.61,
+     "recall_0.5": 0.9106,
+     "auto_closed_pct": 5.54,
      "high_severity": true
     },
     "DoS Hulk": {
      "n": 45887,
-     "recall_0.5": 0.9802,
-     "auto_closed_pct": 0.1,
+     "recall_0.5": 0.9793,
+     "auto_closed_pct": 0.17,
      "high_severity": true
     },
     "DoS Slowhttptest": {
      "n": 1075,
-     "recall_0.5": 0.8726,
-     "auto_closed_pct": 10.7,
+     "recall_0.5": 0.8995,
+     "auto_closed_pct": 9.77,
      "high_severity": true
     },
     "DoS slowloris": {
      "n": 1129,
-     "recall_0.5": 0.9229,
-     "auto_closed_pct": 5.4,
+     "recall_0.5": 0.9353,
+     "auto_closed_pct": 4.16,
      "high_severity": true
     },
     "FTP-Patator": {
      "n": 1591,
-     "recall_0.5": 0.5123,
+     "recall_0.5": 0.5192,
      "auto_closed_pct": 0.0,
      "high_severity": false
     },
@@ -248,20 +252,20 @@
     },
     "PortScan": {
      "n": 31757,
-     "recall_0.5": 0.9723,
+     "recall_0.5": 0.9729,
      "auto_closed_pct": 0.02,
      "high_severity": false
     },
     "SSH-Patator": {
      "n": 1200,
-     "recall_0.5": 0.0092,
+     "recall_0.5": 0.4983,
      "auto_closed_pct": 0.83,
      "high_severity": false
     },
     "Web Attack - Brute Force": {
      "n": 312,
      "recall_0.5": 0.0,
-     "auto_closed_pct": 9.29,
+     "auto_closed_pct": 7.37,
      "high_severity": false
     },
     "Web Attack - Sql Injection": {
@@ -277,125 +281,134 @@
      "high_severity": false
     }
    },
-   "high_severity_recall_0.5": 0.9782,
-   "train_seconds": 4.5,
+   "high_severity_recall_0.5": 0.9787,
+   "train_seconds": 110.3,
    "fit": {
-    "iterations": 201,
+    "iterations": 436,
     "converged": true
    },
    "predict_us_per_flow": 0.08,
-   "model_size_mb": 0.0
+   "model_size_mb": 0.0,
+   "pr_auc_ci95": [
+    0.91979,
+    0.92242
+   ],
+   "pr_auc_diff_vs_rf_ci95": [
+    -0.07997,
+    -0.07736
+   ],
+   "pr_auc_diff_vs_rf_significant": true
   },
   "Gradient Boosting": {
-   "pr_auc": 0.99979,
-   "roc_auc": 0.99994,
+   "pr_auc": 0.99935,
+   "roc_auc": 0.99992,
    "at_0.5": {
-    "tp": 111215,
-    "fp": 458,
-    "fn": 96,
-    "tn": 453807,
-    "precision": 0.9959,
-    "recall": 0.9991,
-    "f1": 0.9975
+    "tp": 111286,
+    "fp": 497,
+    "fn": 25,
+    "tn": 453768,
+    "precision": 0.9956,
+    "recall": 0.9998,
+    "f1": 0.9977
    },
    "policy_zones": {
-    "attacks_in_auto_close": 51,
-    "pct_attacks_in_auto_close": 0.0458,
-    "pct_benign_auto_closed": 99.88,
-    "pct_flows_for_analyst": 19.77,
-    "urgent_flows": 111457,
-    "urgent_precision": 0.9969
+    "attacks_in_auto_close": 14,
+    "pct_attacks_in_auto_close": 0.0126,
+    "pct_benign_auto_closed": 99.87,
+    "pct_flows_for_analyst": 19.78,
+    "urgent_flows": 111483,
+    "urgent_precision": 0.9973
    },
    "oracle_auto_close": {
     "0.0002": {
-     "threshold": 0.01541,
+     "threshold": 0.42044,
      "attacks_missed": 22,
      "pct_attacks_missed": 0.0198,
-     "pct_benign_auto_closed": 99.76
+     "pct_benign_auto_closed": 99.89
     },
     "0.001": {
-     "threshold": 0.55368,
-     "attacks_missed": 109,
-     "pct_attacks_missed": 0.0979,
-     "pct_benign_auto_closed": 99.9
+     "threshold": 0.73485,
+     "attacks_missed": 107,
+     "pct_attacks_missed": 0.0961,
+     "pct_benign_auto_closed": 99.93
     },
     "0.005": {
-     "threshold": 0.96587,
-     "attacks_missed": 547,
-     "pct_attacks_missed": 0.4914,
-     "pct_benign_auto_closed": 99.94
+     "threshold": 0.98521,
+     "attacks_missed": 556,
+     "pct_attacks_missed": 0.4995,
+     "pct_benign_auto_closed": 99.95
     }
    },
    "per_class": {
     "Bot": {
      "n": 393,
-     "recall_0.5": 0.9109,
-     "auto_closed_pct": 4.33,
+     "recall_0.5": 0.9796,
+     "auto_closed_pct": 0.51,
      "high_severity": true
     },
     "DDoS": {
      "n": 25775,
-     "recall_0.5": 0.9997,
-     "auto_closed_pct": 0.02,
+     "recall_0.5": 0.9998,
+     "auto_closed_pct": 0.01,
      "high_severity": true
     },
     "DoS GoldenEye": {
      "n": 2058,
-     "recall_0.5": 0.999,
+     "recall_0.5": 1.0,
      "auto_closed_pct": 0.0,
      "high_severity": true
     },
     "DoS Hulk": {
      "n": 45887,
-     "recall_0.5": 0.9999,
+     "recall_0.5": 1.0,
      "auto_closed_pct": 0.0,
      "high_severity": true
     },
     "DoS Slowhttptest": {
      "n": 1075,
-     "recall_0.5": 0.9963,
-     "auto_closed_pct": 0.37,
+     "recall_0.5": 1.0,
+     "auto_closed_pct": 0.0,
      "high_severity": true
     },
     "DoS slowloris": {
      "n": 1129,
-     "recall_0.5": 0.9956,
-     "auto_closed_pct": 0.35,
+     "recall_0.5": 0.9973,
+     "auto_closed_pct": 0.27,
      "high_severity": true
     },
     "FTP-Patator": {
      "n": 1591,
-     "recall_0.5": 0.9981,
+     "recall_0.5": 1.0,
      "auto_closed_pct": 0.0,
      "high_severity": false
     },
     "Heartbleed": {
      "n": 2,
-     "recall_0.5": 1.0,
+     "recall_0.5": 0.5,
      "auto_closed_pct": 0.0,
      "high_severity": true
     },
     "Infiltration": {
      "n": 6,
-     "recall_0.5": 0.1667,
-     "auto_closed_pct": 50.0,
+     "recall_0.5": 0.6667,
+     "auto_closed_pct": 33.33,
      "high_severity": true
     },
     "PortScan": {
      "n": 31757,
-     "recall_0.5": 0.9994,
-     "auto_closed_pct": 0.03,
+     "recall_0.5": 0.9999,
+     "auto_closed_pct": 0.01,
      "high_severity": false
     },
     "SSH-Patator": {
      "n": 1200,
-     "recall_0.5": 0.995,
-     "auto_closed_pct": 0.42,
+     "recall_0.5": 0.9992,
+     "auto_closed_pct": 0.0,
      "high_severity": false
     },
     "Web Attack - Brute Force": {
      "n": 312,
-     "recall_0.5": 0.9968,
+     "recall_0.5": 1.0,
      "auto_closed_pct": 0.0,
      "high_severity": false
     },
@@ -407,19 +420,28 @@
     },
     "Web Attack - XSS": {
      "n": 124,
-     "recall_0.5": 0.9677,
-     "auto_closed_pct": 3.23,
+     "recall_0.5": 0.9839,
+     "auto_closed_pct": 0.0,
      "high_severity": false
     }
    },
-   "high_severity_recall_0.5": 0.9992,
-   "train_seconds": 26.0,
+   "high_severity_recall_0.5": 0.9998,
+   "train_seconds": 30.8,
    "fit": {
-    "iterations": 113,
+    "iterations": 102,
     "early_stopped": true
    },
-   "predict_us_per_flow": 2.16,
-   "model_size_mb": 0.83
+   "predict_us_per_flow": 2.01,
+   "model_size_mb": 0.76,
+   "pr_auc_ci95": [
+    0.99906,
+    0.99957
+   ],
+   "pr_auc_diff_vs_rf_ci95": [
+    -0.0007,
+    -0.00018
+   ],
+   "pr_auc_diff_vs_rf_significant": true
   }
  }
 }

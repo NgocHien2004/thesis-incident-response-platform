@@ -14,7 +14,9 @@ import matplotlib.pyplot as plt
 
 DATA_DIR   = "data/processed"
 MODEL_DIR  = "models"
+RESULT_DIR = "results"
 os.makedirs(MODEL_DIR, exist_ok=True)
+os.makedirs(RESULT_DIR, exist_ok=True)
 
 # ── Load data ──
 print("Loading data...")
@@ -95,7 +97,7 @@ metrics = {
     "thresholds": thresholds_3,
     "top_features": [feature_cols[i] for i in indices],
 }
-with open(os.path.join(MODEL_DIR, "metrics.json"), "w") as f:
+with open(os.path.join(RESULT_DIR, "metrics.json"), "w") as f:
     json.dump(metrics, f, indent=2)
 
 # ── Plot PR curve ──
@@ -106,7 +108,7 @@ plt.ylabel('Precision')
 plt.title('Precision-Recall Curve — Random Forest Binary Classification')
 plt.legend()
 plt.grid(True)
-plt.savefig(os.path.join(MODEL_DIR, "pr_curve.png"), dpi=150, bbox_inches='tight')
+plt.savefig(os.path.join(RESULT_DIR, "pr_curve.png"), dpi=150, bbox_inches='tight')
 print("PR curve saved!")
 
 # ── Plot Confusion Matrix ──
@@ -122,7 +124,7 @@ for i in range(2):
     for j in range(2):
         plt.text(j, i, f'{cm[i,j]:,}', ha='center', va='center',
                  color='white' if cm[i,j] > cm.max()/2 else 'black')
-plt.savefig(os.path.join(MODEL_DIR, "confusion_matrix.png"), dpi=150, bbox_inches='tight')
+plt.savefig(os.path.join(RESULT_DIR, "confusion_matrix.png"), dpi=150, bbox_inches='tight')
 print("Confusion matrix saved!")
 
 print("\n✓ Xong! Model lưu tại models/rf_binary.pkl")
