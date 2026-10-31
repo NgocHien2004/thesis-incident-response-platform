@@ -1,0 +1,650 @@
+{
+  "passed": 86,
+  "failed": 0,
+  "results": [
+    {
+      "test": "Analyst xem danh sách playbook",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "IT xem danh sách playbook",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Stakeholder xem danh sách playbook",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Có đủ 4 playbook mẫu (phishing, credential, malware, web attack)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Xem chi tiết playbook",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Các bước của playbook đánh số liên tiếp từ 1",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Playbook mẫu có công việc bắt buộc và không bắt buộc",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Có playbook tham chiếu chuẩn theo CISA",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Playbook tham chiếu có đủ 6 giai đoạn",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Mọi bước của playbook tham chiếu có mã mục CISA ở trường riêng",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Mô tả bước không bị lẫn mã tham chiếu",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Mô tả playbook tham chiếu ngắn gọn, không kể lai lịch",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Playbook tham chiếu nêu nguồn CISA và NIST",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Playbook không tồn tại trả 404",
+      "expected": [
+        404
+      ],
+      "actual": 404,
+      "pass": true
+    },
+    {
+      "test": "IT tạo playbook bị chặn",
+      "expected": [
+        401,
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Stakeholder tạo playbook bị chặn",
+      "expected": [
+        401,
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Analyst tạo playbook",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Tạo playbook trùng tên bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "Giao bước cho Stakeholder bị từ chối",
+      "expected": [
+        422
+      ],
+      "actual": 422,
+      "pass": true
+    },
+    {
+      "test": "Playbook không có bước nào bị từ chối",
+      "expected": [
+        422
+      ],
+      "actual": 422,
+      "pass": true
+    },
+    {
+      "test": "Tạo playbook lưu mã tham chiếu của bước",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "IT sửa playbook bị chặn",
+      "expected": [
+        401,
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Analyst sửa playbook (thay toàn bộ bước)",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Sau khi sửa playbook còn 1 bước",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Sửa playbook giữ nguyên mã tham chiếu",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "IT áp dụng playbook bị chặn",
+      "expected": [
+        401,
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Stakeholder áp dụng playbook bị chặn",
+      "expected": [
+        401,
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Áp dụng playbook không tồn tại bị từ chối",
+      "expected": [
+        404
+      ],
+      "actual": 404,
+      "pass": true
+    },
+    {
+      "test": "Analyst áp dụng playbook phishing",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Số công việc tạo ra bằng số bước của playbook",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Công việc có hạn (due_at) tính từ lúc tạo vụ",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Công việc mới đều ở trạng thái todo",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Áp dụng lại cùng playbook không tạo trùng",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Áp dụng playbook tham chiếu tạo đủ công việc",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Áp dụng playbook đã ngừng dùng bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "active_only bỏ qua playbook đã ngừng dùng",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Tạo incident kèm playbook",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Incident mới có sẵn công việc từ playbook",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Tạo incident với playbook không tồn tại bị từ chối",
+      "expected": [
+        404
+      ],
+      "actual": 404,
+      "pass": true
+    },
+    {
+      "test": "Tạo incident với playbook đã ngừng dùng bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "Incident tạo không kèm playbook thì không có công việc",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Stakeholder đổi trạng thái công việc bị chặn",
+      "expected": [
+        401,
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "IT nhận việc chưa giao của IT",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Nhận việc tự gán người làm là chính mình",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "IT làm việc chưa giao của Analyst bị chặn",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "IT giao việc bị chặn",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "IT đặt hạn bị chặn",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Đặt trạng thái trùng trạng thái hiện tại bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "IT bỏ qua công việc bị chặn",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "IT hoàn thành việc của mình",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "IT mở lại việc đã xong bị chặn",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "IT xem danh sách người được giao việc bị chặn",
+      "expected": [
+        401,
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Analyst xem danh sách người được giao việc",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Danh sách người được giao việc chỉ có IT và Analyst",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Analyst giao việc cho IT",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Giao việc cho Stakeholder bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "IT làm việc đã được giao cho mình",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Chuyển công việc đã xong thẳng về todo bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "Mở lại việc đã xong không có lý do bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "Analyst mở lại việc đã xong kèm lý do",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Bỏ qua việc không có lý do bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "Analyst bỏ qua việc không bắt buộc kèm lý do",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Analyst không phải commander bỏ qua việc bắt buộc bị chặn",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Commander bỏ qua việc bắt buộc kèm lý do",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Analyst không phải commander mở lại việc bắt buộc đã bỏ qua bị chặn",
+      "expected": [
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Commander mở lại việc bắt buộc đã bỏ qua",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Công việc của incident khác trả 404",
+      "expected": [
+        404
+      ],
+      "actual": 404,
+      "pass": true
+    },
+    {
+      "test": "IT tạo công việc thủ công bị chặn",
+      "expected": [
+        401,
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Stakeholder tạo công việc thủ công bị chặn",
+      "expected": [
+        401,
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Tạo công việc giao cho Stakeholder bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "Analyst tạo công việc thủ công",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "IT xóa công việc bị chặn",
+      "expected": [
+        401,
+        403
+      ],
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "test": "Xóa công việc từ playbook bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "Xóa công việc đã hoàn thành bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "Analyst xóa công việc thủ công chưa xong",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Xem tổng hợp công việc",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Tổng hợp: số liệu nhất quán (open_required ≤ required ≤ total)",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Dashboard có thống kê công việc",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Timeline ghi các sự kiện công việc",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Đóng khi còn công việc bắt buộc chưa xong bị từ chối",
+      "expected": [
+        400
+      ],
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "test": "Thông báo lỗi nêu công việc bắt buộc",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "test": "Đóng được khi mọi công việc bắt buộc đã xong",
+      "expected": [
+        200
+      ],
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "test": "Đổi trạng thái công việc của incident đã đóng bị từ chối",
+      "expected": [
+        409
+      ],
+      "actual": 409,
+      "pass": true
+    },
+    {
+      "test": "Tạo công việc cho incident đã đóng bị từ chối",
+      "expected": [
+        409
+      ],
+      "actual": 409,
+      "pass": true
+    },
+    {
+      "test": "Áp dụng playbook cho incident đã đóng bị từ chối",
+      "expected": [
+        409
+      ],
+      "actual": 409,
+      "pass": true
+    },
+    {
+      "test": "Chuỗi băm nhật ký kiểm toán nguyên vẹn",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    }
+  ]
+}

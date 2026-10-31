@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 import httpx
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
+REPORT_FILE = os.path.join(_HERE, "results", "verify_report.txt")   # cố định trong tests/results, không phụ thuộc thư mục đang đứng
+os.makedirs(os.path.dirname(REPORT_FILE), exist_ok=True)
 BACKEND_DIR = _HERE
 for _d in (_HERE, os.path.join(_HERE, ".."), os.path.join(_HERE, "backend"), os.path.join(_HERE, "..", "backend"),
            os.getcwd(), os.path.join(os.getcwd(), "backend")):
@@ -18,7 +20,7 @@ for _d in (_HERE, os.path.join(_HERE, ".."), os.path.join(_HERE, "backend"), os.
 sys.path.insert(0, BACKEND_DIR)
 
 ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
-BASE = ARGS[0] if ARGS else "http://localhost:8000"
+BASE = ARGS[0] if ARGS else "http://127.0.0.1:8000"
 WITH_FRONTEND = "--frontend" in sys.argv
 PWD = "Test@1234"
 USERS = {"analyst": "analyst01", "analyst2": "analyst02", "it": "it01", "stake": "stakeholder01"}
@@ -27,6 +29,21 @@ PAGE_ROLES = ["analyst", "it", "stake"]
 client = httpx.Client(base_url=BASE, timeout=40.0)
 lines = []                      # (level, text)  level: OK / WARN / FAIL / INFO / HEAD
 tok = {}
+
+
+def _save_on_crash(exc_type, exc, tb):
+    """Lỗi chưa xử lý giữa chừng vẫn để lại báo cáo (phần đã chạy cộng traceback)."""
+    import traceback
+    with open(REPORT_FILE, "w", encoding="utf-8") as f:
+        f.write(f"IR Platform — báo cáo kiểm tra {datetime.now():%Y-%m-%d %H:%M:%S}\nKIỂM TRA BỊ NGẮT GIỮA CHỪNG do lỗi chưa xử lý\n\n")
+        for lvl, txt in lines:
+            f.write(("\n" if lvl == "HEAD" else "") + f"[{lvl}] {txt}\n")
+        f.write("\n[FAIL] " + "".join(traceback.format_exception(exc_type, exc, tb)))
+    print(f"\nKiểm tra bị ngắt giữa chừng. Phần đã chạy và lỗi được lưu tại {REPORT_FILE}")
+    sys.__excepthook__(exc_type, exc, tb)
+
+
+sys.excepthook = _save_on_crash
 
 
 def log(level, text):
@@ -60,7 +77,7 @@ try:
     check(r.status_code == 200, f"Backend chạy tại {BASE} ({n_ops} endpoint)", "Backend trả lỗi")
 except Exception as e:                                          # noqa
     log("FAIL", f"Không kết nối được backend {BASE}: {e}")
-    open("verify_report.txt", "w", encoding="utf-8").write("Backend không chạy: " + str(e))
+    open(REPORT_FILE, "w", encoding="utf-8").write("Backend không chạy: " + str(e))
     sys.exit(1)
 
 for role, uname in USERS.items():
@@ -71,7 +88,7 @@ for role, uname in USERS.items():
         log("FAIL", f"Đăng nhập {uname}: HTTP {r.status_code} {r.text[:100]}")
 if len(tok) < len(USERS):
     log("FAIL", "Không đủ tài khoản đăng nhập được — dừng. (Chạy seed_demo_data.py trước.)")
-    open("verify_report.txt", "w", encoding="utf-8").write("\n".join(f"[{l}] {t}" for l, t in lines))
+    open(REPORT_FILE, "w", encoding="utf-8").write("\n".join(f"[{l}] {t}" for l, t in lines))
     sys.exit(1)
 log("OK", "Đăng nhập được 4 tài khoản (analyst01, analyst02, it01, stakeholder01)")
 
@@ -389,8 +406,9 @@ n_warn = sum(1 for l, _ in lines if l == "WARN")
 n_fail = sum(1 for l, _ in lines if l == "FAIL")
 summary = f"TỔNG KẾT: {n_ok} đạt · {n_warn} cảnh báo · {n_fail} lỗi"
 print("\n" + "=" * 72 + f"\n{summary}\n" + "=" * 72)
-with open("verify_report.txt", "w", encoding="utf-8") as f:
+with open(REPORT_FILE, "w", encoding="utf-8") as f:
     f.write(f"IR Platform — báo cáo kiểm tra {datetime.now():%Y-%m-%d %H:%M:%S}\n{summary}\n\n")
     for lvl, txt in lines:
         f.write(("\n" if lvl == "HEAD" else "") + f"[{lvl}] {txt}\n")
+print(f"Báo cáo lưu tại {REPORT_FILE}")
 sys.exit(1 if n_fail else 0)
