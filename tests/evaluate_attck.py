@@ -9,7 +9,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--ai", default="http://127.0.0.1:8001")
 ap.add_argument("--set", default=os.path.join(HERE, "attck_eval_set.json"))
 ap.add_argument("--data", default=os.path.join(HERE, "..", "ml", "data", "attck_enterprise.json"))
-ap.add_argument("--out", default=os.path.join(HERE, "attck_eval_results.json"))
+ap.add_argument("--out", default=os.path.join(HERE, "results", "attck_eval_results.json"))
 args = ap.parse_args()
 
 items = json.load(open(args.set, encoding="utf-8"))["items"]
@@ -98,5 +98,6 @@ print(f"\nCác câu tiếng Anh trượt Top-5 ({len(misses)}):")
 for r in misses[:12]:
     print(f"  {r['id']} mong đợi {r['expected']} | nhận {r['top5'][:2]}")
 
+os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
 json.dump({"summary": summary, "rows": rows}, open(args.out, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(f"\nĐã ghi {args.out}")

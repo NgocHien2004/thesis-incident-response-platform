@@ -37,9 +37,11 @@ def main():
         print(f"  {r['scenario']:<25} | incident #{r['incident_id']} | triage: {r['triage_time_s']}s | total: {r['total_time_s']}s")
 
     # Lưu kết quả
-    with open("tests/scenario_results.json", "w", encoding="utf-8") as f:
+    results_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
+    os.makedirs(results_dir, exist_ok=True)
+    with open(os.path.join(results_dir, "scenario_results.json"), "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
-    print("\nKết quả lưu tại tests/scenario_results.json")
+    print("\nKết quả lưu tại tests/results/scenario_results.json")
 
 if __name__ == "__main__":
     main()

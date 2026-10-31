@@ -182,7 +182,8 @@ if fp_pairs:
 print("\nLưu ý: tỷ lệ các tình huống do tác giả chọn nên số tổng hợp phụ thuộc vào cách trộn đó; "
       "giá trị chính của bài đánh giá là chỉ ra tình huống nào luật gom nhóm xử lý được hay không.")
 
-out = os.path.join(HERE, "grouping_eval_results.json")
+out = os.path.join(HERE, "results", "grouping_eval_results.json")
+os.makedirs(os.path.dirname(out), exist_ok=True)
 json.dump({"alerts": N, "true_incidents": len(set(true_of.values())), "groups": len(set(group_of.values())),
            "pair_precision_pct": round(100 * P, 1), "pair_recall_pct": round(100 * R, 1), "pair_f1_pct": round(100 * F1, 1),
            "tp": tp, "fp": fp, "fn": fn, "incidents_fully_grouped": f"{complete}/{len(multi)}",

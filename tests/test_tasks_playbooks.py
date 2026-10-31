@@ -240,10 +240,11 @@ def run():
 
     print("\n" + "=" * 50)
     print(f"KẾT QUẢ: {passed}/{passed + failed} đạt")
-    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tasks_playbooks_results.json")
+    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results", "tasks_playbooks_results.json")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
     with open(out, "w", encoding="utf-8") as f:
         json.dump({"passed": passed, "failed": failed, "results": results}, f, ensure_ascii=False, indent=2)
-    print("Kết quả lưu tại tests/tasks_playbooks_results.json")
+    print("Kết quả lưu tại tests/results/tasks_playbooks_results.json")
     sys.exit(0 if failed == 0 else 1)
 
 

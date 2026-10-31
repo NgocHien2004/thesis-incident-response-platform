@@ -14,7 +14,7 @@ sys.path.insert(0, ROOT)
 from tests.scenarios.base import login_all
 
 DEFAULT_DATA = os.path.join(ROOT, "ml", "data", "processed")
-OUT_FILE = os.path.join(ROOT, "tests", "flow_scoring_results.json")
+OUT_FILE = os.path.join(ROOT, "tests", "results", "flow_scoring_results.json")
 ZONES = ["urgent", "review", "auto_close"]
 
 
@@ -148,6 +148,8 @@ def main(args):
         "analyst_workload_share": round((table["urgent"]["attack"] + table["urgent"]["benign"]
                                          + table["review"]["attack"] + table["review"]["benign"]) / n, 4) if n else None,
         "seed": args.seed,
+        "seconds_per_alert": round(per_alert, 3),
+        "relogins": RELOGINS,
         "note": ("Cảnh báo mẫu được gắn lần lượt vào các tài sản hiện có nên vùng phụ thuộc cả mức quan trọng của tài sản. "
                  + ("Mẫu lấy tối thiểu mỗi lớp tấn công một số luồng cố định nên tỷ lệ tấn công trong mẫu không phản ánh tập kiểm thử; "
                     "chỉ đọc kết quả theo từng lớp, không đọc các tỷ lệ gộp. " if args.per_class else "")
@@ -170,6 +172,7 @@ def main(args):
     print(f"Lành tính được đề xuất tự đóng: {summary['benign_auto_close_rate']}  |  lành tính ở vùng khẩn: {summary['benign_urgent_rate']}")
     print(f"Tỷ lệ cảnh báo analyst phải xem: {summary['analyst_workload_share']}")
     print("=" * 64)
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as f:
         json.dump({"summary": summary, "rows": rows}, f, ensure_ascii=False, indent=2)
     print(f"Thời gian trung bình mỗi cảnh báo: {per_alert:.2f}s" + (f" | đã đăng nhập lại {RELOGINS} lần vì token hết hạn" if RELOGINS else ""))

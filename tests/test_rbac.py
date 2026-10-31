@@ -247,12 +247,13 @@ def run():
     print(f"\n{'='*50}")
     print(f"KẾT QUẢ: {passed} PASS / {failed} FAIL / {passed+failed} tổng")
     print(f"{'='*50}")
-    os.makedirs("tests", exist_ok=True)
-    with open("tests/rbac_results.json", "w", encoding="utf-8") as f:
+    results_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
+    os.makedirs(results_dir, exist_ok=True)
+    with open(os.path.join(results_dir, "rbac_results.json"), "w", encoding="utf-8") as f:
         json.dump({"passed": passed, "failed": failed, "total": passed + failed,
                    "pass_rate_pct": round(passed / (passed + failed) * 100, 1), "details": results},
                   f, indent=2, ensure_ascii=False)
-    print("Kết quả lưu tại tests/rbac_results.json")
+    print("Kết quả lưu tại tests/results/rbac_results.json")
     return failed == 0
 
 

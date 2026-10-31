@@ -228,10 +228,11 @@ def run_benchmark(runs=3):
         },
     }
 
-    os.makedirs("tests", exist_ok=True)
-    with open("tests/benchmark_results.json", "w", encoding="utf-8") as f:
+    results_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
+    os.makedirs(results_dir, exist_ok=True)
+    with open(os.path.join(results_dir, "benchmark_results.json"), "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
-    print("\nKết quả lưu tại tests/benchmark_results.json")
+    print("\nKết quả lưu tại tests/results/benchmark_results.json")
     return result
 
 if __name__ == "__main__":
