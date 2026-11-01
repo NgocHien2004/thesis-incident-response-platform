@@ -31,73 +31,73 @@
     <bpmn:startEvent id="s1" name="Có cảnh báo hoặc báo cáo nghi ngờ">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="t1" name="Nhập cảnh báo (tay, webhook, CSV, JSON)">
+    <bpmn:task id="t1" name="Nhập cảnh báo (tay, webhook, CSV, JSON)">
       <bpmn:documentation>Vai trò: IT/Helpdesk hoặc Analyst. API: POST /alerts/, /alerts/webhook, /alerts/upload/csv, /alerts/upload/json. Nguồn: ids_ips, email, endpoint, manual, webhook, csv_upload. Dữ liệu gốc giữ nguyên trong raw_data. Webhook vẫn yêu cầu token đăng nhập của IT hoặc Analyst.</bpmn:documentation>
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:serviceTask id="t2" name="Chuẩn hóa: cắt tiêu đề, IOC chữ thường, bỏ trùng">
+    </bpmn:task>
+    <bpmn:task id="t2" name="Chuẩn hóa: cắt tiêu đề, IOC chữ thường, bỏ trùng">
       <bpmn:documentation>Tự động ngay khi tạo alert (services/dedup.py, normalize_alert). IOC được tách theo dấu phẩy, đổi chữ thường, bỏ trùng và sắp xếp.</bpmn:documentation>
       <bpmn:incoming>Flow_2</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
-    </bpmn:serviceTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="g1" name="Có nhóm cùng IOC (+ tài sản) trong 60 phút?">
       <bpmn:documentation>Gom nhóm khi cùng IOC đã chuẩn hóa và cùng tài sản, cửa sổ trượt 60 phút tính theo last_seen. Alert có IOC nhưng không có tài sản: gom theo IOC. Alert không có IOC: luôn tạo nhóm mới.</bpmn:documentation>
       <bpmn:incoming>Flow_3</bpmn:incoming>
       <bpmn:outgoing>Flow_4</bpmn:outgoing>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:serviceTask id="t3" name="Gom vào nhóm: alert_count +1, cập nhật last_seen">
+    <bpmn:task id="t3" name="Gom vào nhóm: alert_count +1, cập nhật last_seen">
       <bpmn:incoming>Flow_4</bpmn:incoming>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:serviceTask id="t4" name="Tạo nhóm mới (first_seen = last_seen)">
+    </bpmn:task>
+    <bpmn:task id="t4" name="Tạo nhóm mới (first_seen = last_seen)">
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_7</bpmn:outgoing>
-    </bpmn:serviceTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="g2">
       <bpmn:incoming>Flow_6</bpmn:incoming>
       <bpmn:incoming>Flow_7</bpmn:incoming>
       <bpmn:outgoing>Flow_8</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:serviceTask id="tsc" name="Chấm điểm AI: điểm ưu tiên và vùng">
+    <bpmn:task id="tsc" name="Chấm điểm AI: điểm ưu tiên và vùng">
       <bpmn:documentation>Tự động sau chống trùng (services/scoring.py). Xác suất P từ mô hình Random Forest nếu alert có flow_features, nếu không suy từ mức độ khai báo. Điểm = 100 × P × (0,5 + 0,3 × hệ số tài sản + 0,2 × độ tin cậy nguồn). Vùng: khẩn khi điểm từ 65 hoặc P từ 0,8 trên tài sản mức cao trở lên; đề xuất tự đóng chỉ khi đạt 6 luật an toàn (cần xác suất do mô hình tính, P dưới 0,15, tài sản thấp hoặc trung bình, không phải báo cáo thủ công...); còn lại cần Analyst xem. Tự đóng thật là tùy chọn, mặc định tắt (ALERT_AUTO_CLOSE). Lỗi chấm điểm không làm hỏng việc tiếp nhận.</bpmn:documentation>
       <bpmn:incoming>Flow_8</bpmn:incoming>
       <bpmn:outgoing>Flow_9</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:userTask id="t5" name="Triage: loại, mức độ, độ tin cậy, SLA">
+    </bpmn:task>
+    <bpmn:task id="t5" name="Triage: loại, mức độ, độ tin cậy, SLA">
       <bpmn:documentation>PATCH /alerts/{id}/triage. IT/Helpdesk hoặc Analyst. Alert phải ở trạng thái new hoặc reviewing. Độ tin cậy 1 đến 100. Hạn SLA = thời điểm triage + số giờ SLA. Kết quả: alert chuyển triaged. Nút gợi ý AI (luật từ khóa + truy xuất ATT&amp;CK) chỉ hỗ trợ, hiện cho Analyst; không có bước xác nhận thứ hai ở triage.</bpmn:documentation>
       <bpmn:incoming>Flow_9</bpmn:incoming>
       <bpmn:outgoing>Flow_10</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="t6" name="Rà soát alert đã triage, xem vùng ưu tiên AI">
+    </bpmn:task>
+    <bpmn:task id="t6" name="Rà soát alert đã triage, xem vùng ưu tiên AI">
       <bpmn:documentation>Giao diện hiển thị điểm, vùng, thành phần điểm, đặc trưng nổi bật và cảnh báo tương tự. Với cảnh báo ở vùng đề xuất tự đóng, Analyst có thể đóng kèm lý do; cảnh báo đã đóng mở lại được.</bpmn:documentation>
       <bpmn:incoming>Flow_10</bpmn:incoming>
       <bpmn:outgoing>Flow_11</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="g3" name="Báo nhầm?">
       <bpmn:incoming>Flow_11</bpmn:incoming>
       <bpmn:outgoing>Flow_12</bpmn:outgoing>
       <bpmn:outgoing>Flow_13</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:userTask id="t7" name="Đánh dấu false_positive">
+    <bpmn:task id="t7" name="Đánh dấu false_positive">
       <bpmn:documentation>PATCH /alerts/{id}/false-positive. Chỉ Analyst. Hiện chưa kiểm tra trạng thái alert.</bpmn:documentation>
       <bpmn:incoming>Flow_13</bpmn:incoming>
       <bpmn:outgoing>Flow_14</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:task>
     <bpmn:endEvent id="e1" name="Alert đóng: báo nhầm">
       <bpmn:incoming>Flow_14</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:userTask id="t8" name="Tạo incident từ alert đã triage, chỉ định commander, chọn playbook">
+    <bpmn:task id="t8" name="Tạo incident từ alert đã triage, chỉ định commander, chọn playbook">
       <bpmn:documentation>POST /incidents/. Chỉ Analyst. Mọi alert phải ở trạng thái triaged hoặc escalated. Commander mặc định là người tạo, hoặc một Analyst đang hoạt động được chỉ định. Có thể chọn playbook đang sử dụng (playbook_id); hệ thống gợi ý playbook theo loại triage của alert. Checklist 5 dòng mặc định vẫn được giữ.</bpmn:documentation>
       <bpmn:incoming>Flow_12</bpmn:incoming>
       <bpmn:outgoing>Flow_15</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:serviceTask id="t9" name="Tạo incident open, alert chuyển escalated, tạo công việc từ playbook">
+    </bpmn:task>
+    <bpmn:task id="t9" name="Tạo incident open, alert chuyển escalated, tạo công việc từ playbook">
       <bpmn:documentation>detected_at = thời điểm tạo. Các alert được gắn incident_id và chuyển escalated. Nếu có playbook, mỗi bước thành một công việc (task) với hạn tính từ lúc tạo vụ; xem BPMN 6.</bpmn:documentation>
       <bpmn:incoming>Flow_15</bpmn:incoming>
       <bpmn:outgoing>Flow_16</bpmn:outgoing>
-    </bpmn:serviceTask>
+    </bpmn:task>
     <bpmn:endEvent id="e2" name="Incident open: sang bước 6 và 7">
       <bpmn:incoming>Flow_16</bpmn:incoming>
     </bpmn:endEvent>

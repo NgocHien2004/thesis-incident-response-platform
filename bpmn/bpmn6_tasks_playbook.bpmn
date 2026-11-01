@@ -31,63 +31,63 @@
     <bpmn:startEvent id="s1" name="Incident đã tạo, cần danh sách công việc">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="a1" name="Chọn playbook theo loại sự cố">
+    <bpmn:task id="a1" name="Chọn playbook theo loại sự cố">
       <bpmn:documentation>GET /playbooks/?active_only=true. Playbook là mẫu cấu hình được: mỗi bước có giai đoạn, vai trò thường làm, hạn (giờ từ lúc tạo vụ) và cờ bắt buộc. Chỉ Analyst tạo hoặc sửa playbook.</bpmn:documentation>
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:serviceTask id="t1" name="Tạo công việc từ các bước, bỏ qua bước đã có">
+    </bpmn:task>
+    <bpmn:task id="t1" name="Tạo công việc từ các bước, bỏ qua bước đã có">
       <bpmn:documentation>POST /incidents/{id}/tasks/apply-playbook (hoặc playbook_id lúc tạo incident). Mỗi bước thành một task; hạn = detected_at + due_hours. Bước đã có task cùng playbook và cùng tiêu đề thì không tạo lại. Không áp dụng cho incident đã đóng.</bpmn:documentation>
       <bpmn:incoming>Flow_2</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:userTask id="a2" name="Giao việc, chỉnh hạn, thêm việc thủ công">
+    </bpmn:task>
+    <bpmn:task id="a2" name="Giao việc, chỉnh hạn, thêm việc thủ công">
       <bpmn:documentation>PATCH /incidents/{id}/tasks/{tid} (assignee_id, due_at) và POST /incidents/{id}/tasks/. Chỉ Analyst. Người được giao phải là IT/Helpdesk hoặc Analyst đang hoạt động.</bpmn:documentation>
       <bpmn:incoming>Flow_3</bpmn:incoming>
       <bpmn:outgoing>Flow_4</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="i1" name="Nhận việc và thực hiện (in_progress)">
+    </bpmn:task>
+    <bpmn:task id="i1" name="Nhận việc và thực hiện (in_progress)">
       <bpmn:documentation>IT chỉ làm được việc giao cho mình hoặc việc chưa giao thuộc vai trò IT; nhận việc chưa giao sẽ tự gán cho người nhận. Analyst làm được mọi việc.</bpmn:documentation>
       <bpmn:incoming>Flow_4</bpmn:incoming>
       <bpmn:incoming>Flow_16</bpmn:incoming>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="g1" name="Hoàn thành được?">
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
       <bpmn:outgoing>Flow_7</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:userTask id="i2" name="Đánh dấu done">
+    <bpmn:task id="i2" name="Đánh dấu done">
       <bpmn:documentation>Ghi người hoàn thành và thời điểm. Muốn mở lại việc đã xong phải là Analyst và ghi lý do.</bpmn:documentation>
       <bpmn:incoming>Flow_6</bpmn:incoming>
       <bpmn:outgoing>Flow_10</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="g2" name="Việc bắt buộc?">
       <bpmn:incoming>Flow_7</bpmn:incoming>
       <bpmn:outgoing>Flow_8</bpmn:outgoing>
       <bpmn:outgoing>Flow_9</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:userTask id="c1" name="Commander bỏ qua kèm lý do">
+    <bpmn:task id="c1" name="Commander bỏ qua kèm lý do">
       <bpmn:documentation>Chỉ commander của vụ được bỏ qua hoặc mở lại công việc bắt buộc. Bắt buộc ghi lý do.</bpmn:documentation>
       <bpmn:incoming>Flow_8</bpmn:incoming>
       <bpmn:outgoing>Flow_11</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="a3" name="Analyst bỏ qua kèm lý do">
+    </bpmn:task>
+    <bpmn:task id="a3" name="Analyst bỏ qua kèm lý do">
       <bpmn:documentation>Công việc không bắt buộc: Analyst bất kỳ được bỏ qua, vẫn phải ghi lý do.</bpmn:documentation>
       <bpmn:incoming>Flow_9</bpmn:incoming>
       <bpmn:outgoing>Flow_12</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="gm">
       <bpmn:incoming>Flow_10</bpmn:incoming>
       <bpmn:incoming>Flow_11</bpmn:incoming>
       <bpmn:incoming>Flow_12</bpmn:incoming>
       <bpmn:outgoing>Flow_13</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:serviceTask id="t2" name="Ghi nhật ký, cập nhật thống kê công việc">
+    <bpmn:task id="t2" name="Ghi nhật ký, cập nhật thống kê công việc">
       <bpmn:documentation>Mọi thay đổi công việc đi vào nhật ký kiểm toán và timeline. Dashboard thống kê công việc đang mở và quá hạn của các vụ chưa đóng.</bpmn:documentation>
       <bpmn:incoming>Flow_13</bpmn:incoming>
       <bpmn:outgoing>Flow_14</bpmn:outgoing>
-    </bpmn:serviceTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="g4" name="Còn việc bắt buộc chưa xử lý?">
       <bpmn:documentation>Tiêu chí đóng vụ thứ 6: không còn công việc bắt buộc ở todo hoặc in_progress.</bpmn:documentation>
       <bpmn:incoming>Flow_14</bpmn:incoming>

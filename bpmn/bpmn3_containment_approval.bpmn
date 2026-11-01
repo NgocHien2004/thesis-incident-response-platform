@@ -36,11 +36,11 @@
     <bpmn:startEvent id="s1" name="Cần ngăn chặn (vụ đang điều tra)">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="p1" name="Đề xuất containment: hành động, mục tiêu, lý do, mức rủi ro">
+    <bpmn:task id="p1" name="Đề xuất containment: hành động, mục tiêu, lý do, mức rủi ro">
       <bpmn:documentation>POST /incidents/{id}/containments/. IT hoặc Analyst. Hành động: block_ip, lock_account, isolate_machine, block_domain, disable_service, other. Mức rủi ro: low, medium, high.</bpmn:documentation>
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="g0" name="Vụ đang điều tra / khống chế / phục hồi?">
       <bpmn:documentation>Chỉ đề xuất khi incident ở investigating, contained hoặc recovering. Vụ open hoặc closed trả 409. Đề xuất mới có trạng thái proposed.</bpmn:documentation>
       <bpmn:incoming>Flow_2</bpmn:incoming>
@@ -55,16 +55,16 @@
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:userTask id="r1" name="Analyst xem xét (khác người đề xuất)">
+    <bpmn:task id="r1" name="Analyst xem xét (khác người đề xuất)">
       <bpmn:documentation>PATCH .../containments/{id}/review. Chỉ Analyst. Từ chối không bị ràng buộc về người; phê duyệt thì người duyệt phải khác người đề xuất.</bpmn:documentation>
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_7</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="r2" name="Commander xem xét (khác người đề xuất)">
+    </bpmn:task>
+    <bpmn:task id="r2" name="Commander xem xét (khác người đề xuất)">
       <bpmn:documentation>Rủi ro high: chỉ commander của vụ được phê duyệt.</bpmn:documentation>
       <bpmn:incoming>Flow_6</bpmn:incoming>
       <bpmn:outgoing>Flow_8</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="gm">
       <bpmn:incoming>Flow_7</bpmn:incoming>
       <bpmn:incoming>Flow_8</bpmn:incoming>
@@ -87,21 +87,21 @@
     <bpmn:endEvent id="e2" name="Bị chặn (403): vi phạm tách nhiệm vụ">
       <bpmn:incoming>Flow_13</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:userTask id="x1" name="Thực hiện containment (mô phỏng)">
+    <bpmn:task id="x1" name="Thực hiện containment (mô phỏng)">
       <bpmn:documentation>PATCH .../containments/{id}/execute. IT hoặc Analyst; chỉ khi đã approved. Không có ràng buộc về người thực hiện. Hệ thống không tác động thật lên máy chủ hay tài khoản.</bpmn:documentation>
       <bpmn:incoming>Flow_12</bpmn:incoming>
       <bpmn:outgoing>Flow_14</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:serviceTask id="x2" name="Ghi executed, '[MÔ PHỎNG]'; vụ → contained">
+    </bpmn:task>
+    <bpmn:task id="x2" name="Ghi executed, '[MÔ PHỎNG]'; vụ → contained">
       <bpmn:documentation>Execution note được gắn tiền tố [MÔ PHỎNG]. Nếu incident đang investigating thì tự chuyển contained và ghi contained_at.</bpmn:documentation>
       <bpmn:incoming>Flow_14</bpmn:incoming>
       <bpmn:outgoing>Flow_15</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:userTask id="v1" name="Xác minh kết quả thực hiện">
+    </bpmn:task>
+    <bpmn:task id="v1" name="Xác minh kết quả thực hiện">
       <bpmn:documentation>PATCH .../containments/{id}/verify. Chỉ Analyst; chỉ khi đã executed.</bpmn:documentation>
       <bpmn:incoming>Flow_15</bpmn:incoming>
       <bpmn:outgoing>Flow_16</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="gv" name="Người xác minh ≠ người thực hiện?">
       <bpmn:documentation>Người xác minh phải khác người thực hiện (403 nếu trùng).</bpmn:documentation>
       <bpmn:incoming>Flow_16</bpmn:incoming>
@@ -111,10 +111,10 @@
     <bpmn:endEvent id="e3" name="Bị chặn (403)">
       <bpmn:incoming>Flow_18</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:serviceTask id="v2" name="Ghi verified, nhật ký kiểm toán">
+    <bpmn:task id="v2" name="Ghi verified, nhật ký kiểm toán">
       <bpmn:incoming>Flow_17</bpmn:incoming>
       <bpmn:outgoing>Flow_19</bpmn:outgoing>
-    </bpmn:serviceTask>
+    </bpmn:task>
     <bpmn:endEvent id="e4" name="Containment verified: đủ điều kiện để đóng vụ">
       <bpmn:incoming>Flow_19</bpmn:incoming>
     </bpmn:endEvent>

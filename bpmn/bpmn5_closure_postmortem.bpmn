@@ -28,47 +28,47 @@
     <bpmn:startEvent id="s1" name="Incident ở trạng thái recovering">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="a1" name="Viết postmortem: nguyên nhân gốc, timeline, tác động, bài học, action item">
+    <bpmn:task id="a1" name="Viết postmortem: nguyên nhân gốc, timeline, tác động, bài học, action item">
       <bpmn:documentation>POST /incidents/{id}/postmortem/. Chỉ Analyst; chỉ khi incident recovering hoặc closed. Sửa được bằng PUT cho đến khi chốt. Action item gồm: việc, người phụ trách, hạn, đã xong chưa.</bpmn:documentation>
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="c1" name="Đề nghị đóng vụ (chuyển sang closed)">
+    </bpmn:task>
+    <bpmn:task id="c1" name="Đề nghị đóng vụ (chuyển sang closed)">
       <bpmn:documentation>PATCH /incidents/{id}/status. Chỉ commander của vụ được đóng hoặc mở lại.</bpmn:documentation>
       <bpmn:incoming>Flow_2</bpmn:incoming>
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="g1" name="Đủ 6 tiêu chí đóng?">
       <bpmn:documentation>1) có mốc contained; 2) không còn containment proposed hoặc approved; 3) mọi containment executed đều đã verified; 4) không còn recovery pending, in_progress hoặc done chưa xác nhận; 5) có ít nhất 1 recovery done đã được chủ hệ thống xác nhận; 6) không còn công việc bắt buộc (task) ở trạng thái todo hoặc in_progress; công việc bắt buộc phải done hoặc được commander bỏ qua kèm lý do.</bpmn:documentation>
       <bpmn:incoming>Flow_3</bpmn:incoming>
       <bpmn:outgoing>Flow_4</bpmn:outgoing>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:userTask id="a2" name="Bổ sung phần còn thiếu (xác minh, xác nhận, công việc)">
+    <bpmn:task id="a2" name="Bổ sung phần còn thiếu (xác minh, xác nhận, công việc)">
       <bpmn:incoming>Flow_4</bpmn:incoming>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:serviceTask id="t1" name="Ghi closed và resolved_at; khóa thêm dữ liệu">
+    </bpmn:task>
+    <bpmn:task id="t1" name="Ghi closed và resolved_at; khóa thêm dữ liệu">
       <bpmn:documentation>Sau khi đóng, evidence, impact, containment, recovery mới đều trả 409. Commander có thể mở lại, bắt buộc ghi lý do (closed → investigating).</bpmn:documentation>
       <bpmn:incoming>Flow_6</bpmn:incoming>
       <bpmn:outgoing>Flow_7</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:userTask id="f1" name="Chốt postmortem">
+    </bpmn:task>
+    <bpmn:task id="f1" name="Chốt postmortem">
       <bpmn:documentation>PATCH .../postmortem/finalize. Chỉ commander; chỉ khi incident closed và có ít nhất 1 action item. Chốt không đổi trạng thái hay resolved_at của incident, và sau đó không sửa được nội dung postmortem.</bpmn:documentation>
       <bpmn:incoming>Flow_7</bpmn:incoming>
       <bpmn:outgoing>Flow_8</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="i1" name="Thực hiện action item, đánh dấu done">
+    </bpmn:task>
+    <bpmn:task id="i1" name="Thực hiện action item, đánh dấu done">
       <bpmn:documentation>PATCH .../postmortem/action-items/{i}?done=. IT hoặc Analyst. Vẫn đánh dấu được sau khi postmortem đã chốt, để theo dõi hoàn thành.</bpmn:documentation>
       <bpmn:incoming>Flow_8</bpmn:incoming>
       <bpmn:incoming>Flow_12</bpmn:incoming>
       <bpmn:outgoing>Flow_9</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:serviceTask id="m1" name="Dashboard tính % action item hoàn thành">
+    </bpmn:task>
+    <bpmn:task id="m1" name="Dashboard tính % action item hoàn thành">
       <bpmn:incoming>Flow_9</bpmn:incoming>
       <bpmn:outgoing>Flow_10</bpmn:outgoing>
-    </bpmn:serviceTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="g2" name="Mọi action item đã done?">
       <bpmn:incoming>Flow_10</bpmn:incoming>
       <bpmn:outgoing>Flow_11</bpmn:outgoing>

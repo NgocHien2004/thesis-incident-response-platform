@@ -26,50 +26,50 @@
     <bpmn:startEvent id="s1" name="Incident đã khống chế (contained)">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="r1" name="Tạo hành động recovery: loại, mô tả, người phụ trách">
+    <bpmn:task id="r1" name="Tạo hành động recovery: loại, mô tả, người phụ trách">
       <bpmn:documentation>POST /incidents/{id}/recovery/. IT hoặc Analyst. Chỉ khi incident contained hoặc recovering. Loại: remove_malware, patch_vulnerability, restore_backup, reset_credentials, rebuild_system, re_enable_service, other. Eradication và recovery dùng chung một đối tượng.</bpmn:documentation>
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="r2" name="Thực hiện, cập nhật tiến độ (in_progress)">
+    </bpmn:task>
+    <bpmn:task id="r2" name="Thực hiện, cập nhật tiến độ (in_progress)">
       <bpmn:documentation>PATCH .../recovery/{id}/status. IT hoặc Analyst. Trạng thái: pending, in_progress, done, failed.</bpmn:documentation>
       <bpmn:incoming>Flow_2</bpmn:incoming>
       <bpmn:incoming>Flow_6</bpmn:incoming>
       <bpmn:incoming>Flow_12</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="gr" name="Kết quả?">
       <bpmn:incoming>Flow_3</bpmn:incoming>
       <bpmn:outgoing>Flow_4</bpmn:outgoing>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:userTask id="r3" name="Đánh dấu done (ghi người, thời điểm)">
+    <bpmn:task id="r3" name="Đánh dấu done (ghi người, thời điểm)">
       <bpmn:incoming>Flow_4</bpmn:incoming>
       <bpmn:outgoing>Flow_7</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="r4" name="Đánh dấu failed, ghi chú">
+    </bpmn:task>
+    <bpmn:task id="r4" name="Đánh dấu failed, ghi chú">
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="s2" name="Kiểm tra hệ thống đã phục hồi">
+    </bpmn:task>
+    <bpmn:task id="s2" name="Kiểm tra hệ thống đã phục hồi">
       <bpmn:incoming>Flow_7</bpmn:incoming>
       <bpmn:outgoing>Flow_8</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="s3" name="Xác nhận recovery (confirm_note)">
+    </bpmn:task>
+    <bpmn:task id="s3" name="Xác nhận recovery (confirm_note)">
       <bpmn:documentation>PATCH .../recovery/{id}/confirm. Chỉ Stakeholder; chỉ trên action đã done. Analyst không xác nhận thay. Hiện mọi Stakeholder đều xác nhận được mọi recovery (chưa gắn với tài sản).</bpmn:documentation>
       <bpmn:incoming>Flow_8</bpmn:incoming>
       <bpmn:outgoing>Flow_9</bpmn:outgoing>
-    </bpmn:userTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="ga" name="Mọi recovery đã được xác nhận?">
       <bpmn:documentation>Kiểm tra trên các action còn hiệu lực của vụ: action failed được bỏ qua (giống tiêu chí đóng vụ) và phải có ít nhất 1 action còn hiệu lực. Đạt điều kiện và vụ đang contained thì tự chuyển recovering.</bpmn:documentation>
       <bpmn:incoming>Flow_9</bpmn:incoming>
       <bpmn:outgoing>Flow_10</bpmn:outgoing>
       <bpmn:outgoing>Flow_12</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:serviceTask id="t1" name="Vụ contained → tự chuyển recovering">
+    <bpmn:task id="t1" name="Vụ contained → tự chuyển recovering">
       <bpmn:incoming>Flow_10</bpmn:incoming>
       <bpmn:outgoing>Flow_11</bpmn:outgoing>
-    </bpmn:serviceTask>
+    </bpmn:task>
     <bpmn:endEvent id="e1" name="Sẵn sàng đóng vụ (bước 11)">
       <bpmn:incoming>Flow_11</bpmn:incoming>
     </bpmn:endEvent>

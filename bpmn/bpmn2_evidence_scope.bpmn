@@ -27,50 +27,50 @@
     <bpmn:startEvent id="s1" name="Incident vừa tạo (open)">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="a1" name="Chuyển incident sang investigating">
+    <bpmn:task id="a1" name="Chuyển incident sang investigating">
       <bpmn:documentation>PATCH /incidents/{id}/status. Chỉ Analyst. open → investigating.</bpmn:documentation>
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="b1" name="Thu thập bằng chứng: loại, nguồn, nội dung">
+    </bpmn:task>
+    <bpmn:task id="b1" name="Thu thập bằng chứng: loại, nguồn, nội dung">
       <bpmn:documentation>POST /incidents/{id}/evidences/. IT hoặc Analyst. Vụ chưa đóng. Hiện chưa tải tệp thật, chỉ lưu nội dung hoặc đường dẫn.</bpmn:documentation>
       <bpmn:incoming>Flow_2</bpmn:incoming>
       <bpmn:incoming>Flow_12</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:serviceTask id="c1" name="Tính SHA-256, ghi custody: collected">
+    </bpmn:task>
+    <bpmn:task id="c1" name="Tính SHA-256, ghi custody: collected">
       <bpmn:documentation>Nếu có nội dung và chưa có hash thì hệ thống tự tính SHA-256. Mỗi lần xem chi tiết qua API sinh thêm dòng accessed.</bpmn:documentation>
       <bpmn:incoming>Flow_3</bpmn:incoming>
       <bpmn:outgoing>Flow_4</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:userTask id="b2" name="Khóa bằng chứng">
+    </bpmn:task>
+    <bpmn:task id="b2" name="Khóa bằng chứng">
       <bpmn:documentation>PATCH .../evidences/{id}/lock. IT hoặc Analyst. Không khóa được hai lần.</bpmn:documentation>
       <bpmn:incoming>Flow_4</bpmn:incoming>
       <bpmn:outgoing>Flow_5</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:serviceTask id="c2" name="Ghi custody: locked">
+    </bpmn:task>
+    <bpmn:task id="c2" name="Ghi custody: locked">
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:userTask id="a2" name="Phân tích: IOC, tài sản, tài khoản, sự kiện liên quan">
+    </bpmn:task>
+    <bpmn:task id="a2" name="Phân tích: IOC, tài sản, tài khoản, sự kiện liên quan">
       <bpmn:documentation>POST /incidents/{id}/impact/. Chỉ Analyst. Liên kết IOC, tài sản, tài khoản, sự kiện liên quan.</bpmn:documentation>
       <bpmn:incoming>Flow_6</bpmn:incoming>
       <bpmn:outgoing>Flow_7</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="a3" name="Tìm kỹ thuật ATT&amp;CK (AI gợi ý)">
+    </bpmn:task>
+    <bpmn:task id="a3" name="Tìm kỹ thuật ATT&amp;CK (AI gợi ý)">
       <bpmn:documentation>POST /ai/attck/search. Truy xuất BM25 với bảng thuật ngữ Việt–Anh; kết quả chỉ là gợi ý, Analyst quyết định.</bpmn:documentation>
       <bpmn:incoming>Flow_7</bpmn:incoming>
       <bpmn:outgoing>Flow_8</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="a4" name="Chọn kỹ thuật, lưu phân tích phạm vi">
+    </bpmn:task>
+    <bpmn:task id="a4" name="Chọn kỹ thuật, lưu phân tích phạm vi">
       <bpmn:incoming>Flow_8</bpmn:incoming>
       <bpmn:outgoing>Flow_9</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:serviceTask id="c3" name="Tự điền phiên bản ATT&amp;CK, ghi nhật ký">
+    </bpmn:task>
+    <bpmn:task id="c3" name="Tự điền phiên bản ATT&amp;CK, ghi nhật ký">
       <bpmn:documentation>Backend hỏi AI service lấy phiên bản ATT&amp;CK đang dùng (ví dụ ent-2026-08-04) và lưu cùng bản phân tích.</bpmn:documentation>
       <bpmn:incoming>Flow_9</bpmn:incoming>
       <bpmn:outgoing>Flow_10</bpmn:outgoing>
-    </bpmn:serviceTask>
+    </bpmn:task>
     <bpmn:exclusiveGateway id="g1" name="Cần thu thêm bằng chứng?">
       <bpmn:incoming>Flow_10</bpmn:incoming>
       <bpmn:outgoing>Flow_11</bpmn:outgoing>
