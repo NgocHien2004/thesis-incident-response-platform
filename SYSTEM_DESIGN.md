@@ -386,7 +386,7 @@ Endpoint `/ai/alert/suggest` trong backend nhận title + description + IOC, g�
 - `ai_generated: true` — đánh dấu rõ nội dung do AI tạo, kèm `generated_by`
 - `warning`: nhắc Analyst xác nhận trước khi sử dụng
 
-Mô hình Random Forest phục vụ qua `/classify` của AI service (đầu vào là thuộc tính luồng mạng). Hiện endpoint này chưa được backend hoặc giao diện gọi tới.
+Mô hình Random Forest phục vụ qua `/classify` của AI service (đầu vào là thuộc tính luồng mạng). Backend gọi endpoint này khi cảnh báo có `flow_features` (xem mục chấm điểm ở trên); giao diện không gọi trực tiếp.
 
 **Bảo mật:** Sanitize input trước khi xử lý, giới hạn độ dài 2000 ký tự, từ chối các pattern nguy hiểm. Hệ thống không dùng LLM nên rủi ro prompt injection ở mức thấp; bộ lọc này là lớp phòng vệ bổ sung.
 
@@ -404,6 +404,24 @@ Mô hình Random Forest phục vụ qua `/classify` của AI service (đầu và
 | Recall nhóm mức độ cao, trung bình đều theo lớp | khoảng 0.948 (Bot 0.873; Infiltration 0.667 với n = 6) |
 
 Kết quả có thể cao hơn thực tế do cách chia ngẫu nhiên (các luồng gần giống nhau có thể nằm ở cả hai tập). Các lớp hiếm (Heartbleed n = 2, SQL Injection n = 2, Infiltration n = 6) không đủ mẫu để kết luận theo từng lớp.
+
+**So sánh với mô hình baseline** (cùng tập huấn luyện 2.262.300 luồng và tập kiểm thử 565.576 luồng; khoảng tin cậy 95% lấy mẫu lại tập kiểm thử 100 lần; kết quả đầy đủ trong `ml/results/baseline_comparison.json`, sinh bởi `ml/train_baselines.py`):
+
+| Chỉ số | Random Forest | Gradient Boosting | Logistic Regression |
+| --- | --- | --- | --- |
+| PR-AUC (khoảng tin cậy 95%) | 0.99976 (0.99972 đến 0.99980) | 0.99935 (0.99906 đến 0.99957) | 0.92117 (0.91979 đến 0.92242) |
+| Ngưỡng 0.5: False Positive / False Negative | 546 / 82 | 497 / 25 | 42,859 / 4,285 |
+| Ngưỡng 0.5: Precision / Recall | 0.9951 / 0.9993 | 0.9956 / 0.9998 | 0.7141 / 0.9615 |
+| Vùng tự đóng (prob < 0.15): tấn công bị đưa vào | 24 (0.022%) | 14 (0.013%) | 549 (0.49%) |
+| Vùng tự đóng: % lành tính được tự đóng | 99.69% | 99.87% | 82.18% |
+| % lành tính tự đóng được nếu cho phép bỏ sót 0.02% tấn công (ngưỡng chọn ngay trên tập kiểm thử) | 99.62% | 99.89% | 4.75% |
+| Recall nhóm mức độ cao (ngưỡng 0.5, gộp theo số mẫu) | 0.9991 | 0.9998 | 0.9787 |
+| Kích thước mô hình | 35.3 MB | 0.76 MB | dưới 0.01 MB |
+| Thời gian huấn luyện | không đo | 31 giây | 110 giây |
+
+Logistic Regression kém rõ rệt: PR-AUC thấp hơn Random Forest khoảng 0.078 (khoảng tin cậy của chênh lệch từ -0.080 đến -0.077), recall bằng 0 trên Web Attack Brute Force, Infiltration và SQL Injection, 0.016 trên XSS, 0.26 trên Bot, nên mô hình tuyến tính không đủ cho bài toán này và không dùng được cho luật tự đóng. Giữa Random Forest và Gradient Boosting hai thước đo không đồng thuận: PR-AUC của Random Forest cao hơn khoảng 0.0004 (khoảng tin cậy của chênh lệch từ -0.0007 đến -0.00018), nhưng ở các ngưỡng vận hành Gradient Boosting có ít sai sót hơn (25 so với 82 False Negative, 14 so với 24 tấn công bị đưa vào vùng tự đóng) và tự đóng được nhiều lành tính hơn. Vì vậy chưa kết luận mô hình nào tốt hơn. Khác biệt theo lớp rõ nhất là Bot (n = 393): recall 0.980 với Gradient Boosting so với 0.873 với Random Forest, chưa kiểm định thống kê. Các lớp hiếm (Heartbleed n = 2, SQL Injection n = 2, Infiltration n = 6) không đủ mẫu để so sánh.
+
+Giới hạn: khoảng tin cậy chỉ phản ánh nhiễu do lấy mẫu tập kiểm thử, không phản ánh biến thiên giữa các lần huấn luyện; mỗi mô hình chỉ huấn luyện một lần với một hạt giống và chưa tinh chỉnh siêu tham số. Các ngưỡng 0.15, 0.50 và 0.80 được chọn cho xác suất của Random Forest nên so sánh ở cùng ngưỡng chưa công bằng tuyệt đối; dòng "nếu cho phép bỏ sót 0.02%" chọn ngưỡng ngay trên tập kiểm thử nên chỉ là cận trên để so sánh giữa các mô hình, không phải ngưỡng vận hành. PR-AUC ở đây tính bằng `average_precision_score`, khác cách tính hình thang trong `train.py` (hai cách cùng làm tròn thành 0.9998 với Random Forest). Gradient Boosting là `HistGradientBoostingClassifier` (tối đa 300 cây, learning rate 0.1, 63 lá, `class_weight=balanced`, dừng sớm ở 102 cây). Random Forest vẫn là mô hình được phục vụ vì `ml/serve.py` tính đặc trưng chính từ `feature_importances_` của Random Forest (mô hình Gradient Boosting này không có thuộc tính đó) và vì các ngưỡng cùng bài đánh giá chấm điểm được thiết lập cho xác suất của nó; hai mô hình baseline lưu ở `ml/models/lr_binary.pkl` và `hgb_binary.pkl`, chưa nối vào dịch vụ.
 
 **Ánh xạ ATT&CK** (tập giữ lại 29 mô tả, viết và đóng băng trước khi cải tiến; Top-K tính theo ID chính xác):
 
