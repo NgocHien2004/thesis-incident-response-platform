@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="IR Platform" exporterVersion="1.0">
+  <bpmn:collaboration id="Collab_1">
+    <bpmn:participant id="Pool_1" name="BPMN 1. Phát hiện: từ cảnh báo đến incident (NIST Detect, bước 2 đến 5)" processRef="Process_1" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" name="BPMN 1. Phát hiện: từ cảnh báo đến incident (NIST Detect, bước 2 đến 5)" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_IT" name="IT / Helpdesk (hoặc Analyst)">
+        <bpmn:flowNodeRef>s1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t4</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_SY" name="Hệ thống (tự động)">
+        <bpmn:flowNodeRef>t2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t8</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e2</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_AN" name="Analyst / SOC">
+        <bpmn:flowNodeRef>t5</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t7</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t6</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e1</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="s1" name="Có cảnh báo hoặc báo cáo nghi ngờ">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, DE.CM-09 (tr. 24) giám sát email, web và các kênh tấn công phổ biến; RS.MA-02 R2 (tr. 27) cơ chế cho bên thứ ba báo sự cố.</bpmn:documentation>
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="t1" name="Nhập cảnh báo (tay, webhook, CSV, JSON) [DE.CM-09]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, DE.CM-09 (tr. 24), RS.MA-02 (tr. 27); FIRST CSIRT Services Framework 2.1, mục 6.1 (tr. 14 đến 15). Kênh nhận thư báo cáo hoặc tải .eml: dự kiến, chưa cài đặt. Vai trò: IT/Helpdesk hoặc Analyst. API: POST /alerts/, /alerts/webhook, /alerts/upload/csv, /alerts/upload/json. Nguồn: ids_ips, email, endpoint, manual, webhook, csv_upload. Dữ liệu gốc giữ nguyên trong raw_data. Webhook vẫn yêu cầu token đăng nhập của IT hoặc Analyst.</bpmn:documentation>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t2" name="Chuẩn hóa và gom nhóm cùng IOC, tài sản [DE.AE-03]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, DE.AE-03 (tr. 25) tương quan thông tin từ nhiều nguồn; FIRST mục 5.2.1 (tr. 13). Cửa sổ 60 phút là tham số do tác giả chọn. Tự động ngay khi tạo alert (services/dedup.py, normalize_alert). IOC được tách theo dấu phẩy, đổi chữ thường, bỏ trùng và sắp xếp. Gom nhóm khi cùng IOC đã chuẩn hóa và cùng tài sản, cửa sổ trượt 60 phút tính theo last_seen. Alert có IOC nhưng không có tài sản: gom theo IOC. Alert không có IOC: luôn tạo nhóm mới.</bpmn:documentation>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t3" name="Chấm điểm ưu tiên, chia ba vùng [DE.AE, RS.MA-03]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, DE.AE R1 (tr. 25) lọc tập sự kiện lớn xuống phần phù hợp cho người xem; RS.MA-03 (tr. 27 đến 28) ưu tiên; RS.MA N2 (tr. 27) yếu tố đánh giá rủi ro gồm mức quan trọng tài sản; GV.RM-06 (tr. 12 đến 13); FIRST mục 5.2.2 (tr. 13). Trọng số và ngưỡng là tham số do tác giả chọn; đây là nơi các bộ phân lớp (luồng mạng, email, ATT&amp;CK) đưa điểm vào. Tự động sau chống trùng (services/scoring.py). Xác suất P từ mô hình Random Forest nếu alert có flow_features, nếu không suy từ mức độ khai báo. Điểm = 100 × P × (0,5 + 0,3 × hệ số tài sản + 0,2 × độ tin cậy nguồn). Vùng: khẩn khi điểm từ 65 hoặc P từ 0,8 trên tài sản mức cao trở lên; đề xuất tự đóng chỉ khi đạt 6 luật an toàn (cần xác suất do mô hình tính, P dưới 0,15, tài sản thấp hoặc trung bình, không phải báo cáo thủ công...); còn lại cần Analyst xem. Tự đóng thật là tùy chọn, mặc định tắt (ALERT_AUTO_CLOSE). Lỗi chấm điểm không làm hỏng việc tiếp nhận.</bpmn:documentation>
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t4" name="Triage: loại, mức độ, độ tin cậy, SLA [RS.MA-02, 03]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, RS.MA-02 (tr. 27), RS.MA-03 (tr. 27 đến 28); FIRST mục 6.1.2 (tr. 15 đến 16), 6.2.1 (tr. 17); CISA Playbook tr. 10. Mốc SLA do người triage nhập, không có bảng cố định. PATCH /alerts/{id}/triage. IT/Helpdesk hoặc Analyst. Alert phải ở trạng thái new hoặc reviewing. Độ tin cậy 1 đến 100. Hạn SLA = thời điểm triage + số giờ SLA. Kết quả: alert chuyển triaged. Nút gợi ý AI (luật từ khóa + truy xuất ATT&amp;CK) chỉ hỗ trợ, hiện cho Analyst; không có bước xác nhận thứ hai ở triage.</bpmn:documentation>
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t5" name="Rà soát theo vùng ưu tiên [DE.AE-06]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, DE.AE-06 (tr. 26). Giao diện hiển thị điểm, vùng, thành phần điểm, đặc trưng nổi bật và cảnh báo tương tự. Với cảnh báo ở vùng đề xuất tự đóng, Analyst có thể đóng kèm lý do; cảnh báo đã đóng mở lại được.</bpmn:documentation>
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g1" name="Là sự cố thật?">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, DE.AE-08 R1 (tr. 26): áp dụng tiêu chí sự cố, cân nhắc dương tính giả đã biết.</bpmn:documentation>
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="t7" name="Tạo incident, chọn commander và playbook [DE.AE-08]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, DE.AE-08 (tr. 26), RS.MA-01 C1 (tr. 27) chỉ định người phụ trách; CISA Phụ lục B, bước 1 (Declare Incident). POST /incidents/. Chỉ Analyst. Mọi alert phải ở trạng thái triaged hoặc escalated. Commander mặc định là người tạo, hoặc một Analyst đang hoạt động được chỉ định. Có thể chọn playbook đang sử dụng (playbook_id); hệ thống gợi ý playbook theo loại triage của alert. Checklist 5 dòng mặc định vẫn được giữ.</bpmn:documentation>
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t6" name="Đánh dấu false_positive [DE.AE-08]">
+      <bpmn:documentation>PATCH /alerts/{id}/false-positive. Chỉ Analyst. Hiện chưa kiểm tra trạng thái alert.</bpmn:documentation>
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e1" name="Alert đóng: báo nhầm">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="t8" name="Incident open, alert escalated, tạo việc từ playbook [RS.MA]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, RS.MA (R3, tr. 27) theo dõi trạng thái từng sự cố. detected_at = thời điểm tạo. Các alert được gắn incident_id và chuyển escalated. Nếu có playbook, mỗi bước thành một công việc (task) với hạn tính từ lúc tạo vụ; xem BPMN 6.</bpmn:documentation>
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="e2" name="Incident open: sang BPMN 2 (Respond)">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="s1" targetRef="t1" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="t1" targetRef="t2" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="t2" targetRef="t3" />
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="t3" targetRef="t4" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="t4" targetRef="t5" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="t5" targetRef="g1" />
+    <bpmn:sequenceFlow id="Flow_7" name="Có" sourceRef="g1" targetRef="t7" />
+    <bpmn:sequenceFlow id="Flow_8" name="Không" sourceRef="g1" targetRef="t6" />
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="t6" targetRef="e1" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="t7" targetRef="t8" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="t8" targetRef="e2" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Collab_1">
+      <bpmndi:BPMNShape id="Pool_1_di" bpmnElement="Pool_1" isHorizontal="true"><dc:Bounds x="20" y="20" width="1700" height="550" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_IT_di" bpmnElement="Lane_IT" isHorizontal="true"><dc:Bounds x="50" y="20" width="1670" height="150" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_SY_di" bpmnElement="Lane_SY" isHorizontal="true"><dc:Bounds x="50" y="170" width="1670" height="170" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_AN_di" bpmnElement="Lane_AN" isHorizontal="true"><dc:Bounds x="50" y="340" width="1670" height="230" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s1_di" bpmnElement="s1"><dc:Bounds x="112" y="77" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="65" y="119" width="130" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t1_di" bpmnElement="t1"><dc:Bounds x="235" y="60" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t2_di" bpmnElement="t2"><dc:Bounds x="405" y="220" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t3_di" bpmnElement="t3"><dc:Bounds x="575" y="220" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t4_di" bpmnElement="t4"><dc:Bounds x="745" y="60" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t5_di" bpmnElement="t5"><dc:Bounds x="915" y="395" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g1_di" bpmnElement="g1" isMarkerVisible="true"><dc:Bounds x="1105" y="405" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="1065" y="361" width="130" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t7_di" bpmnElement="t7"><dc:Bounds x="1235" y="395" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t6_di" bpmnElement="t6"><dc:Bounds x="1235" y="495" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e1_di" bpmnElement="e1"><dc:Bounds x="1395" y="512" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="1348" y="554" width="130" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t8_di" bpmnElement="t8"><dc:Bounds x="1405" y="220" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e2_di" bpmnElement="e2"><dc:Bounds x="1585" y="237" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="1538" y="279" width="130" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="148" y="95" />
+        <di:waypoint x="235" y="95" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="365" y="95" />
+        <di:waypoint x="385" y="95" />
+        <di:waypoint x="385" y="255" />
+        <di:waypoint x="405" y="255" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="535" y="255" />
+        <di:waypoint x="575" y="255" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="705" y="255" />
+        <di:waypoint x="725" y="255" />
+        <di:waypoint x="725" y="95" />
+        <di:waypoint x="745" y="95" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="875" y="95" />
+        <di:waypoint x="895" y="95" />
+        <di:waypoint x="895" y="430" />
+        <di:waypoint x="915" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1045" y="430" />
+        <di:waypoint x="1105" y="430" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1155" y="430" />
+        <di:waypoint x="1235" y="430" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1161" y="412" width="24" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1130" y="455" />
+        <di:waypoint x="1130" y="530" />
+        <di:waypoint x="1235" y="530" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1136" y="459" width="36" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1365" y="530" />
+        <di:waypoint x="1395" y="530" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1365" y="430" />
+        <di:waypoint x="1385" y="430" />
+        <di:waypoint x="1385" y="255" />
+        <di:waypoint x="1405" y="255" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1535" y="255" />
+        <di:waypoint x="1585" y="255" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

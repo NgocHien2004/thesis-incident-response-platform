@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_3" targetNamespace="http://bpmn.io/schema/bpmn" exporter="IR Platform" exporterVersion="1.0">
+  <bpmn:collaboration id="Collab_3">
+    <bpmn:participant id="Pool_3" name="BPMN 3. Phục hồi, đóng vụ và cải tiến (NIST Recover và Improvement, bước 9, 11, 12)" processRef="Process_3" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_3" name="BPMN 3. Phục hồi, đóng vụ và cải tiến (NIST Recover và Improvement, bước 9, 11, 12)" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_3">
+      <bpmn:lane id="Lane_IT" name="IT / Helpdesk (hoặc Analyst)">
+        <bpmn:flowNodeRef>s1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>r1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>i1</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_ST" name="Stakeholder (chủ hệ thống)">
+        <bpmn:flowNodeRef>r2</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_SY" name="Hệ thống (tự động)">
+        <bpmn:flowNodeRef>t1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>e1</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_AN" name="Analyst / SOC">
+        <bpmn:flowNodeRef>a1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>a2</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_CM" name="Commander của vụ">
+        <bpmn:flowNodeRef>c1</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="s1" name="Incident đã khống chế (contained)">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="r1" name="Tạo và thực hiện hành động recovery [RC.RP-02]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, RC.RP-02 (tr. 33 đến 34); FIRST mục 6.4.3 (tr. 25); CISA Playbook tr. 15. POST /incidents/{id}/recovery/. IT hoặc Analyst. Chỉ khi incident contained hoặc recovering. Loại: remove_malware, patch_vulnerability, restore_backup, reset_credentials, rebuild_system, re_enable_service, other. Eradication và recovery dùng chung một đối tượng. PATCH .../recovery/{id}/status. IT hoặc Analyst. Trạng thái: pending, in_progress, done, failed.</bpmn:documentation>
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g1" name="Kết quả?">
+      <bpmn:documentation>Hoàn thành hoặc thất bại; thất bại thì ghi chú và thử lại (hành động failed không tính khi kiểm tra điều kiện đóng vụ).</bpmn:documentation>
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="r2" name="Chủ hệ thống kiểm tra và xác nhận [RC.RP-04, 05]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, RC.RP-04 (tr. 34) làm việc với chủ hệ thống để xác nhận khôi phục thành công; RC.RP-05 (tr. 34) xác minh toàn vẹn tài sản đã khôi phục. PATCH .../recovery/{id}/confirm. Chỉ Stakeholder; chỉ trên action đã done. Analyst không xác nhận thay. Hiện mọi Stakeholder đều xác nhận được mọi recovery (chưa gắn với tài sản).</bpmn:documentation>
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t1" name="Mọi recovery đã xác nhận: vụ chuyển recovering [RC.RP-05]">
+      <bpmn:documentation>Kiểm tra trên các action còn hiệu lực của vụ: action failed được bỏ qua (giống tiêu chí đóng vụ) và phải có ít nhất 1 action còn hiệu lực. Đạt điều kiện và vụ đang contained thì tự chuyển recovering.</bpmn:documentation>
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="a1" name="Viết postmortem: nguyên nhân gốc, bài học [RC.RP-06, ID.IM-03]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, RC.RP-06 (tr. 34) báo cáo sau xử lý, ID.IM-03 (tr. 19 đến 20) cải tiến từ rút kinh nghiệm, RS.AN-03 (tr. 28) nguyên nhân gốc; FIRST mục 6.2.4 (tr. 18); CISA Playbook tr. 16. POST /incidents/{id}/postmortem/. Chỉ Analyst; chỉ khi incident recovering hoặc closed. Sửa được bằng PUT cho đến khi chốt. Action item gồm: việc, người phụ trách, hạn, đã xong chưa.</bpmn:documentation>
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="c1" name="Chốt postmortem, thông báo, đề nghị đóng vụ [RC.RP-06, RC.CO-03]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, RC.RP-06 (tr. 34); RC.CO-03 (tr. 35) cập nhật bên liên quan về khôi phục. PATCH /incidents/{id}/status. Chỉ commander của vụ được đóng hoặc mở lại. PATCH .../postmortem/finalize. Chỉ commander; chỉ khi incident closed và có ít nhất 1 action item. Chốt không đổi trạng thái hay resolved_at của incident, và sau đó không sửa được nội dung postmortem.</bpmn:documentation>
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g3" name="Đủ 6 tiêu chí đóng?">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, RC.RP-06 (tr. 34): kết thúc phục hồi được tuyên bố theo tiêu chí. Danh sách tiêu chí do tác giả lập từ playbook CISA. 1) có mốc contained; 2) không còn containment proposed hoặc approved; 3) mọi containment executed đều đã verified; 4) không còn recovery pending, in_progress hoặc done chưa xác nhận; 5) có ít nhất 1 recovery done đã được chủ hệ thống xác nhận; 6) không còn công việc bắt buộc (task) ở trạng thái todo hoặc in_progress; công việc bắt buộc phải done hoặc được commander bỏ qua kèm lý do.</bpmn:documentation>
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="a2" name="Bổ sung phần còn thiếu">
+      <bpmn:documentation>Bổ sung phần còn thiếu (xác minh, xác nhận, công việc) rồi đề nghị đóng lại.</bpmn:documentation>
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="t2" name="Ghi closed, resolved_at; tính MTTD, MTTA, MTTR [ID.IM-01]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, ID.IM-01 (tr. 19) đánh giá định kỳ; mục 2.3 (tr. 9) thước đo hiệu năng. Định nghĩa MTTD, MTTA, MTTR do tác giả điều chỉnh (MTTD tính từ cảnh báo đầu tiên đến lúc mở incident). Sau khi đóng, evidence, impact, containment, recovery mới đều trả 409. Commander có thể mở lại, bắt buộc ghi lý do (closed → investigating).</bpmn:documentation>
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="i1" name="Thực hiện action item, đánh dấu done [ID.IM-03]">
+      <bpmn:documentation>Cơ sở: NIST SP 800-61 Rev. 3, ID.IM-03 (tr. 19 đến 20); FIRST mục 6.2.5 (tr. 19). PATCH .../postmortem/action-items/{i}?done=. IT hoặc Analyst. Vẫn đánh dấu được sau khi postmortem đã chốt, để theo dõi hoàn thành.</bpmn:documentation>
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:incoming>Flow_15</bpmn:incoming>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="g4" name="Mọi action item đã done?">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+      <bpmn:outgoing>Flow_15</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="e1" name="Hoàn tất: hành động phòng ngừa được theo dõi">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="s1" targetRef="r1" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="r1" targetRef="g1" />
+    <bpmn:sequenceFlow id="Flow_3" name="Hoàn thành" sourceRef="g1" targetRef="r2" />
+    <bpmn:sequenceFlow id="Flow_4" name="Thất bại (thử lại)" sourceRef="g1" targetRef="r1" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="r2" targetRef="t1" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="t1" targetRef="a1" />
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="a1" targetRef="c1" />
+    <bpmn:sequenceFlow id="Flow_8" sourceRef="c1" targetRef="g3" />
+    <bpmn:sequenceFlow id="Flow_9" name="Có" sourceRef="g3" targetRef="t2" />
+    <bpmn:sequenceFlow id="Flow_10" name="Không" sourceRef="g3" targetRef="a2" />
+    <bpmn:sequenceFlow id="Flow_11" name="Đề nghị lại" sourceRef="a2" targetRef="c1" />
+    <bpmn:sequenceFlow id="Flow_12" sourceRef="t2" targetRef="i1" />
+    <bpmn:sequenceFlow id="Flow_13" sourceRef="i1" targetRef="g4" />
+    <bpmn:sequenceFlow id="Flow_14" name="Có" sourceRef="g4" targetRef="e1" />
+    <bpmn:sequenceFlow id="Flow_15" name="Còn việc" sourceRef="g4" targetRef="i1" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_3">
+    <bpmndi:BPMNPlane id="Plane_3" bpmnElement="Collab_3">
+      <bpmndi:BPMNShape id="Pool_3_di" bpmnElement="Pool_3" isHorizontal="true"><dc:Bounds x="20" y="20" width="2200" height="750" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_IT_di" bpmnElement="Lane_IT" isHorizontal="true"><dc:Bounds x="50" y="20" width="2170" height="160" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_ST_di" bpmnElement="Lane_ST" isHorizontal="true"><dc:Bounds x="50" y="180" width="2170" height="130" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_SY_di" bpmnElement="Lane_SY" isHorizontal="true"><dc:Bounds x="50" y="310" width="2170" height="170" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_AN_di" bpmnElement="Lane_AN" isHorizontal="true"><dc:Bounds x="50" y="480" width="2170" height="160" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_CM_di" bpmnElement="Lane_CM" isHorizontal="true"><dc:Bounds x="50" y="640" width="2170" height="130" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="s1_di" bpmnElement="s1"><dc:Bounds x="112" y="82" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="65" y="124" width="130" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="r1_di" bpmnElement="r1"><dc:Bounds x="235" y="65" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g1_di" bpmnElement="g1" isMarkerVisible="true"><dc:Bounds x="445" y="75" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="405" y="31" width="130" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="r2_di" bpmnElement="r2"><dc:Bounds x="575" y="210" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t1_di" bpmnElement="t1"><dc:Bounds x="745" y="360" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a1_di" bpmnElement="a1"><dc:Bounds x="915" y="525" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="c1_di" bpmnElement="c1"><dc:Bounds x="1085" y="670" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g3_di" bpmnElement="g3" isMarkerVisible="true"><dc:Bounds x="1305" y="370" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="1265" y="326" width="130" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="a2_di" bpmnElement="a2"><dc:Bounds x="1435" y="525" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="t2_di" bpmnElement="t2"><dc:Bounds x="1435" y="360" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="i1_di" bpmnElement="i1"><dc:Bounds x="1605" y="65" width="130" height="70" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="g4_di" bpmnElement="g4" isMarkerVisible="true"><dc:Bounds x="1925" y="370" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="1885" y="424" width="130" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="e1_di" bpmnElement="e1"><dc:Bounds x="2092" y="377" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="2045" y="419" width="130" height="40" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="148" y="100" />
+        <di:waypoint x="235" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="365" y="100" />
+        <di:waypoint x="445" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="495" y="100" />
+        <di:waypoint x="535" y="100" />
+        <di:waypoint x="535" y="245" />
+        <di:waypoint x="575" y="245" />
+        <bpmndi:BPMNLabel><dc:Bounds x="501" y="82" width="68" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="470" y="125" />
+        <di:waypoint x="470" y="160" />
+        <di:waypoint x="300" y="160" />
+        <di:waypoint x="300" y="135" />
+        <bpmndi:BPMNLabel><dc:Bounds x="476" y="129" width="119" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="705" y="245" />
+        <di:waypoint x="725" y="245" />
+        <di:waypoint x="725" y="395" />
+        <di:waypoint x="745" y="395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="875" y="395" />
+        <di:waypoint x="895" y="395" />
+        <di:waypoint x="895" y="560" />
+        <di:waypoint x="915" y="560" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="1045" y="560" />
+        <di:waypoint x="1065" y="560" />
+        <di:waypoint x="1065" y="705" />
+        <di:waypoint x="1085" y="705" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="1215" y="705" />
+        <di:waypoint x="1260" y="705" />
+        <di:waypoint x="1260" y="395" />
+        <di:waypoint x="1305" y="395" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1355" y="395" />
+        <di:waypoint x="1435" y="395" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1361" y="377" width="24" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1330" y="420" />
+        <di:waypoint x="1330" y="560" />
+        <di:waypoint x="1435" y="560" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1336" y="424" width="36" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1500" y="595" />
+        <di:waypoint x="1500" y="752" />
+        <di:waypoint x="1150" y="752" />
+        <di:waypoint x="1150" y="740" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1506" y="599" width="74" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1565" y="395" />
+        <di:waypoint x="1585" y="395" />
+        <di:waypoint x="1585" y="100" />
+        <di:waypoint x="1605" y="100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1735" y="100" />
+        <di:waypoint x="1950" y="100" />
+        <di:waypoint x="1950" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1975" y="395" />
+        <di:waypoint x="2092" y="395" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1981" y="377" width="24" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15_di" bpmnElement="Flow_15">
+        <di:waypoint x="1925" y="395" />
+        <di:waypoint x="1670" y="395" />
+        <di:waypoint x="1670" y="135" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1866" y="377" width="55" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

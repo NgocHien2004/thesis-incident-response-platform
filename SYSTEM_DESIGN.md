@@ -182,6 +182,44 @@ Phần chuẩn bị trước sự cố (Phụ lục C) không nằm trong playbo
 
 **Giới hạn:** chưa có phụ thuộc giữa các công việc (việc B chỉ mở khi việc A xong), chưa có nhắc việc hoặc leo thang tự động khi quá hạn (chỉ đếm và tô đỏ trên giao diện và dashboard), chưa gắn công việc với từng bước phê duyệt của containment; người xác nhận một công việc đã xong chính là Analyst hoặc commander khi đóng vụ chứ không có bước xác nhận riêng cho từng việc.
 
+### Sơ đồ quy trình và cơ sở (NIST SP 800-61 Rev. 3)
+
+Quy trình gồm 12 bước do đề bài định sẵn (kèm bảng nguồn BP10.1 đến BP10.5). Ba sơ đồ trong `bpmn/` vẽ ba chức năng xử lý sự cố của NIST CSF 2.0; mỗi task ghi mã phần NIST tương ứng trong nhãn, và chú thích (`documentation`) của task nêu số trang NIST, FIRST, CISA cùng endpoint hoặc trạng thái của hệ thống:
+
+| Sơ đồ | Chức năng NIST | Các bước | Nội dung |
+| --- | --- | --- | --- |
+| `bpmn1_detect_alert_to_incident.bpmn` | Detect | 2 đến 5 | Nhập cảnh báo, chuẩn hóa và gom nhóm, chấm điểm ba vùng, triage, rà soát, tạo incident hoặc đóng báo nhầm |
+| `bpmn2_respond_investigate_contain.bpmn` | Respond | 6 đến 8 và 10 | Bằng chứng, phân tích phạm vi, đề xuất containment, duyệt (khác người đề xuất), thực hiện mô phỏng, xác minh, thông báo |
+| `bpmn3_recover_close_improve.bpmn` | Recover và cải tiến (ID.IM) | 9, 11, 12 | Recovery, chủ hệ thống xác nhận, tiêu chí đóng, postmortem, action item, đo lường |
+
+Các sơ đồ chỉ vẽ luồng chính. Các nhánh phụ (từ chối do sai vai trò hoặc sai trạng thái, mở lại hay bỏ qua công việc, các điều kiện chặn đóng vụ) nằm ở mô tả từng bước và bảng trạng thái trong tài liệu này. Bước 1 (tài sản) và các điểm cấu hình nằm ngoài sơ đồ.
+
+Cơ sở của từng bước (số trang là số in trong tài liệu; NIST = SP 800-61 Rev. 3, đã đọc toàn văn):
+
+| Bước | Phần NIST (trang) | Tài liệu khác | Phần do tác giả chọn |
+| --- | --- | --- | --- |
+| 1 Tài sản | ID.AM-05, ID.AM-01, ID.AM-02 (15 đến 16) | FIRST 8.1.2 (43 đến 44); CISA tr. 6 | 4 mức quan trọng |
+| 2 Tiếp nhận | DE.CM-09 (24); RS.MA-02 (27) | FIRST 6.1 (14 đến 15) | Quy tắc nhập chi tiết |
+| 3 Chuẩn hóa, chống trùng | DE.AE-03 (25) | FIRST 5.2.1 (13) | Cửa sổ 60 phút, chuẩn hóa IOC |
+| 3b Chấm điểm ba vùng | DE.AE R1 (25); RS.MA N2 (27); GV.RM-06 (12 đến 13) | FIRST 5.2.2 (13) | Trọng số, độ tin cậy nguồn, ngưỡng 0.15, 0.50, 0.80 |
+| 4 Triage | RS.MA-02, RS.MA-03 (27 đến 28) | FIRST 6.1.2 (15 đến 16), 6.2.1 (17); CISA tr. 10 | Mốc SLA do người triage nhập |
+| 5 Tạo incident | DE.AE-08 (26); RS.MA-01 C1 (27) | CISA Phụ lục B bước 1 | Commander phải là Analyst |
+| 6 Bằng chứng | RS.AN-07, RS.AN-06 (29) | NIST SP 800-86; FIRST 6.2.2 (17 đến 18) | Giới hạn 20 MB; chuỗi băm nhật ký |
+| 7 Phân tích, phạm vi | RS.AN-03 (28); RS.AN-08 (29 đến 30); DE.AE-07 (26) | FIRST 6.3 (19 đến 23); CISA tr. 11 đến 13; ATT&CK | Cách xếp hạng Top-K |
+| 8 Containment | RS.MI-01, RS.MI-02 (32 đến 33); PR.AA-05 (21); mục 2.3 (9) | FIRST 6.4.2 (24); CISA tr. 14 | Ma trận thẩm quyền chi tiết |
+| 9 Eradication, Recovery | RC.RP-02 đến RC.RP-05 (33 đến 34) | FIRST 6.4.3 (25); CISA tr. 15 | Không đáng kể |
+| 10 Thông báo | RS.CO-02, RS.CO-03 (30 đến 32); RC.CO-03 (35) | FIRST 6.5 (26 đến 28); CISA tr. 17 | Luồng duyệt chi tiết; mẫu và danh bạ chưa có |
+| 11 Đóng, postmortem | RC.RP-06 (34); ID.IM-03 (19 đến 20) | FIRST 6.2.4 (18), 6.2.5 (19); CISA tr. 16 | Danh sách tiêu chí đóng |
+| 12 Đo lường | Mục 2.3 (9); ID.IM-01 (19) | FIRST 6.5.5 (28) | Định nghĩa MTTD, MTTA, MTTR |
+| Playbook | Mục 2.3 (9) | CISA Playbooks | Nội dung 4 playbook mẫu |
+
+Ghi chú về nguồn và phạm vi:
+- NIST SP 800-61 Rev. 3 (tr. 3) là bộ khuyến nghị xếp theo sáu chức năng CSF 2.0 và không còn mô tả cách thực hiện chi tiết; vì vậy NIST là cơ sở cho khung và nguyên tắc, còn các bước thực hiện dựa vào CISA và FIRST. Bảng 1 (tr. 6) ánh xạ các pha cũ (Preparation; Detection and Analysis; Containment, Eradication and Recovery; Post-Incident) sang các chức năng mới.
+- Trang 5 của playbook CISA nói rõ nó dành cho hoạt động độc hại đã xác nhận có khả năng thành sự cố lớn, và loại trừ các trường hợp như người dùng bấm vào email phishing mà không bị xâm nhập. Vì vậy chỉ nói rằng hệ thống lấy các pha và danh sách kiểm tra của CISA làm khuôn để chuyển thành playbook cho tổ chức vừa và nhỏ (đúng như BP10.2 gợi ý), không nói CISA quy định cách xử lý phishing.
+- FIRST (tr. 6) nêu rằng không CSIRT nào được kỳ vọng cung cấp mọi dịch vụ, mỗi nhóm chọn dịch vụ phù hợp; đây là cơ sở để giữ quy trình gọn.
+- Email, tệp pcap và VirusTotal không có quy trình riêng. Email và CSV, JSON, webhook là kênh nhập ở bước 2; các bộ phân lớp (luồng mạng bằng Random Forest, email bằng TF-IDF kết hợp Linear SVM chưa cài đặt, mô tả sự cố sang ATT&CK bằng truy hồi) đưa điểm vào bước 3b; VirusTotal tra theo mã băm là bước làm giàu thông tin ở bước 7 (chưa cài đặt). Gửi tệp lên VirusTotal cần người có quyền duyệt vì CISA tr. 9 (OPSEC) khuyên không gửi mẫu mã độc lên dịch vụ phân tích công cộng. Hành động containment cho email lấy từ biện pháp giảm thiểu của ATT&CK (ví dụ T1204.002 có M1038 Execution Prevention) và chỉ được đề xuất, duyệt rồi mô phỏng thực hiện.
+- Các con số và quy tắc ở cột cuối là lựa chọn của tác giả, không có trong nguồn; chuỗi băm của nhật ký kiểm toán là cơ chế do tác giả chọn để đáp ứng RS.AN-06 (tr. 29) về toàn vẹn hồ sơ điều tra.
+
 ## Luồng dữ liệu & State machine
 
 ### Luồng tổng thể
