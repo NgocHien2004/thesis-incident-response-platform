@@ -151,12 +151,12 @@ Mỗi bước mô tả ai làm gì, đầu vào, đầu ra và điều kiện ch
 
 Đề yêu cầu chuyển các phase, checklist, điểm phê duyệt và tiêu chí đóng của playbook CISA thành mẫu cấu hình được cho doanh nghiệp vừa và nhỏ. Hệ thống cài đặt hai đối tượng:
 
-- **Playbook** là mẫu theo loại sự cố (`phishing`, `credential_compromise`, `malware`, `web_attack`, `other`), gồm các bước có thứ tự. Mỗi bước có tiêu đề, mô tả, giai đoạn (`analysis`, `evidence`, `containment`, `recovery`, `communication`, `closure`), vai trò thường đảm nhiệm (IT/Helpdesk hoặc Analyst/SOC), hạn tính bằng giờ kể từ lúc tạo vụ, và cờ bắt buộc. Hệ thống nạp sẵn 5 playbook mẫu: 4 playbook theo loại sự cố do tác giả soạn dựa trên CISA Incident and Vulnerability Response Playbooks và NIST SP 800-61 Rev. 3, và 1 playbook tham chiếu chuẩn bám cấu trúc checklist của CISA (xem mục sau). Analyst tạo, sửa hoặc ngừng dùng playbook trên giao diện. Nội dung mẫu là điều chỉnh của tác giả, không phải bản sao tài liệu gốc.
+- **Playbook** là mẫu theo loại sự cố (`phishing`, `credential_compromise`, `malware`, `web_attack`, `other`), gồm các bước có thứ tự. Mỗi bước có tiêu đề, mô tả, giai đoạn (`analysis`, `evidence`, `containment`, `recovery`, `communication`, `closure`), vai trò thường đảm nhiệm (IT/Helpdesk hoặc Analyst/SOC), hạn tính bằng giờ kể từ lúc tạo vụ, và cờ bắt buộc. Hệ thống nạp sẵn 5 playbook mẫu: 4 playbook theo loại sự cố do tác giả soạn theo khung pha và danh sách kiểm tra của CISA, NIST SP 800-61 Rev. 3 và biện pháp giảm thiểu của ATT&CK (37 bước, mỗi bước ghi mã tham chiếu riêng), và 1 playbook tham chiếu chuẩn bám cấu trúc checklist của CISA (xem mục sau). Analyst tạo, sửa hoặc ngừng dùng playbook trên giao diện. Nội dung mẫu là điều chỉnh của tác giả, không phải bản sao tài liệu gốc.
 - **Công việc (task)** là bản sao của một bước playbook gắn với một incident, hoặc do Analyst tạo tay. Task lưu tiêu đề, giai đoạn, hạn, cờ bắt buộc, người được giao, ghi chú và người hoàn thành. Vì là bản sao, sửa hoặc ngừng dùng playbook về sau không làm đổi các task đã tạo.
 
 ### Playbook tham chiếu chuẩn và đối chiếu với CISA
 
-CISA không có playbook riêng theo loại sự cố: tài liệu chỉ có một playbook ứng phó sự cố chung và một playbook xử lý lỗ hổng, và playbook ứng phó chỉ áp dụng cho hoạt động độc hại đã xác nhận có thể thành sự cố lớn. Tài liệu còn nêu rõ không áp dụng cho các hoạt động không có khả năng thành sự cố lớn, ví dụ người dùng nhấp email phishing mà không bị chiếm quyền, hay mã độc thông thường trên một máy. Nhiều bước chỉ dành cho cơ quan liên bang Mỹ (báo CISA trong 1 giờ, báo OMB và Quốc hội, kích hoạt FNA). Vì vậy 4 playbook theo loại sự cố ở trên là chuyển thể của tác giả, còn playbook **"Tham chiếu chuẩn: ứng phó sự cố theo CISA (điều chỉnh)"** (31 bước) giữ nguyên thứ tự 11 bước của Phụ lục B (Incident Response Checklist, bản tháng 11/2021), diễn đạt lại bằng tiếng Việt, không dịch từng câu. Mỗi bước có trường tham chiếu riêng ghi mã mục tương ứng trong Phụ lục B (ví dụ "CISA B 3a–3b"), hiển thị cạnh giai đoạn và vai trò, không lẫn vào phần hướng dẫn thực hiện; công việc tạo từ playbook không mang trường này. Mô tả của playbook chỉ nêu mục đích và cách dùng, còn lai lịch chuyển thể (mục nào bỏ, mục nào chuyển thể) nằm ở bảng dưới đây và ở trường nguồn tham chiếu.
+CISA không có playbook riêng theo loại sự cố: tài liệu chỉ có một playbook ứng phó sự cố chung và một playbook xử lý lỗ hổng, và playbook ứng phó chỉ áp dụng cho hoạt động độc hại đã xác nhận có thể thành sự cố lớn. Tài liệu còn nêu rõ không áp dụng cho các hoạt động không có khả năng thành sự cố lớn, ví dụ người dùng nhấp email phishing mà không bị chiếm quyền, hay mã độc thông thường trên một máy. Nhiều bước chỉ dành cho cơ quan liên bang Mỹ (báo CISA trong 1 giờ, báo OMB và Quốc hội, kích hoạt FNA). Vì vậy 4 playbook theo loại sự cố ở trên là chuyển thể của tác giả: mỗi bước ghi trong trường tham chiếu mã mục tương ứng của Phụ lục B, NIST hoặc biện pháp giảm thiểu ATT&CK (đối chiếu là phán đoán của tác giả; riêng bước thu hồi thư khỏi hộp thư người nhận của playbook phishing chưa có chỗ tựa trong các nguồn đã đọc); hạn giờ, cờ bắt buộc và vai trò đảm nhiệm của từng bước không có trong nguồn và là lựa chọn của tác giả; các bước thông báo của phishing, credential và mã độc dặn báo qua điện thoại, không qua email, và bước phân tích mẫu của mã độc dặn không gửi mẫu lên dịch vụ phân tích công cộng (CISA tr. 9, Phụ lục C 7b và 7e; ATT&CK M1060 cho T1114.003). Với DB đã có sẵn playbook, khi khởi động hệ thống chỉ điền mã vào bước còn trống và chỉ thay mô tả khi nó vẫn đúng bằng bản cũ, nên chỗ analyst đã sửa được giữ nguyên. Còn playbook **"Tham chiếu chuẩn: ứng phó sự cố theo CISA (điều chỉnh)"** (31 bước) giữ nguyên thứ tự 11 bước của Phụ lục B (Incident Response Checklist, bản tháng 11/2021), diễn đạt lại bằng tiếng Việt, không dịch từng câu. Mỗi bước có trường tham chiếu riêng ghi mã mục tương ứng trong Phụ lục B (ví dụ "CISA B 3a–3b"), hiển thị cạnh giai đoạn và vai trò, không lẫn vào phần hướng dẫn thực hiện; công việc tạo từ playbook không mang trường này. Mô tả của playbook chỉ nêu mục đích và cách dùng, còn lai lịch chuyển thể (mục nào bỏ, mục nào chuyển thể) nằm ở bảng dưới đây và ở trường nguồn tham chiếu.
 
 | Bước CISA (Phụ lục B) | Mục | Công việc trong playbook (số thứ tự) | Ghi chú |
 | --- | --- | --- | --- |
@@ -219,6 +219,32 @@ Ghi chú về nguồn và phạm vi:
 - FIRST (tr. 6) nêu rằng không CSIRT nào được kỳ vọng cung cấp mọi dịch vụ, mỗi nhóm chọn dịch vụ phù hợp; đây là cơ sở để giữ quy trình gọn.
 - Email, tệp pcap và VirusTotal không có quy trình riêng. Email và CSV, JSON, webhook là kênh nhập ở bước 2; các bộ phân lớp (luồng mạng bằng Random Forest, email bằng TF-IDF kết hợp Linear SVM chưa cài đặt, mô tả sự cố sang ATT&CK bằng truy hồi) đưa điểm vào bước 3b; VirusTotal tra theo mã băm là bước làm giàu thông tin ở bước 7 (chưa cài đặt). Gửi tệp lên VirusTotal cần người có quyền duyệt vì CISA tr. 9 (OPSEC) khuyên không gửi mẫu mã độc lên dịch vụ phân tích công cộng. Hành động containment cho email lấy từ biện pháp giảm thiểu của ATT&CK (ví dụ T1204.002 có M1038 Execution Prevention) và chỉ được đề xuất, duyệt rồi mô phỏng thực hiện.
 - Các con số và quy tắc ở cột cuối là lựa chọn của tác giả, không có trong nguồn; chuỗi băm của nhật ký kiểm toán là cơ chế do tác giả chọn để đáp ứng RS.AN-06 (tr. 29) về toàn vẹn hồ sơ điều tra.
+
+### Mức độ có cơ sở của toàn hệ thống
+
+Nói thẳng: **chưa phải mọi thứ đều có cơ sở.** Khung quy trình và các cơ chế chính có cơ sở; các con số và quy tắc chi tiết do tác giả chọn; một số phần chưa cài đặt hoặc chưa kiểm chứng đầy đủ.
+
+| Nhóm | Thành phần | Ghi chú |
+| --- | --- | --- |
+| Có nguồn trực tiếp cho khung và nội dung | 12 bước và các nhóm người dùng | Do đề bài định sẵn, kèm bảng nguồn BP10.1 đến BP10.5 |
+| | Ba sơ đồ BPMN theo Detect, Respond, Recover | Mỗi task ghi mã NIST và chú thích số trang NIST, FIRST, CISA |
+| | Playbook tham chiếu CISA (31 bước) | Cả 31 mã tham chiếu đã đối chiếu khớp Phụ lục B |
+| | Bốn playbook mẫu (37 bước) | Mỗi bước ghi mã CISA Phụ lục B, NIST hoặc ATT&CK; đối chiếu là phán đoán của tác giả; 1 bước chỉ có chỗ tựa một phần |
+| | Bằng chứng, SHA-256, chain of custody, bản sao làm việc | NIST RS.AN-06, RS.AN-07; FIRST 6.2.2, 6.3; đề (BP10.4) |
+| | Phân tách nhiệm vụ; containment do người quyết định | NIST PR.AA-05 (tr. 21), RS.MI-01 (tr. 33) |
+| | Ánh xạ ATT&CK, biện pháp giảm thiểu | Dữ liệu STIX có phiên bản (đề yêu cầu lưu phiên bản) |
+| Có nguồn cho khung; tham số hoặc quy tắc do tác giả chọn | Chấm điểm ba vùng | Trọng số, độ tin cậy từng nguồn, ngưỡng 0.15, 0.50, 0.80 |
+| | Chống trùng, SLA, commander, ma trận thẩm quyền, tiêu chí đóng, MTTD, MTTA, MTTR | Cửa sổ 60 phút; mốc SLA do người triage nhập; định nghĩa chỉ số do tác giả điều chỉnh |
+| | Hạn giờ, cờ bắt buộc, vai trò của bước playbook | Không có trong nguồn |
+| | Bộ phân lớp luồng mạng | Random Forest trên CIC-IDS2017; so với Logistic Regression và Gradient Boosting; giữ Random Forest là quyết định thực dụng; dữ liệu có lỗi đã công bố, chia ngẫu nhiên, một lần huấn luyện |
+| | Quy tắc nhập CSV, JSON, giới hạn 20 MB | Do tác giả chọn |
+| Bổ sung của tác giả, không có nguồn trực tiếp | Cơ chế chuỗi băm của nhật ký kiểm toán | Nhu cầu giữ toàn vẹn hồ sơ có cơ sở ở RS.AN-06 (tr. 29), cách làm là của tác giả |
+| | Ba vai trò | Thu gọn từ 7 nhóm theo lời khuyên của giảng viên |
+| Chưa cài đặt | Mô hình email (TF-IDF và Linear SVM), nhận `.eml`, tra VirusTotal | Dự kiến, chưa có |
+| | Mẫu thông báo và danh bạ bên liên quan; liên kết ATT&CK với phát hiện và khắc phục; báo cáo xu hướng | Chưa có |
+| | Thử nghiệm triage có và không có AI; nhập CSV luồng CIC; nhập pcap | Chưa có |
+| Chưa kiểm chứng đủ | Nguồn | NIST SP 800-86 chưa đọc toàn văn; FIRST đọc qua một bản sao lưu; điều khoản VirusTotal chưa đọc bản chính thức; nghĩa vụ báo cáo theo pháp luật Việt Nam chưa tra; số trang nên đối chiếu lại khi trích |
+| | Sơ đồ và môi trường | Ba sơ đồ BPMN chưa mở trong công cụ BPMN thật; các test mới chạy ở môi trường thử SQLite, trên SQL Server do người dùng chạy |
 
 ## Luồng dữ liệu & State machine
 

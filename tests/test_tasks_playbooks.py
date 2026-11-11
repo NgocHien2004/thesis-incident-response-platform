@@ -68,6 +68,20 @@ def run():
         check("Mô tả bước không bị lẫn mã tham chiếu", not any("Tham chiếu:" in (s["description"] or "") for s in rd["steps"]))
         check("Mô tả playbook tham chiếu ngắn gọn, không kể lai lịch", len(rd["description"] or "") < 400 and "1d" not in (rd["description"] or ""))
         check("Playbook tham chiếu nêu nguồn CISA và NIST", "CISA" in (rd["source"] or "") and "NIST" in (rd["source"] or ""))
+    samples = [R(A, "GET", f"/playbooks/{p['id']}").json() for p in pbs if "mã tham chiếu ghi theo từng bước" in (p.get("source") or "")]
+    check("Bốn playbook mẫu đã có nguồn ghi rõ mã tham chiếu theo từng bước", len(samples) == 4)
+    sample_steps = [st for pb in samples for st in pb["steps"]]
+    check("Mọi bước của bốn playbook mẫu có mã tham chiếu (tối đa 100 ký tự)",
+          bool(sample_steps) and all(st.get("reference") and len(st["reference"]) <= 100 for st in sample_steps))
+    check("Nguồn của playbook mẫu nêu CISA, NIST và ATT&CK",
+          bool(samples) and all(all(k in (pb["source"] or "") for k in ("CISA", "NIST", "ATT&CK")) for pb in samples))
+    def step_of(itype, phase):
+        pb = next((x for x in samples if x["incident_type"] == itype), None)
+        return [st for st in (pb or {}).get("steps", []) if st["phase"] == phase]
+    check("Bước thông báo của phishing, credential và mã độc dặn báo qua điện thoại, không qua email",
+          all(st and "điện thoại" in st[0]["description"] for st in (step_of(t, "communication") for t in ("phishing", "credential_compromise", "malware"))))
+    check("Bước phân tích mẫu của playbook mã độc dặn không gửi mẫu lên dịch vụ công cộng",
+          any("dịch vụ phân tích công cộng" in st["description"] for st in step_of("malware", "analysis")))
     expect("Playbook không tồn tại trả 404", R(A, "GET", "/playbooks/999999"), 404)
 
     new_pb = {

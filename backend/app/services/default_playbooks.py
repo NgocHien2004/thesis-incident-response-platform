@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.user import RoleEnum
@@ -7,8 +8,11 @@ IT = RoleEnum.it_helpdesk
 AN = RoleEnum.analyst_soc
 P = TaskPhase
 
-SOURCE = ("Xây dựng dựa trên CISA Federal Government Cybersecurity Incident and Vulnerability Response "
-          "Playbooks và NIST SP 800-61 Rev. 3; điều chỉnh cho tổ chức vừa và nhỏ.")
+OLD_SOURCE = ("Xây dựng dựa trên CISA Federal Government Cybersecurity Incident and Vulnerability Response "
+              "Playbooks và NIST SP 800-61 Rev. 3; có điều chỉnh.")
+SOURCE = ("Khung pha và danh sách kiểm tra của CISA Federal Government Cybersecurity Incident and Vulnerability "
+          "Response Playbooks (Phụ lục B), NIST SP 800-61 Rev. 3, biện pháp giảm thiểu của MITRE ATT&CK; điều chỉnh "
+          "cho tổ chức vừa và nhỏ. CISA không có playbook riêng cho từng loại sự cố; mã tham chiếu ghi theo từng bước.")
 
 # (tiêu đề, mô tả, giai đoạn, vai trò thường đảm nhiệm, hạn (giờ), bắt buộc)
 DEFAULTS = [
@@ -24,7 +28,7 @@ DEFAULTS = [
             ("Đề xuất chặn và thu hồi thư", "Đề xuất containment: chặn domain hoặc địa chỉ gửi, thu hồi thư khỏi hộp thư người nhận.", P.containment, IT, 4, True),
             ("Đặt lại mật khẩu tài khoản bị lộ", "Với tài khoản đã nhập thông tin vào trang giả mạo: đặt lại mật khẩu và thu hồi phiên đăng nhập.", P.recovery, IT, 8, True),
             ("Quét máy của người đã mở tệp đính kèm", "Quét và xác nhận không có mã độc trên máy; nếu có, chuyển sang playbook mã độc.", P.recovery, IT, 24, True),
-            ("Thông báo người nhận và phòng ban liên quan", "Thông báo nội bộ và nhắc nhở nhận biết phishing.", P.communication, AN, 24, False),
+            ("Thông báo người nhận và phòng ban liên quan", "Thông báo nội bộ và nhắc nhở nhận biết phishing. Người dùng của máy nghi bị nhiễm nên được báo qua điện thoại, không qua email.", P.communication, AN, 24, False),
             ("Viết bản nháp postmortem", "Nguyên nhân gốc, timeline, tác động, bài học. Commander chốt sau khi đóng vụ.", P.closure, AN, 72, True),
         ],
     },
@@ -40,7 +44,7 @@ DEFAULTS = [
             ("Đề xuất khóa tài khoản và thu hồi phiên", "Đề xuất containment: khóa hoặc đặt lại tài khoản, thu hồi phiên và token đang hoạt động.", P.containment, IT, 2, True),
             ("Đặt lại thông tin xác thực, bật MFA", "Đặt lại mật khẩu và bật xác thực đa yếu tố cho tài khoản bị ảnh hưởng.", P.recovery, IT, 8, True),
             ("Gỡ quyền và cấu hình do kẻ tấn công thêm", "Quy tắc chuyển tiếp thư, thiết bị tin cậy, khóa API hoặc quyền được thêm trái phép.", P.recovery, IT, 24, True),
-            ("Thông báo chủ tài khoản và quản lý trực tiếp", "Giải thích sự việc và việc cần làm tiếp theo.", P.communication, AN, 24, False),
+            ("Thông báo chủ tài khoản và quản lý trực tiếp", "Giải thích sự việc và việc cần làm tiếp theo. Liên hệ qua kênh khác như điện thoại, vì thư của tài khoản bị chiếm có thể đã bị kẻ tấn công đọc.", P.communication, AN, 24, False),
             ("Viết bản nháp postmortem", "Nguyên nhân gốc (mật khẩu yếu, phishing, tái sử dụng mật khẩu...), timeline, bài học.", P.closure, AN, 72, True),
         ],
     },
@@ -51,13 +55,13 @@ DEFAULTS = [
         "steps": [
             ("Xác nhận cảnh báo và xác định máy bị nhiễm", "Đối chiếu cảnh báo với dữ liệu trên máy; ghi tên máy, người dùng, thời điểm.", P.analysis, AN, 1, True),
             ("Thu thập bằng chứng", "Hash mẫu, danh sách tiến trình, kết nối mạng, bản chụp bộ nhớ nếu có. Làm việc trên bản sao, không phân tích trên bản gốc.", P.evidence, IT, 2, True),
-            ("Phân tích mẫu trong môi trường cô lập", "Xác định IOC và kỹ thuật ATT&CK; ghi vào phân tích phạm vi.", P.analysis, AN, 4, True),
+            ("Phân tích mẫu trong môi trường cô lập", "Xác định IOC và kỹ thuật ATT&CK; ghi vào phân tích phạm vi. Không gửi mẫu lên dịch vụ phân tích công cộng khi chưa được người có quyền duyệt.", P.analysis, AN, 4, True),
             ("Xác định phạm vi lây lan", "Tìm máy khác có cùng IOC và tài khoản đã đăng nhập trên máy bị nhiễm.", P.analysis, AN, 6, True),
             ("Đề xuất cô lập máy và chặn IOC", "Đề xuất containment: cô lập máy khỏi mạng, chặn IP, domain, hash.", P.containment, IT, 2, True),
             ("Loại bỏ mã độc và vá lỗ hổng", "Loại bỏ mã độc, vá lỗ hổng hoặc cấu hình sai đã bị khai thác.", P.recovery, IT, 24, True),
             ("Đặt lại mật khẩu các tài khoản đã dùng trên máy", "Bao gồm tài khoản dịch vụ và tài khoản quản trị nếu có.", P.recovery, IT, 24, True),
             ("Khôi phục từ bản sao lưu sạch hoặc dựng lại máy", "Kiểm tra lại sau khôi phục và tăng giám sát trong thời gian đầu.", P.recovery, IT, 48, True),
-            ("Thông báo chủ hệ thống và lãnh đạo", "Tác động, kế hoạch khôi phục và thời gian dự kiến.", P.communication, AN, 24, False),
+            ("Thông báo chủ hệ thống và lãnh đạo", "Tác động, kế hoạch khôi phục và thời gian dự kiến. Người dùng của máy nghi bị nhiễm nên được báo qua điện thoại, không qua email.", P.communication, AN, 24, False),
             ("Viết bản nháp postmortem", "Nguyên nhân gốc, timeline, tác động, bài học và hành động phòng ngừa.", P.closure, AN, 72, True),
         ],
     },
@@ -126,12 +130,70 @@ REF_STEPS = [
 ]
 
 
+# Mã tham chiếu theo từng bước của bốn playbook mẫu (đúng thứ tự bước), để đối chiếu với tài liệu nguồn.
+SAMPLE_REFS = {
+    'Phishing qua email': [
+        'CISA B 3a–3b; NIST RS.AN-07',
+        'CISA B 4n–4r; CISA Bảng 1 (T1566)',
+        'CISA B 3a–3b; NIST SP 800-86',
+        'CISA B 4m, 4z; NIST RS.AN-08',
+        'CISA B 7g–7h; ATT&CK M1031, M1021',
+        'CISA B 7f, 9c',
+        'CISA B 8f; ATT&CK M1049',
+        'NIST RS.CO-02; ATT&CK M1017; CISA tr. 9 (OPSEC)',
+        'CISA B 10a, 10f; NIST RC.RP-06',
+    ],
+    'Lạm dụng tài khoản (credential compromise)': [
+        'CISA B 4g–4h; CISA Bảng 1 (T1110)',
+        'CISA B 4m, 4w',
+        'CISA B 3a; CISA Bảng 1 (Authentication logs)',
+        'CISA B 4g–4h, 4u–4v, 4y; ATT&CK T1098, T1114.003',
+        'CISA B 7f; FIRST 6.4.2; ATT&CK M1018, M1026',
+        'CISA B 9c–9d; ATT&CK M1032',
+        'CISA B 4k, 8c; ATT&CK T1098, T1114.003',
+        'NIST RS.CO-02; ATT&CK M1060; CISA tr. 9 (OPSEC)',
+        'CISA B 10a, 10f; NIST RC.RP-06',
+    ],
+    'Mã độc trên máy trạm hoặc máy chủ': [
+        'CISA B 1a, 2a',
+        'CISA B 3a–3b, 7b; NIST SP 800-86',
+        'CISA B 4o; CISA Phụ lục C 7e (OPSEC)',
+        'CISA B 4m, 4p, 4z; NIST RS.AN-08',
+        'CISA B 7d, 7g–7i; ATT&CK M1038, M1049',
+        'CISA B 8c, 8f, 9e',
+        'CISA B 7f, 9c',
+        'CISA B 8d–8e, 8h–8k, 9a, 9g',
+        'NIST RS.CO-02, 03; CISA B 11d–11e; CISA tr. 9 (OPSEC)',
+        'CISA B 10a, 10f; NIST RC.RP-06',
+    ],
+    'Tấn công ứng dụng web': [
+        'CISA B 1a, 2a; CISA Bảng 1 (T1190)',
+        'CISA B 3a; CISA Bảng 1',
+        'CISA B 4i–4m; CISA Vulnerability Playbook tr. 22–23',
+        'CISA B 7d, 7e, 7g; ATT&CK M1037, M1035',
+        'CISA B 4k, 4u; ATT&CK T1505.003',
+        'CISA B 9e; ATT&CK M1051, M1016',
+        'CISA B 9a–9b; NIST RC.RP-04',
+        'CISA B 10e; NIST RS.CO-02',
+        'CISA B 10a, 10f; NIST RC.RP-06',
+    ],
+}
+
+# Mô tả cũ của các bước đã được bổ sung lưu ý; chỉ cập nhật tại chỗ nếu mô tả trong DB vẫn đúng bằng bản cũ (chưa ai sửa).
+LEGACY_DESC = {
+    ('Phishing qua email', 8): 'Thông báo nội bộ và nhắc nhở nhận biết phishing.',
+    ('Lạm dụng tài khoản (credential compromise)', 8): 'Giải thích sự việc và việc cần làm tiếp theo.',
+    ('Mã độc trên máy trạm hoặc máy chủ', 3): 'Xác định IOC và kỹ thuật ATT&CK; ghi vào phân tích phạm vi.',
+    ('Mã độc trên máy trạm hoặc máy chủ', 9): 'Tác động, kế hoạch khôi phục và thời gian dự kiến.',
+}
+
+
 def _all_defaults():
     """Danh sách playbook mẫu; mỗi mục có source riêng và cờ auto_add (thêm vào DB đã có sẵn playbook khác).
     Mỗi bước: (tiêu đề, mô tả, giai đoạn, vai trò, hạn giờ, bắt buộc, mã tham chiếu hoặc None)."""
     items = [
         dict(d, source=SOURCE, auto_add=False,
-             steps=[st + (None,) for st in d["steps"]])
+             steps=[st + (ref,) for st, ref in zip(d["steps"], SAMPLE_REFS[d["name"]])])
         for d in DEFAULTS
     ]
     ref_steps = [
@@ -155,6 +217,33 @@ def _add_steps(db: Session, playbook_id: int, steps):
             playbook_id=playbook_id, step_order=order, title=title, description=desc,
             phase=phase, owner_role=role, due_hours=hours, is_required=required, reference=reference,
         ))
+
+
+def _refresh_sample_references(db: Session) -> int:
+    """Điền mã tham chiếu và lưu ý bổ sung cho bốn playbook mẫu đã nằm sẵn trong DB, mà không đè lên chỗ đã bị sửa:
+    chỉ điền mã vào bước còn trống, chỉ thay mô tả khi vẫn đúng bằng bản cũ, chỉ đổi nguồn khi vẫn là bản cũ."""
+    changed = 0
+    for d in DEFAULTS:
+        pb = db.query(Playbook).filter(func.lower(Playbook.name) == d["name"].strip().lower()).first()
+        if not pb:
+            continue
+        steps = (db.query(PlaybookStep).filter(PlaybookStep.playbook_id == pb.id)
+                 .order_by(PlaybookStep.step_order).all())
+        if len(steps) != len(d["steps"]):
+            continue
+        if (pb.source or "").strip() == OLD_SOURCE.strip():
+            pb.source = SOURCE
+            changed += 1
+        for st, spec, ref in zip(steps, d["steps"], SAMPLE_REFS[d["name"]]):
+            if st.title != spec[0]:
+                continue
+            if st.reference is None:
+                st.reference = ref
+                changed += 1
+            if st.description == LEGACY_DESC.get((d["name"], st.step_order)):
+                st.description = spec[1]
+                changed += 1
+    return changed
 
 
 def seed_default_playbooks(db: Session):
@@ -191,6 +280,7 @@ def seed_default_playbooks(db: Session):
             db.flush()
             _add_steps(db, pb.id, item["steps"])
             changed += 1
+        changed += _refresh_sample_references(db)
         db.commit()
     finally:
         db.info.pop("audit_disabled", None)
