@@ -1,32 +1,28 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { login as loginApi } from '../api/auth'
+import { createContext, useContext, useState } from 'react'
+import { login as loginApi, getMe } from '../api'
 
 const AuthContext = createContext(null)
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
+function readUser() {
+  try {
     const token = localStorage.getItem('access_token')
-    const savedUser = localStorage.getItem('user')
-    if (token && savedUser) {
-      setUser(JSON.parse(savedUser))
-    }
-    setLoading(false)
-  }, [])
+    const saved = localStorage.getItem('user')
+    return token && saved ? JSON.parse(saved) : null
+  } catch {
+    return null
+  }
+}
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(readUser)
 
   const login = async (username, password) => {
     const res = await loginApi({ username, password })
-    const { access_token } = res.data
-    localStorage.setItem('access_token', access_token)
-
-    // Decode JWT để lấy role
-    const payload = JSON.parse(atob(access_token.split('.')[1]))
-    const userData = { username, role: payload.role, id: payload.sub }
-    localStorage.setItem('user', JSON.stringify(userData))
-    setUser(userData)
-    return userData
+    localStorage.setItem('access_token', res.data.access_token)
+    const me = await getMe()
+    localStorage.setItem('user', JSON.stringify(me.data))
+    setUser(me.data)
+    return me.data
   }
 
   const logout = () => {
@@ -35,11 +31,8 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
-  return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext)

@@ -1,322 +1,198 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+import json
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from sqlalchemy import func, case
-import json, csv, io
 from database import get_db
-from app.models.alert import Alert, AlertSource, AlertStatus
-from app.schemas.alert import AlertCreate, AlertOut, AlertNote
-from app.models.asset import Asset
-from app.services.scoring import score_alert, score_alert_safe
-from app.core.dependencies import get_current_user, require_roles
-from app.models.user import RoleEnum, User
-from app.services.dedup import process_alert
-from app.models.alert_group import AlertGroup
-from app.schemas.alert import TriageRequest, AlertTriaged
-from datetime import datetime, timezone, timedelta
+from app.core.dependencies import get_current_user
+from app.core.paging import apply_page, page_response, chunks
+from app.core.timeutils import utcnow
+from app.core.constants import VERIFICATION_STATUSES, UPLOADABLE_STATUSES, TERMINAL_STATUSES, DATA_TYPES
+from app.models.user import User
+from app.models.incident import Incident
+from app.models.alert import Alert, AlertMoveHistory
+from app.models.upload import Upload
+from app.schemas.alert import VerifyRequest, BulkVerifyRequest, MoveRequest, MoveOut
+from app.api.incidents import get_incident_or_404
 
-router = APIRouter(prefix="/alerts", tags=["Alerts"])
+router = APIRouter(tags=["Alerts"])
 
+SORTABLE = {"id", "row_index", "confidence", "created_at", "predicted_label", "verification_status", "source_type"}
 
-def resolve_asset_id(db: Session, row: dict):
-    """Gắn cảnh báo nhập từ ngoài vào tài sản: theo affected_asset (id), asset_hostname hoặc asset_ip."""
-    aid = row.get("affected_asset")
-    if aid not in (None, ""):
-        try:
-            aid = int(aid)
-        except (TypeError, ValueError):
-            aid = None
-        if aid and db.query(Asset.id).filter(Asset.id == aid).first():
-            return aid
-    host = str(row.get("asset_hostname") or "").strip().lower()
-    ip = str(row.get("asset_ip") or "").strip()
-    found = None
-    if host:
-        found = db.query(Asset).filter(func.lower(Asset.hostname) == host).first()
-    if not found and ip:
-        found = db.query(Asset).filter(Asset.ip_address == ip).first()
-    return found.id if found else None
+def alert_dict(a: Alert, filename, code, verifier) -> dict:
+    return {
+        "id": a.id, "incident_id": a.incident_id, "incident_code": code, "upload_id": a.upload_id,
+        "upload_filename": filename, "row_index": a.row_index, "predicted_label": a.predicted_label,
+        "confidence": a.confidence, "source_type": a.source_type, "auto_linked": a.auto_linked,
+        "linked_at": a.linked_at, "verification_status": a.verification_status,
+        "verified_by": a.verified_by, "verified_by_name": verifier, "verified_at": a.verified_at,
+        "note": a.note, "created_at": a.created_at,
+    }
 
+def base_query(db: Session):
+    return (db.query(Alert, Upload.original_filename, Incident.code, User.full_name)
+            .join(Upload, Upload.id == Alert.upload_id)
+            .outerjoin(Incident, Incident.id == Alert.incident_id)
+            .outerjoin(User, User.id == Alert.verified_by))
 
-# Nguồn mà bên gửi được phép khai báo khi nhập tự động. "manual" không nhận vì đó là báo cáo
-# của con người, chỉ tạo qua POST /alerts/ (luật an toàn tự đóng loại trừ nguồn này).
-DECLARABLE_SOURCES = {AlertSource.ids_ips, AlertSource.endpoint, AlertSource.email}
+def list_alerts(db, incident_id, unassigned, page, page_size, sort_by, order, label, verification_status,
+                source_type, upload_id, min_confidence):
+    if sort_by not in SORTABLE:
+        raise HTTPException(422, "sort_by không hợp lệ")
+    if verification_status and verification_status not in VERIFICATION_STATUSES:
+        raise HTTPException(422, "Trạng thái xác minh không hợp lệ")
+    if source_type and source_type not in DATA_TYPES:
+        raise HTTPException(422, "Nguồn không hợp lệ")
+    q = base_query(db)
+    if incident_id is not None:
+        q = q.filter(Alert.incident_id == incident_id)
+    if unassigned:
+        q = q.filter(Alert.incident_id.is_(None))
+    if label:
+        q = q.filter(Alert.predicted_label == label)
+    if verification_status:
+        q = q.filter(Alert.verification_status == verification_status)
+    if source_type:
+        q = q.filter(Alert.source_type == source_type)
+    if upload_id is not None:
+        q = q.filter(Alert.upload_id == upload_id)
+    if min_confidence is not None:
+        q = q.filter(Alert.confidence >= min_confidence)
+    col = getattr(Alert, sort_by)
+    rows, total = apply_page(q, [col.asc() if order == "asc" else col.desc(), Alert.id.asc()], page, page_size)
+    items = [alert_dict(a, f, c, v) for a, f, c, v in rows]
+    return page_response(items, total, page, page_size)
 
-
-def resolve_source(row: dict, default: AlertSource) -> AlertSource:
-    """Lấy nguồn từ trường source của payload nếu hợp lệ, ngược lại dùng kênh nhập (default)."""
-    raw = str(row.get("source") or "").strip().lower()
-    try:
-        declared = AlertSource(raw)
-    except ValueError:
-        return default
-    return declared if declared in DECLARABLE_SOURCES else default
-
-
-# Xem danh sách
-@router.get("/", response_model=List[AlertOut])
-def list_alerts(
-    status: str = None,
-    zone: Optional[str] = None,
-    order: str = "created",
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+@router.get("/incidents/{incident_id}/alerts")
+def incident_alerts(
+    incident_id: int, page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=500),
+    sort_by: str = "row_index", order: str = Query("asc", pattern="^(asc|desc)$"),
+    label: Optional[str] = None, verification_status: Optional[str] = None, source_type: Optional[str] = None,
+    upload_id: Optional[int] = None, min_confidence: Optional[float] = Query(None, ge=0, le=1),
+    db: Session = Depends(get_db), user: User = Depends(get_current_user),
 ):
-    query = db.query(Alert)
-    if status:
-        query = query.filter(Alert.status == status)
-    if zone:
-        query = query.filter(Alert.ml_zone == zone)
-    if order == "priority":
-        # CASE thay cho "ml_priority IS NULL" vì SQL Server không cho dùng biểu thức logic trong ORDER BY
-        unscored_last = case((Alert.ml_priority.is_(None), 1), else_=0)
-        return query.order_by(unscored_last, Alert.ml_priority.desc(), Alert.created_at.desc()).all()
-    return query.order_by(Alert.created_at.desc()).all()
+    get_incident_or_404(db, incident_id)
+    return list_alerts(db, incident_id, False, page, page_size, sort_by, order, label, verification_status,
+                       source_type, upload_id, min_confidence)
 
-# Xem chi tiết
-@router.get("/{alert_id}", response_model=AlertOut)
-def get_alert(
-    alert_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+@router.get("/alerts")
+def all_alerts(
+    unassigned: bool = False, incident_id: Optional[int] = None,
+    page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=500),
+    sort_by: str = "created_at", order: str = Query("desc", pattern="^(asc|desc)$"),
+    label: Optional[str] = None, verification_status: Optional[str] = None, source_type: Optional[str] = None,
+    upload_id: Optional[int] = None, min_confidence: Optional[float] = Query(None, ge=0, le=1),
+    db: Session = Depends(get_db), user: User = Depends(get_current_user),
 ):
-    alert = db.query(Alert).filter(Alert.id == alert_id).first()
-    if not alert:
+    return list_alerts(db, incident_id, unassigned, page, page_size, sort_by, order, label, verification_status,
+                       source_type, upload_id, min_confidence)
+
+@router.get("/alerts/{alert_id}")
+def get_alert(alert_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    row = base_query(db).filter(Alert.id == alert_id).first()
+    if not row:
         raise HTTPException(404, "Không tìm thấy cảnh báo")
-    return alert
+    a, f, c, v = row
+    data = alert_dict(a, f, c, v)
+    data["row_data"] = json.loads(a.row_data) if a.row_data else None
+    return data
 
-# Tạo thủ công (manual)
-@router.post("/", response_model=AlertOut)
-def create_alert(
-    payload: AlertCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.it_helpdesk, RoleEnum.analyst_soc))
-):
-    alert = Alert(**payload.model_dump(), created_by=current_user.id)
-    db.add(alert)
-    db.commit()
-    db.refresh(alert)
-    alert = process_alert(alert, db)
-    score_alert_safe(db, alert)
-    return alert
-
-# Webhook — nhận POST từ hệ thống ngoài
-@router.post("/webhook", response_model=AlertOut)
-def receive_webhook(
-    payload: dict,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.it_helpdesk, RoleEnum.analyst_soc))
-):
-    alert = Alert(
-        title=payload.get("title", "Webhook Alert"),
-        description=payload.get("description"),
-        source=resolve_source(payload, AlertSource.webhook),
-        severity=payload.get("severity", "medium"),
-        source_ref=payload.get("source_ref"),
-        ioc=payload.get("ioc"),
-        affected_asset=resolve_asset_id(db, payload),
-        raw_data=json.dumps(payload),
-        created_by=current_user.id
-    )
-    db.add(alert)
-    db.commit()
-    db.refresh(alert)
-    alert = process_alert(alert, db)
-    score_alert_safe(db, alert)
-    return alert
-
-# Upload CSV
-@router.post("/upload/csv", response_model=List[AlertOut])
-def upload_csv(
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.it_helpdesk, RoleEnum.analyst_soc))
-):
-    if not file.filename.endswith(".csv"):
-        raise HTTPException(400, "Chỉ chấp nhận file .csv")
-    content = file.file.read().decode("utf-8-sig")
-    reader = csv.DictReader(io.StringIO(content))
-    alerts = []
-    for row in reader:
-        alert = Alert(
-            title=row.get("title", "CSV Alert"),
-            description=row.get("description"),
-            source=resolve_source(row, AlertSource.csv_upload),
-            severity=row.get("severity", "medium"),
-            source_ref=row.get("source_ref"),
-            ioc=row.get("ioc"),
-            affected_asset=resolve_asset_id(db, row),
-            raw_data=json.dumps(row),
-            created_by=current_user.id
-        )
-        db.add(alert)
-        alerts.append(alert)
-    db.commit()
-    for a in alerts:
-        db.refresh(a)
-        process_alert(a, db)
-        score_alert_safe(db, a)
-    return alerts
-
-# Upload JSON
-@router.post("/upload/json", response_model=List[AlertOut])
-def upload_json(
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.it_helpdesk, RoleEnum.analyst_soc))
-):
-    if not file.filename.endswith(".json"):
-        raise HTTPException(400, "Chỉ chấp nhận file .json")
-    content = json.loads(file.file.read().decode("utf-8-sig"))
-    if not isinstance(content, list):
-        raise HTTPException(400, "File JSON phải là một array")
-    alerts = []
-    for row in content:
-        alert = Alert(
-            title=row.get("title", "JSON Alert"),
-            description=row.get("description"),
-            source=resolve_source(row, AlertSource.csv_upload),
-            severity=row.get("severity", "medium"),
-            source_ref=row.get("source_ref"),
-            ioc=row.get("ioc"),
-            affected_asset=resolve_asset_id(db, row),
-            raw_data=json.dumps(row),
-            created_by=current_user.id
-        )
-        db.add(alert)
-        alerts.append(alert)
-    db.commit()
-    for a in alerts:
-        db.refresh(a)
-        process_alert(a, db)
-        score_alert_safe(db, a)
-    return alerts
-
-# Chấm điểm và chia vùng ưu tiên bằng AI (có thể chạy lại)
-@router.post("/{alert_id}/score", response_model=AlertOut)
-def rescore_alert(
-    alert_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.it_helpdesk, RoleEnum.analyst_soc))
-):
-    alert = db.query(Alert).filter(Alert.id == alert_id).first()
-    if not alert:
+@router.get("/alerts/{alert_id}/moves", response_model=list[MoveOut])
+def alert_moves(alert_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if not db.get(Alert, alert_id):
         raise HTTPException(404, "Không tìm thấy cảnh báo")
-    score_alert(db, alert)
-    return alert
+    rows = (db.query(AlertMoveHistory, User.full_name).outerjoin(User, User.id == AlertMoveHistory.moved_by)
+            .filter(AlertMoveHistory.alert_id == alert_id)
+            .order_by(AlertMoveHistory.moved_at.asc(), AlertMoveHistory.id.asc()).all())
+    return [{"id": m.id, "alert_id": m.alert_id, "from_incident_id": m.from_incident_id,
+             "to_incident_id": m.to_incident_id, "moved_by": m.moved_by, "moved_by_name": n,
+             "moved_at": m.moved_at, "reason": m.reason} for m, n in rows]
 
-# Đóng cảnh báo không cần xử lý (ví dụ theo đề xuất tự đóng của AI) — chỉ Analyst
-@router.patch("/{alert_id}/close", response_model=AlertOut)
-def close_alert(
-    alert_id: int,
-    payload: AlertNote,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
-):
-    alert = db.query(Alert).filter(Alert.id == alert_id).first()
-    if not alert:
-        raise HTTPException(404, "Không tìm thấy cảnh báo")
-    if not payload.note.strip():
-        raise HTTPException(400, "Cần ghi lý do đóng cảnh báo")
-    if alert.status not in (AlertStatus.new, AlertStatus.reviewing, AlertStatus.triaged):
-        raise HTTPException(400, f"Không thể đóng cảnh báo đang ở trạng thái '{alert.status.value}'")
-    alert.status = AlertStatus.closed
-    alert.triage_note = ((alert.triage_note + "\n") if alert.triage_note else "") + f"[Đóng] {payload.note.strip()}"
+def load_alerts(db: Session, ids: list) -> dict:
+    found = {}
+    for part in chunks(ids, 500):
+        for a in db.query(Alert).filter(Alert.id.in_(part)).all():
+            found[a.id] = a
+    missing = [i for i in ids if i not in found]
+    if missing:
+        raise HTTPException(404, f"Không tìm thấy cảnh báo: {missing[:20]}")
+    return found
+
+def incident_status_map(db: Session, alerts) -> dict:
+    ids = {a.incident_id for a in alerts if a.incident_id is not None}
+    out = {}
+    for part in chunks(ids, 500):
+        for i in db.query(Incident).filter(Incident.id.in_(part)).all():
+            out[i.id] = i
+    return out
+
+def reject(problems: list):
+    raise HTTPException(409, {"message": f"{len(problems)} cảnh báo không thực hiện được; không có thay đổi nào được lưu",
+                              "items": problems[:50]})
+
+def apply_verify(db: Session, ids: list, status: str, note, user: User) -> int:
+    if status not in VERIFICATION_STATUSES:
+        raise HTTPException(422, "Trạng thái xác minh phải là verified, dismissed hoặc unverified")
+    ids = list(dict.fromkeys(ids))
+    found = load_alerts(db, ids)
+    incs = incident_status_map(db, found.values())
+    problems = []
+    for i in ids:
+        a = found[i]
+        if a.incident_id is None:
+            problems.append({"id": i, "reason": "Cảnh báo chưa gắn sự cố, hãy chuyển vào một sự cố trước"})
+        elif incs[a.incident_id].status in TERMINAL_STATUSES:
+            problems.append({"id": i, "reason": f"Sự cố {incs[a.incident_id].code} đã đóng hoặc đã hủy"})
+    if problems:
+        reject(problems)
+    now = utcnow()
+    for i in ids:
+        a = found[i]
+        a.verification_status = status
+        a.verified_by = None if status == "unverified" else user.id
+        a.verified_at = None if status == "unverified" else now
+        if note is not None:
+            a.note = note
     db.commit()
-    db.refresh(alert)
-    return alert
+    return len(ids)
 
-# Mở lại cảnh báo đã đóng (kể cả cảnh báo bị luật tự đóng) — chỉ Analyst
-@router.patch("/{alert_id}/reopen", response_model=AlertOut)
-def reopen_alert(
-    alert_id: int,
-    payload: AlertNote,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
-):
-    alert = db.query(Alert).filter(Alert.id == alert_id).first()
-    if not alert:
-        raise HTTPException(404, "Không tìm thấy cảnh báo")
-    if not payload.note.strip():
-        raise HTTPException(400, "Cần ghi lý do mở lại cảnh báo")
-    if alert.status != AlertStatus.closed:
-        raise HTTPException(400, "Chỉ mở lại được cảnh báo đã đóng")
-    alert.status = AlertStatus.new
-    alert.triage_note = ((alert.triage_note + "\n") if alert.triage_note else "") + f"[Mở lại] {payload.note.strip()}"
+@router.patch("/alerts/{alert_id}/verify")
+def verify_alert(alert_id: int, payload: VerifyRequest, db: Session = Depends(get_db),
+                 user: User = Depends(get_current_user)):
+    apply_verify(db, [alert_id], payload.status, payload.note, user)
+    return get_alert(alert_id, db, user)
+
+@router.post("/alerts/bulk-verify")
+def bulk_verify(payload: BulkVerifyRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    n = apply_verify(db, payload.alert_ids, payload.status, payload.note, user)
+    return {"updated": n, "status": payload.status}
+
+@router.post("/alerts/move")
+def move_alerts(payload: MoveRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    ids = list(dict.fromkeys(payload.alert_ids))
+    target = None
+    if payload.to_incident_id is not None:
+        target = get_incident_or_404(db, payload.to_incident_id)
+        if target.status not in UPLOADABLE_STATUSES:
+            raise HTTPException(409, f"Sự cố đích {target.code} không nhận thêm cảnh báo (cần ở trạng thái Mới hoặc Đang xử lý)")
+    found = load_alerts(db, ids)
+    incs = incident_status_map(db, found.values())
+    problems = []
+    for i in ids:
+        a = found[i]
+        if a.incident_id == payload.to_incident_id:
+            problems.append({"id": i, "reason": "Cảnh báo đã ở đúng vị trí này" if target else "Cảnh báo chưa gắn sự cố nào"})
+        elif a.incident_id is not None and incs[a.incident_id].status in TERMINAL_STATUSES:
+            problems.append({"id": i, "reason": f"Sự cố {incs[a.incident_id].code} đã đóng hoặc đã hủy"})
+    if problems:
+        reject(problems)
+    now = utcnow()
+    for i in ids:
+        a = found[i]
+        db.add(AlertMoveHistory(alert_id=a.id, from_incident_id=a.incident_id,
+                                to_incident_id=payload.to_incident_id, moved_by=user.id,
+                                moved_at=now, reason=(payload.reason or "").strip() or None))
+        a.incident_id = payload.to_incident_id
+        a.auto_linked = False
+        a.linked_at = now if target else None
     db.commit()
-    db.refresh(alert)
-    return alert
-
-# Đóng false positive
-@router.patch("/{alert_id}/false-positive")
-def mark_false_positive(
-    alert_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
-):
-    alert = db.query(Alert).filter(Alert.id == alert_id).first()
-    if not alert:
-        raise HTTPException(404, "Không tìm thấy cảnh báo")
-    if alert.status not in (AlertStatus.new, AlertStatus.reviewing, AlertStatus.triaged):
-        raise HTTPException(
-            400,
-            f"Không thể đánh dấu false positive khi cảnh báo đang ở trạng thái '{alert.status.value}'"
-        )
-    alert.status = AlertStatus.false_positive
-    db.commit()
-    return {"message": "Đã đánh dấu false positive"}
-
-@router.get("/groups/list")
-def list_groups(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    groups = db.query(AlertGroup).order_by(AlertGroup.last_seen.desc()).all()
-    return [
-        {
-            "id": g.id,
-            "title": g.title,
-            "ioc": g.ioc,
-            "affected_asset": g.affected_asset,
-            "alert_count": g.alert_count,
-            "first_seen": g.first_seen,
-            "last_seen": g.last_seen,
-        }
-        for g in groups
-    ]
-
-@router.patch("/{alert_id}/triage", response_model=AlertTriaged)
-def triage_alert(
-    alert_id: int,
-    payload: TriageRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(
-        RoleEnum.analyst_soc, RoleEnum.it_helpdesk  # ← thêm it_helpdesk
-    ))
-):
-    alert = db.query(Alert).filter(Alert.id == alert_id).first()
-    if not alert:
-        raise HTTPException(404, "Không tìm thấy cảnh báo")
-    if alert.status not in [AlertStatus.new, AlertStatus.reviewing]:
-        raise HTTPException(400, f"Không thể triage alert ở trạng thái '{alert.status}'")
-
-    # Validate confidence
-    if not 1 <= payload.triage_confidence <= 100:
-        raise HTTPException(400, "Độ tin cậy phải từ 1 đến 100")
-
-    alert.triage_type        = payload.triage_type
-    alert.triage_severity    = payload.triage_severity
-    alert.triage_confidence  = payload.triage_confidence
-    alert.triage_assignee    = payload.triage_assignee
-    alert.triage_sla_hours   = payload.triage_sla_hours
-    alert.triage_sla_deadline = (
-        datetime.now(timezone.utc) + timedelta(hours=payload.triage_sla_hours)
-    )
-    alert.triage_note        = payload.triage_note
-    alert.triaged_by         = current_user.id
-    alert.triaged_at         = datetime.now(timezone.utc)
-    alert.status             = AlertStatus.triaged
-
-    db.commit()
-    db.refresh(alert)
-    return alert
+    return {"moved": len(ids), "to_incident_id": payload.to_incident_id}

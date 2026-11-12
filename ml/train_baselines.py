@@ -13,7 +13,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, roc_auc_score
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA = os.path.join(HERE, "data", "processed")
+DATA = os.path.join(HERE, "data", "ids", "processed")
 MODELS = os.path.join(HERE, "models")
 RESULTS = os.path.join(HERE, "results")
 

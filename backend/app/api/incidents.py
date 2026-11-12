@@ -1,245 +1,258 @@
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime, timedelta, timezone
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import case, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from typing import List
-from datetime import datetime, timezone
-import json
 from database import get_db
-from app.models.incident import Incident, IncidentStatus
-from app.models.alert import Alert, AlertStatus
-from app.models.containment import Containment, ContainmentStatus
-from app.models.recovery import RecoveryAction, RecoveryStatus
-from app.models.audit_log import AuditLog
-from app.models.task import Task, TaskStatus
-from app.models.playbook import Playbook
-from app.services.playbooks import instantiate_playbook
-from app.core.audit import label_for
-from sqlalchemy import or_, and_
-from app.schemas.incident import IncidentCreate, IncidentOut, IncidentStatusUpdate
-from app.core.dependencies import get_current_user, require_roles
-from app.models.user import RoleEnum, User
+from app.core.dependencies import get_current_user
+from app.core.paging import apply_page, page_response
+from app.core.timeutils import utcnow
+from app.core.constants import (INCIDENT_STATUSES, INCIDENT_TRANSITIONS, SEVERITIES, INCIDENT_SOURCES,
+                                BLOCKED_WHILE_PROCESSING, NOTE_REQUIRED)
+from app.models.user import User
+from app.models.incident import Incident, AttackType, IncidentStatusHistory
+from app.models.alert import Alert
+from app.models.upload import Upload
+from app.schemas.incident import (IncidentCreate, IncidentUpdate, StatusChange, IncidentOut,
+                                  IncidentDetail, HistoryOut)
 
 router = APIRouter(prefix="/incidents", tags=["Incidents"])
 
-# Bảng chuyển trạng thái hợp lệ (không cho nhảy bước tùy ý)
-ALLOWED = {
-    IncidentStatus.open:          {IncidentStatus.investigating},
-    IncidentStatus.investigating: {IncidentStatus.contained},
-    IncidentStatus.contained:     {IncidentStatus.recovering, IncidentStatus.investigating, IncidentStatus.closed},
-    IncidentStatus.recovering:    {IncidentStatus.closed, IncidentStatus.investigating},
-    IncidentStatus.closed:        {IncidentStatus.investigating},
-}
+SORTABLE = {"id", "code", "title", "severity", "status", "attack_type", "occurred_at", "created_at", "updated_at"}
+SEVERITY_RANK = case({"low": 1, "medium": 2, "high": 3, "critical": 4}, value=Incident.severity, else_=0)
 
+def to_utc_naive(dt: datetime) -> datetime:
+    return dt.astimezone(timezone.utc).replace(tzinfo=None) if dt.tzinfo else dt
 
-def closure_unmet(db: Session, incident: Incident) -> list:
-    """Tiêu chí đóng vụ việc (theo bước 9 và 11 của đề: recovery phải được chủ hệ thống xác nhận)."""
-    unmet = []
-    if not incident.contained_at:
-        unmet.append("chưa có mốc khống chế (contained)")
-    containments = db.query(Containment).filter(Containment.incident_id == incident.id).all()
-    pending = [c for c in containments if c.status in (ContainmentStatus.proposed, ContainmentStatus.approved)]
-    if pending:
-        unmet.append(f"{len(pending)} đề xuất containment chưa xử lý xong")
-    unverified = [c for c in containments if c.status == ContainmentStatus.executed]
-    if unverified:
-        unmet.append(f"{len(unverified)} containment đã thực hiện nhưng chưa được xác minh")
-    actions = db.query(RecoveryAction).filter(RecoveryAction.incident_id == incident.id).all()
-    active = [a for a in actions if a.status in (RecoveryStatus.pending, RecoveryStatus.in_progress)
-              or (a.status == RecoveryStatus.done and not a.is_confirmed)]
-    if active:
-        unmet.append(f"{len(active)} hành động recovery chưa hoàn tất hoặc chưa được chủ hệ thống xác nhận")
-    if not any(a.status == RecoveryStatus.done and a.is_confirmed for a in actions):
-        unmet.append("chưa có hành động recovery nào được chủ hệ thống xác nhận")
-    open_required = db.query(Task).filter(
-        Task.incident_id == incident.id, Task.is_required == True,  # noqa: E712
-        Task.status.in_([TaskStatus.todo, TaskStatus.in_progress])
-    ).count()
-    if open_required:
-        unmet.append(f"{open_required} công việc bắt buộc theo playbook chưa hoàn thành hoặc chưa được bỏ qua kèm lý do")
-    return unmet
+def parse_date(value: Optional[str], end_of_day: bool = False) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value)
+    except ValueError:
+        raise HTTPException(422, f"Ngày giờ không hợp lệ: {value}")
+    dt = to_utc_naive(dt)
+    if end_of_day and len(value) == 10:
+        dt += timedelta(days=1) - timedelta(microseconds=1)
+    return dt
 
-# Xem danh sách
-@router.get("/", response_model=List[IncidentOut])
+def get_incident_or_404(db: Session, incident_id: int) -> Incident:
+    inc = db.get(Incident, incident_id)
+    if not inc:
+        raise HTTPException(404, "Không tìm thấy sự cố")
+    return inc
+
+def check_fields(db: Session, attack_type=None, severity=None, source=None):
+    if attack_type is not None:
+        at = db.get(AttackType, attack_type)
+        if not at or not at.is_active:
+            raise HTTPException(422, "Loại tấn công không tồn tại hoặc đã ngừng dùng")
+    if severity is not None and severity not in SEVERITIES:
+        raise HTTPException(422, "Mức độ phải là một trong: " + ", ".join(SEVERITIES))
+    if source is not None and source not in INCIDENT_SOURCES:
+        raise HTTPException(422, "Nguồn phải là một trong: " + ", ".join(INCIDENT_SOURCES))
+
+def next_code(db: Session) -> str:
+    prefix = f"INC-{utcnow().year}-"
+    nums = []
+    for (c,) in db.query(Incident.code).filter(Incident.code.like(prefix + "%")).all():
+        tail = c[len(prefix):]
+        if tail.isdigit():
+            nums.append(int(tail))
+    return f"{prefix}{(max(nums) + 1 if nums else 1):04d}"
+
+def _counts(db: Session, ids: list) -> tuple:
+    a, u = {}, {}
+    if ids:
+        a = dict(db.query(Alert.incident_id, func.count(Alert.id)).filter(Alert.incident_id.in_(ids))
+                 .group_by(Alert.incident_id).all())
+        u = dict(db.query(Upload.incident_id, func.count(Upload.id)).filter(Upload.incident_id.in_(ids))
+                 .group_by(Upload.incident_id).all())
+    return a, u
+
+def _out(inc: Incident, names: dict, type_names: dict, a: dict, u: dict) -> dict:
+    return {
+        "id": inc.id, "code": inc.code, "title": inc.title, "description": inc.description,
+        "attack_type": inc.attack_type, "attack_type_name": type_names.get(inc.attack_type),
+        "severity": inc.severity, "occurred_at": inc.occurred_at, "source": inc.source,
+        "status": inc.status, "created_by": inc.created_by, "created_by_name": names.get(inc.created_by),
+        "created_at": inc.created_at, "updated_at": inc.updated_at,
+        "resolved_at": inc.resolved_at, "closed_at": inc.closed_at,
+        "alert_count": a.get(inc.id, 0), "upload_count": u.get(inc.id, 0),
+    }
+
+def _maps(db: Session, incs: list) -> tuple:
+    uids = {i.created_by for i in incs}
+    names = {r.id: r.full_name for r in db.query(User).filter(User.id.in_(uids))} if uids else {}
+    type_names = {r.code: r.name_vi for r in db.query(AttackType).all()}
+    return names, type_names
+
+def has_alerts(db: Session, incident_id: int) -> bool:
+    if db.query(Alert.id).filter(Alert.incident_id == incident_id).first():
+        return True
+    # Cảnh báo sinh từ file của sự cố này nhưng đã được chuyển đi nơi khác
+    return db.query(Alert.id).join(Upload, Upload.id == Alert.upload_id).filter(Upload.incident_id == incident_id).first() is not None
+
+def processing_count(db: Session, incident_id: int) -> int:
+    return db.query(Upload).filter(Upload.incident_id == incident_id,
+                                   Upload.status.in_(("pending", "processing"))).count()
+
+@router.post("", response_model=IncidentOut, status_code=201)
+def create_incident(payload: IncidentCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    check_fields(db, payload.attack_type, payload.severity, payload.source)
+    for attempt in range(3):
+        inc = Incident(code=next_code(db), title=payload.title.strip(), description=payload.description,
+                       attack_type=payload.attack_type, severity=payload.severity,
+                       occurred_at=to_utc_naive(payload.occurred_at), source=payload.source,
+                       status="new", created_by=user.id)
+        db.add(inc)
+        try:
+            db.flush()
+            break
+        except IntegrityError:
+            db.rollback()
+            if attempt == 2:
+                raise HTTPException(409, "Không sinh được mã sự cố, thử lại")
+    db.add(IncidentStatusHistory(incident_id=inc.id, old_status=None, new_status="new",
+                                 changed_by=user.id, note="Tạo sự cố"))
+    db.commit()
+    db.refresh(inc)
+    names, type_names = _maps(db, [inc])
+    return _out(inc, names, type_names, {}, {})
+
+@router.get("")
 def list_incidents(
-    status: str = None,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=200),
+    sort_by: str = "created_at", order: str = Query("desc", pattern="^(asc|desc)$"),
+    q: Optional[str] = None, status: Optional[str] = None, attack_type: Optional[str] = None,
+    severity: Optional[str] = None, date_from: Optional[str] = None, date_to: Optional[str] = None,
+    db: Session = Depends(get_db), user: User = Depends(get_current_user),
 ):
+    if sort_by not in SORTABLE:
+        raise HTTPException(422, "sort_by không hợp lệ")
     query = db.query(Incident)
+    if q and q.strip():
+        term = q.strip()
+        query = query.filter(Incident.code.icontains(term, autoescape=True) | Incident.title.icontains(term, autoescape=True))
     if status:
-        query = query.filter(Incident.status == status)
-    return query.order_by(Incident.created_at.desc()).all()
+        statuses = [s for s in status.split(",") if s]
+        if any(s not in INCIDENT_STATUSES for s in statuses):
+            raise HTTPException(422, "Trạng thái không hợp lệ")
+        query = query.filter(Incident.status.in_(statuses))
+    if attack_type:
+        query = query.filter(Incident.attack_type == attack_type)
+    if severity:
+        query = query.filter(Incident.severity == severity)
+    d_from, d_to = parse_date(date_from), parse_date(date_to, end_of_day=True)
+    if d_from:
+        query = query.filter(Incident.occurred_at >= d_from)
+    if d_to:
+        query = query.filter(Incident.occurred_at <= d_to)
+    col = SEVERITY_RANK if sort_by == "severity" else getattr(Incident, sort_by)
+    direction = col.asc() if order == "asc" else col.desc()
+    rows, total = apply_page(query, [direction, Incident.id.desc()], page, page_size)
+    names, type_names = _maps(db, rows)
+    a, u = _counts(db, [r.id for r in rows])
+    return page_response([_out(r, names, type_names, a, u) for r in rows], total, page, page_size)
 
-# Xem chi tiết
-@router.get("/{incident_id}", response_model=IncidentOut)
-def get_incident(
-    incident_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    incident = db.query(Incident).filter(Incident.id == incident_id).first()
-    if not incident:
-        raise HTTPException(404, "Không tìm thấy incident")
-    return incident
+@router.get("/{incident_id}", response_model=IncidentDetail)
+def get_incident(incident_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    inc = get_incident_or_404(db, incident_id)
+    names, type_names = _maps(db, [inc])
+    a, u = _counts(db, [inc.id])
+    data = _out(inc, names, type_names, a, u)
+    by_status = dict(db.query(Alert.verification_status, func.count(Alert.id))
+                     .filter(Alert.incident_id == inc.id).group_by(Alert.verification_status).all())
+    proc = processing_count(db, inc.id)
+    allowed = sorted(INCIDENT_TRANSITIONS[inc.status])
+    if proc:
+        allowed = [s for s in allowed if s not in BLOCKED_WHILE_PROCESSING]
+    data.update({
+        "unverified_alerts": by_status.get("unverified", 0), "verified_alerts": by_status.get("verified", 0),
+        "dismissed_alerts": by_status.get("dismissed", 0), "processing_uploads": proc,
+        "allowed_transitions": allowed, "can_delete": not has_alerts(db, inc.id),
+    })
+    return data
 
-# Xem alerts thuộc incident
-@router.get("/{incident_id}/alerts")
-def get_incident_alerts(
-    incident_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    incident = db.query(Incident).filter(Incident.id == incident_id).first()
-    if not incident:
-        raise HTTPException(404, "Không tìm thấy incident")
-    alerts = db.query(Alert).filter(Alert.incident_id == incident_id).all()
-    return alerts
-
-# Tạo incident từ alert — chỉ Analyst
-@router.post("/", response_model=IncidentOut)
-def create_incident(
-    payload: IncidentCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
-):
-    # Kiểm tra tất cả alert_ids tồn tại và đã triage
-    alerts = []
-    for aid in payload.alert_ids:
-        alert = db.query(Alert).filter(Alert.id == aid).first()
-        if not alert:
-            raise HTTPException(404, f"Alert {aid} không tồn tại")
-        if alert.status not in [AlertStatus.triaged, AlertStatus.escalated]:
-            raise HTTPException(
-                400,
-                f"Alert {aid} chưa được triage — chỉ có thể tạo incident từ alert đã triage"
-            )
-        alerts.append(alert)
-
-    # Tạo checklist mặc định nếu không truyền vào
-    default_checklist = payload.checklist or [
-        "Xác nhận phạm vi ảnh hưởng",
-        "Thu thập bằng chứng",
-        "Phân tích IOC",
-        "Đề xuất containment",
-        "Thông báo stakeholder",
-    ]
-
-    playbook = None
-    if payload.playbook_id is not None:
-        playbook = db.query(Playbook).filter(Playbook.id == payload.playbook_id).first()
-        if not playbook:
-            raise HTTPException(404, "Không tìm thấy playbook")
-        if not playbook.is_active:
-            raise HTTPException(400, "Playbook này đã ngừng sử dụng")
-
-    commander_id = payload.commander_id or current_user.id
-    commander = db.query(User).filter(User.id == commander_id).first()
-    if not commander or not commander.is_active or commander.role != RoleEnum.analyst_soc:
-        raise HTTPException(400, "Commander phải là một tài khoản Analyst/SOC đang hoạt động")
-
-    incident = Incident(
-        title=payload.title,
-        description=payload.description,
-        severity=payload.severity,
-        commander_id=commander_id,
-        created_by=current_user.id,
-        checklist=json.dumps(default_checklist, ensure_ascii=False),
-        detected_at=datetime.now(timezone.utc),
-    )
-    db.add(incident)
-    db.flush()  # lấy incident.id trước khi commit
-
-    # Gán incident_id cho các alert liên quan
-    for alert in alerts:
-        alert.incident_id = incident.id
-        alert.status = AlertStatus.escalated
-
-    if playbook:
-        instantiate_playbook(db, incident, playbook, current_user.id)
-
+@router.put("/{incident_id}", response_model=IncidentOut)
+def update_incident(incident_id: int, payload: IncidentUpdate, db: Session = Depends(get_db),
+                    user: User = Depends(get_current_user)):
+    inc = get_incident_or_404(db, incident_id)
+    if inc.status in ("closed", "cancelled"):
+        raise HTTPException(409, "Sự cố đã đóng hoặc đã hủy, không sửa được")
+    data = payload.model_dump(exclude_unset=True)
+    if "attack_type" in data and data["attack_type"] == inc.attack_type:
+        data.pop("attack_type")
+    check_fields(db, data.get("attack_type"), data.get("severity"), data.get("source"))
+    for field in ("title", "attack_type", "severity", "source", "description"):
+        if field in data:
+            if field in ("title", "attack_type", "severity", "source") and data[field] is None:
+                raise HTTPException(422, f"{field} không được để trống")
+            setattr(inc, field, data[field].strip() if field == "title" else data[field])
+    if "occurred_at" in data:
+        if data["occurred_at"] is None:
+            raise HTTPException(422, "occurred_at không được để trống")
+        inc.occurred_at = to_utc_naive(data["occurred_at"])
+    inc.updated_at = utcnow()
     db.commit()
-    db.refresh(incident)
-    return incident
+    db.refresh(inc)
+    names, type_names = _maps(db, [inc])
+    a, u = _counts(db, [inc.id])
+    return _out(inc, names, type_names, a, u)
 
-# Cập nhật trạng thái incident — Analyst (đóng/mở lại: chỉ commander của vụ)
 @router.patch("/{incident_id}/status", response_model=IncidentOut)
-def update_incident_status(
-    incident_id: int,
-    payload: IncidentStatusUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(RoleEnum.analyst_soc))
-):
-    incident = db.query(Incident).filter(Incident.id == incident_id).first()
-    if not incident:
-        raise HTTPException(404, "Không tìm thấy incident")
-
-    current, new = incident.status, payload.status
-    if new == current:
-        raise HTTPException(400, f"Incident đã ở trạng thái '{current.value}'")
-    if new not in ALLOWED[current]:
-        raise HTTPException(400, f"Không thể chuyển từ '{current.value}' sang '{new.value}'")
-
-    going_back = new == IncidentStatus.investigating and current != IncidentStatus.open
-    if going_back and not (payload.note and payload.note.strip()):
-        raise HTTPException(400, "Cần ghi lý do khi quay lại điều tra hoặc mở lại incident")
-    if (new == IncidentStatus.closed or current == IncidentStatus.closed) \
-            and incident.commander_id != current_user.id:
-        raise HTTPException(403, "Chỉ commander của vụ mới được đóng hoặc mở lại incident")
-
-    if new == IncidentStatus.contained:
-        done = db.query(Containment).filter(
-            Containment.incident_id == incident_id,
-            Containment.status.in_([ContainmentStatus.executed, ContainmentStatus.verified])
-        ).count()
-        if not done:
-            raise HTTPException(400, "Cần ít nhất một containment đã thực hiện trước khi chuyển sang 'contained'")
-    if new == IncidentStatus.recovering:
-        if not db.query(RecoveryAction).filter(RecoveryAction.incident_id == incident_id).count():
-            raise HTTPException(400, "Cần có ít nhất một hành động recovery trước khi chuyển sang 'recovering'")
-    if new == IncidentStatus.closed:
-        unmet = closure_unmet(db, incident)
-        if unmet:
-            raise HTTPException(400, "Chưa đủ tiêu chí đóng: " + "; ".join(unmet))
-
-    now = datetime.now(timezone.utc)
-    if new == IncidentStatus.contained and not incident.contained_at:
-        incident.contained_at = now
-    if new == IncidentStatus.closed:
-        incident.resolved_at = now
-    if current == IncidentStatus.closed:
-        incident.resolved_at = None
-
-    db.info["audit_note"] = payload.note
-    incident.status = new
+def change_status(incident_id: int, payload: StatusChange, db: Session = Depends(get_db),
+                  user: User = Depends(get_current_user)):
+    inc = get_incident_or_404(db, incident_id)
+    new, old = payload.new_status, inc.status
+    if new not in INCIDENT_STATUSES:
+        raise HTTPException(422, "Trạng thái không hợp lệ")
+    if new not in INCIDENT_TRANSITIONS[old]:
+        allowed = ", ".join(sorted(INCIDENT_TRANSITIONS[old])) or "không có"
+        raise HTTPException(409, f"Không chuyển được từ {old} sang {new}. Cho phép: {allowed}")
+    note = (payload.note or "").strip()
+    if (old, new) in NOTE_REQUIRED and len(note) < 3:
+        raise HTTPException(422, "Cần ghi lý do khi hủy hoặc mở lại sự cố")
+    if new in BLOCKED_WHILE_PROCESSING and processing_count(db, inc.id):
+        raise HTTPException(409, "Còn file đang xử lý, hãy đợi xong rồi mới chuyển trạng thái")
+    now = utcnow()
+    inc.status = new
+    inc.updated_at = now
+    if new == "resolved":
+        inc.resolved_at = now
+    elif new == "closed":
+        inc.closed_at = now
+    elif new == "in_progress" and old == "resolved":
+        inc.resolved_at = None
+    db.add(IncidentStatusHistory(incident_id=inc.id, old_status=old, new_status=new,
+                                 changed_by=user.id, changed_at=now, note=note or None))
     db.commit()
-    db.refresh(incident)
-    return incident
+    db.refresh(inc)
+    names, type_names = _maps(db, [inc])
+    a, u = _counts(db, [inc.id])
+    return _out(inc, names, type_names, a, u)
 
+@router.get("/{incident_id}/history", response_model=list[HistoryOut])
+def status_history(incident_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    get_incident_or_404(db, incident_id)
+    rows = (db.query(IncidentStatusHistory, User.full_name)
+            .outerjoin(User, User.id == IncidentStatusHistory.changed_by)
+            .filter(IncidentStatusHistory.incident_id == incident_id)
+            .order_by(IncidentStatusHistory.changed_at.asc(), IncidentStatusHistory.id.asc()).all())
+    return [{"id": h.id, "incident_id": h.incident_id, "old_status": h.old_status, "new_status": h.new_status,
+             "changed_by": h.changed_by, "changed_by_name": n, "changed_at": h.changed_at, "note": h.note}
+            for h, n in rows]
 
-# Timeline của incident — dựng từ nhật ký kiểm toán
-@router.get("/{incident_id}/timeline")
-def incident_timeline(
-    incident_id: int,
-    include_views: bool = False,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    incident = db.query(Incident).filter(Incident.id == incident_id).first()
-    if not incident:
-        raise HTTPException(404, "Không tìm thấy incident")
-    alert_ids = [a.id for a in db.query(Alert.id).filter(Alert.incident_id == incident_id).all()]
-    cond = AuditLog.incident_id == incident_id
-    if alert_ids:
-        cond = or_(cond, and_(AuditLog.entity_type == "alert", AuditLog.entity_id.in_(alert_ids)))
-    rows = db.query(AuditLog).filter(cond).order_by(AuditLog.at.asc(), AuditLog.id.asc()).all()
-
-    items = []
-    for r in rows:
-        detail = json.loads(r.detail) if r.detail else {}
-        if r.action == "custody.created" and detail.get("action") == "accessed" and not include_views:
-            continue
-        items.append({
-            "id": r.id, "at": r.at, "actor": r.username or "system", "role": r.role,
-            "action": r.action, "label": label_for(r.action, detail),
-            "entity_type": r.entity_type, "entity_id": r.entity_id, "detail": detail,
-        })
-    return items
+@router.delete("/{incident_id}", status_code=204)
+def delete_incident(incident_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    inc = get_incident_or_404(db, incident_id)
+    if has_alerts(db, inc.id):
+        raise HTTPException(409, "Sự cố đã có cảnh báo, không xóa được. Hãy hủy hoặc đóng sự cố")
+    if processing_count(db, inc.id):
+        raise HTTPException(409, "Còn file đang xử lý, hãy đợi xong rồi mới xóa")
+    from app.api.uploads import delete_upload_files
+    delete_upload_files(db, inc.id)
+    db.query(IncidentStatusHistory).filter(IncidentStatusHistory.incident_id == inc.id).delete()
+    db.delete(inc)
+    db.commit()

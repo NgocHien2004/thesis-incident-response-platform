@@ -1,233 +1,107 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getDashboard, getSLA } from '../api/dashboard'
+import toast from 'react-hot-toast'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+import { getDashboard } from '../api'
+import Card from '../components/Card'
 import LoadingSpinner from '../components/LoadingSpinner'
-import Badge from '../components/Badge'
+import { STATUS, VERIFICATION, errMsg, pct } from '../utils/format'
 
-function MetricCard({ label, value, unit, color, sub }) {
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-5">
-      <div className="text-xs text-gray-500 font-medium mb-1">{label}</div>
-      <div className={`text-2xl font-bold ${color || 'text-gray-900'}`}>
-        {value ?? <span className="text-gray-300 text-lg">—</span>}
-        {value != null && unit && <span className="text-sm font-normal text-gray-400 ml-1">{unit}</span>}
-      </div>
-      {sub && <div className="text-xs text-gray-400 mt-1">{sub}</div>}
+const PIE_COLORS = { unverified: '#9ca3af', verified: '#10b981', dismissed: '#f59e0b' }
+const BAR_COLOR = '#6366f1'
+
+function Stat({ label, value, to, cls = '' }) {
+  const body = (
+    <div className="bg-white border rounded-lg px-4 py-3 hover:shadow-sm transition-shadow">
+      <div className="text-xs text-gray-500">{label}</div>
+      <div className={`text-2xl font-bold ${cls}`}>{value}</div>
     </div>
   )
-}
-
-function StatusBar({ label, count, total, color }) {
-  const pct = total > 0 ? Math.round(count / total * 100) : 0
-  return (
-    <div className="mb-3">
-      <div className="flex justify-between text-xs mb-1">
-        <span className="text-gray-600">{label}</span>
-        <span className="text-gray-500">{count} ({pct}%)</span>
-      </div>
-      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-      </div>
-    </div>
-  )
+  return to ? <Link to={to}>{body}</Link> : body
 }
 
 export default function Dashboard() {
-  const [data, setData] = useState(null)
-  const [sla, setSla] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [d, setD] = useState(null)
 
   useEffect(() => {
-    Promise.all([getDashboard(), getSLA()])
-      .then(([d, s]) => {
-        setData(d.data)
-        setSla(s.data)
-      })
-      .finally(() => setLoading(false))
+    getDashboard().then(r => setD(r.data)).catch(err => toast.error(errMsg(err)))
   }, [])
 
-  if (loading) return <LoadingSpinner />
+  if (!d) return <LoadingSpinner />
 
-  const { incidents, metrics, alerts } = data || {}
-  const total = incidents?.total || 0
-
-  const severityColors = {
-    critical: 'bg-red-500',
-    high:     'bg-orange-400',
-    medium:   'bg-yellow-400',
-    low:      'bg-blue-400',
-  }
-
-  const statusColors = {
-    open:          'bg-blue-500',
-    investigating: 'bg-purple-500',
-    contained:     'bg-yellow-500',
-    recovering:    'bg-teal-500',
-    closed:        'bg-green-500',
-  }
+  const verification = Object.entries(d.alerts_by_verification).map(([k, v]) => ({ key: k, name: VERIFICATION[k].label, value: v }))
+  const decided = d.alerts_by_verification.verified + d.alerts_by_verification.dismissed
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
+      <h1 className="text-xl font-bold text-gray-900">Tổng quan</h1>
+
       <div>
-        <h1 className="text-lg font-semibold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Cập nhật lúc {new Date(data?.generated_at).toLocaleString('vi-VN')}
-        </p>
-      </div>
-
-      {/* 6 chỉ số chính */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <MetricCard
-          label="MTTD"
-          value={metrics?.mttd_minutes != null ? Math.abs(metrics.mttd_minutes) : null}
-          unit="phút"
-          color="text-blue-600"
-          sub="Thời gian phát hiện TB"
-        />
-        <MetricCard
-          label="MTTA"
-          value={metrics?.mtta_minutes != null ? Math.abs(metrics.mtta_minutes) : null}
-          unit="phút"
-          color="text-purple-600"
-          sub="Thời gian phản ứng TB"
-        />
-        <MetricCard
-          label="MTTR"
-          value={metrics?.mttr_minutes != null ? Math.round(metrics.mttr_minutes) : null}
-          unit="phút"
-          color="text-green-600"
-          sub="Thời gian xử lý TB"
-        />
-        <MetricCard
-          label="Vụ đang mở"
-          value={incidents?.open}
-          color={incidents?.open > 0 ? 'text-red-600' : 'text-green-600'}
-          sub="incidents chưa đóng"
-        />
-        <MetricCard
-          label="SLA vi phạm"
-          value={metrics?.sla_breached_alerts}
-          color={metrics?.sla_breached_alerts > 0 ? 'text-red-600' : 'text-green-600'}
-          sub="cảnh báo quá hạn"
-        />
-        <MetricCard
-          label="Action items"
-          value={metrics?.action_item_completion_pct != null
-            ? `${metrics.action_item_completion_pct}%`
-            : null}
-          color="text-teal-600"
-          sub="hoàn thành postmortem"
-        />
-        <MetricCard
-          label="Công việc đang mở"
-          value={data?.tasks?.open}
-          color="text-gray-900"
-          sub={data?.tasks ? `${data.tasks.open_required} bắt buộc` : 'theo playbook'}
-        />
-        <MetricCard
-          label="Công việc quá hạn"
-          value={data?.tasks?.overdue}
-          color={data?.tasks?.overdue > 0 ? 'text-red-600' : 'text-green-600'}
-          sub="chưa xong sau hạn"
-        />
-      </div>
-
-      {/* Row 2 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-        {/* Incidents theo trạng thái */}
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-gray-800">Incidents theo trạng thái</h3>
-            <span className="text-xs text-gray-400">{total} tổng</span>
-          </div>
-          {Object.entries(incidents?.by_status || {}).map(([status, count]) => (
-            <StatusBar
-              key={status}
-              label={status}
-              count={count}
-              total={total}
-              color={statusColors[status] || 'bg-gray-400'}
-            />
+        <div className="text-sm font-medium text-gray-700 mb-2">Sự cố theo trạng thái (tổng {d.incidents_total})</div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {Object.entries(d.incidents_by_status).map(([k, n]) => (
+            <Stat key={k} label={STATUS[k].label} value={n} to={`/incidents`} />
           ))}
-          <Link to="/incidents" className="text-xs text-primary-600 hover:underline mt-2 block">
-            Xem tất cả →
-          </Link>
-        </div>
-
-        {/* Incidents mở theo mức độ */}
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-gray-800">Incidents mở theo mức độ</h3>
-            <span className="text-xs text-gray-400">{incidents?.open} mở</span>
-          </div>
-          {Object.entries(incidents?.open_by_severity || {}).map(([sev, count]) => (
-            <StatusBar
-              key={sev}
-              label={sev}
-              count={count}
-              total={incidents?.open || 1}
-              color={severityColors[sev] || 'bg-gray-400'}
-            />
-          ))}
-        </div>
-
-        {/* Alerts theo trạng thái */}
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-semibold text-gray-800">Cảnh báo</h3>
-            <span className="text-xs text-gray-400">{alerts?.total} tổng</span>
-          </div>
-          {Object.entries(alerts?.by_status || {}).map(([status, count]) => (
-            <StatusBar
-              key={status}
-              label={status}
-              count={count}
-              total={alerts?.total || 1}
-              color="bg-indigo-400"
-            />
-          ))}
-          <Link to="/alerts" className="text-xs text-primary-600 hover:underline mt-2 block">
-            Xem tất cả →
-          </Link>
         </div>
       </div>
 
-      {/* SLA breached alerts */}
-      {sla.length > 0 && (
-        <div className="bg-white rounded-lg border border-red-200 p-5">
-          <h3 className="text-sm font-semibold text-red-700 mb-3">
-            ⚠️ Cảnh báo vi phạm SLA ({sla.length})
-          </h3>
-          <div className="space-y-2">
-            {sla.slice(0, 5).map(item => (
-              <div key={item.alert_id} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <Badge label={item.severity} type={item.severity} />
-                  <Link
-                    to={`/alerts/${item.alert_id}`}
-                    className="text-gray-700 hover:text-primary-600 hover:underline"
-                  >
-                    {item.title}
-                  </Link>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    label={item.status === 'breached' ? 'Quá hạn' : 'Sắp hết hạn'}
-                    type={item.status === 'breached' ? 'critical' : 'warning'}
-                  />
-                  <span className="text-xs text-gray-400">
-                    {item.remaining_minutes < 0
-                      ? `${Math.abs(Math.round(item.remaining_minutes))} phút trước`
-                      : `còn ${Math.round(item.remaining_minutes)} phút`}
-                  </span>
-                </div>
-              </div>
-            ))}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card title="Sự cố theo loại tấn công">
+          {d.incidents_by_attack_type.length === 0 ? <div className="text-sm text-gray-500 py-8 text-center">Chưa có dữ liệu</div> : (
+            <ResponsiveContainer width="100%" height={Math.max(220, d.incidents_by_attack_type.length * 36)}>
+              <BarChart data={d.incidents_by_attack_type} layout="vertical" margin={{ left: 20 }}>
+                <XAxis type="number" allowDecimals={false} />
+                <YAxis type="category" dataKey="name_vi" width={150} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="count" name="Số sự cố" fill={BAR_COLOR} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+
+        <Card title={`Cảnh báo theo nhãn (tổng ${d.alerts_total})`}>
+          {d.alerts_by_label.length === 0 ? <div className="text-sm text-gray-500 py-8 text-center">Chưa có cảnh báo</div> : (
+            <ResponsiveContainer width="100%" height={Math.max(220, d.alerts_by_label.length * 36)}>
+              <BarChart data={d.alerts_by_label} layout="vertical" margin={{ left: 20 }}>
+                <XAxis type="number" allowDecimals={false} />
+                <YAxis type="category" dataKey="label" width={170} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="count" name="Số cảnh báo" fill="#ef4444" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+
+        <Card title="Trạng thái xác minh cảnh báo">
+          {d.alerts_total === 0 ? <div className="text-sm text-gray-500 py-8 text-center">Chưa có cảnh báo</div> : (
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie data={verification} dataKey="value" nameKey="name" outerRadius={85} label={({ value }) => value}>
+                  {verification.map(v => <Cell key={v.key} fill={PIE_COLORS[v.key]} />)}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </Card>
+
+        <Card title="Tỉ lệ bỏ qua (false positive)">
+          <div className="py-4 text-center">
+            <div className="text-4xl font-bold text-yellow-600">{pct(d.false_positive_rate)}</div>
+            <div className="text-sm text-gray-600 mt-2">
+              = Bỏ qua / (Đã xác minh + Bỏ qua)<br />
+              = {d.alerts_by_verification.dismissed} / {decided}
+            </div>
+            {d.false_positive_rate === null && <div className="text-xs text-gray-500 mt-2">Chưa có cảnh báo nào được xác minh hoặc bỏ qua.</div>}
           </div>
-        </div>
-      )}
+          {d.alerts_unassigned > 0 && (
+            <div className="text-sm bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 mt-2">
+              Có {d.alerts_unassigned} cảnh báo chưa gắn sự cố. <Link to="/alerts" className="text-primary-600">Xem</Link>
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
   )
 }

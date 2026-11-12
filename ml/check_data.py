@@ -1,7 +1,7 @@
 import pandas as pd
 import os
 
-data_dir = "data/raw"
+data_dir = "data/ids/raw"
 files = os.listdir(data_dir)
 
 for f in files:

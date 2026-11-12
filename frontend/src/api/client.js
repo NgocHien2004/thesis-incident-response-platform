@@ -4,13 +4,13 @@ const api = axios.create({
   baseURL: 'http://localhost:8000',
 })
 
-// Tự động thêm token vào header
 api.interceptors.request.use(config => {
   const token = localStorage.getItem('access_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
+// Backend lưu thời gian UTC không kèm múi giờ: thêm Z để trình duyệt đổi sang giờ máy
 const NAIVE_ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/
 
 const markUtc = (v) => {
@@ -22,15 +22,16 @@ const markUtc = (v) => {
   return v
 }
 
-// Tự động redirect về login nếu token hết hạn
 api.interceptors.response.use(
   res => {
-    if (res.config?.responseType !== 'blob') res.data = markUtc(res.data)
+    res.data = markUtc(res.data)
     return res
   },
   err => {
-    if (err.response?.status === 401) {
+    const isLogin = err.config?.url?.includes('/auth/login')
+    if (err.response?.status === 401 && !isLogin) {
       localStorage.removeItem('access_token')
+      localStorage.removeItem('user')
       window.location.href = '/login'
     }
     return Promise.reject(err)

@@ -5,8 +5,8 @@ import joblib
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.model_selection import train_test_split
 
-DATA_DIR    = "data/raw"
-OUTPUT_DIR  = "data/processed"
+DATA_DIR    = "data/ids/raw"
+OUTPUT_DIR  = "data/ids/processed"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ── Bước 1: Đọc và gộp tất cả file ──
@@ -83,7 +83,7 @@ np.save(os.path.join(OUTPUT_DIR, "y_test_binary.npy"),  y_test_b.values)
 np.save(os.path.join(OUTPUT_DIR, "y_train_multi.npy"),  y_train_m.values)
 np.save(os.path.join(OUTPUT_DIR, "y_test_multi.npy"),   y_test_m.values)
 
-print("\nXong! Files trong data/processed/:")
+print("\nXong! Files trong data/ids/processed/:")
 for f in os.listdir(OUTPUT_DIR):
     size = os.path.getsize(os.path.join(OUTPUT_DIR, f)) / 1024 / 1024
     print(f"  {f}: {size:.1f} MB")

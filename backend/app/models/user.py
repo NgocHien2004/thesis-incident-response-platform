@@ -1,23 +1,14 @@
-from sqlalchemy import Column, Integer, Boolean, DateTime, Enum, Unicode
+from sqlalchemy import Column, Integer, Boolean, DateTime, Unicode
 from app.core.timeutils import utcnow
 from database import Base
-import enum
-
-class RoleEnum(str, enum.Enum):
-    it_helpdesk  = "it_helpdesk"
-    analyst_soc  = "analyst_soc"
-    stakeholder  = "stakeholder"
 
 class User(Base):
     __tablename__ = "users"
 
-    id                  = Column(Integer, primary_key=True, index=True)
-    username            = Column(Unicode(50), unique=True, nullable=False)
-    email               = Column(Unicode(100), unique=True, nullable=False)
-    hashed_password     = Column(Unicode(255), nullable=False)
-    role                = Column(Enum(RoleEnum), nullable=False)
-    is_active           = Column(Boolean, default=True)
-    login_attempts      = Column(Integer, default=0)
-    locked_until        = Column(DateTime, nullable=True)
-    created_at          = Column(DateTime, default=utcnow)
-    updated_at          = Column(DateTime, default=utcnow, onupdate=utcnow)
+    id              = Column(Integer, primary_key=True, index=True)
+    username        = Column(Unicode(50), unique=True, nullable=False)
+    password_hash   = Column(Unicode(255), nullable=False)
+    full_name       = Column(Unicode(100), nullable=False)
+    role            = Column(Unicode(30), nullable=False, default="analyst")
+    is_active       = Column(Boolean, nullable=False, default=True)
+    created_at      = Column(DateTime, nullable=False, default=utcnow)

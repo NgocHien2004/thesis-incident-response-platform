@@ -1,5 +1,6 @@
-data/raw/
-data/processed/
+data/ids/raw/
+data/ids/processed/
+data/email/
 venv-ml/
 *.npy
 *.pkl

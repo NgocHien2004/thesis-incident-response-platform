@@ -1,70 +1,49 @@
-import json
-from pydantic import BaseModel, field_validator
-from typing import Optional
 from datetime import datetime
-from app.models.alert import AlertSource, AlertStatus, AlertSeverity
-from typing import Optional
-from datetime import datetime
-
-class AlertCreate(BaseModel):
-    title: str
-    description: Optional[str] = None
-    source: AlertSource
-    severity: AlertSeverity = AlertSeverity.medium
-    source_ref: Optional[str] = None
-    ioc: Optional[str] = None
-    affected_asset: Optional[int] = None
-    raw_data: Optional[str] = None
+from typing import Optional, List, Any
+from pydantic import BaseModel, Field
 
 class AlertOut(BaseModel):
     id: int
-    title: str
-    description: Optional[str]
-    source: AlertSource
-    severity: AlertSeverity
-    status: AlertStatus
-    source_ref: Optional[str]
-    ioc: Optional[str]
-    affected_asset: Optional[int]
-    created_by: Optional[int]
+    incident_id: Optional[int] = None
+    incident_code: Optional[str] = None
+    upload_id: int
+    upload_filename: Optional[str] = None
+    row_index: int
+    predicted_label: str
+    confidence: float
+    source_type: str
+    auto_linked: bool
+    linked_at: Optional[datetime] = None
+    verification_status: str
+    verified_by: Optional[int] = None
+    verified_by_name: Optional[str] = None
+    verified_at: Optional[datetime] = None
+    note: Optional[str] = None
     created_at: datetime
-    updated_at: datetime
-    ml_priority: Optional[int] = None
-    ml_zone: Optional[str] = None
-    ml_result: Optional[dict] = None
 
-    @field_validator("ml_result", mode="before")
-    @classmethod
-    def parse_ml_result(cls, v):
-        if isinstance(v, str):
-            try:
-                return json.loads(v)
-            except ValueError:
-                return None
-        return v
+class AlertDetail(AlertOut):
+    row_data: Optional[Any] = None
 
-    model_config = {"from_attributes": True}
+class VerifyRequest(BaseModel):
+    status: str
+    note: Optional[str] = None
 
-class AlertNote(BaseModel):
-    note: str
+class BulkVerifyRequest(BaseModel):
+    alert_ids: List[int] = Field(min_length=1, max_length=10000)
+    status: str
+    note: Optional[str] = None
 
-class TriageRequest(BaseModel):
-    triage_type: str
-    triage_severity: AlertSeverity
-    triage_confidence: int          # 1-100
-    triage_assignee: Optional[int] = None
-    triage_sla_hours: int           # 4, 8, 24, 48, 72...
-    triage_note: Optional[str] = None
+class MoveRequest(BaseModel):
+    alert_ids: List[int] = Field(min_length=1, max_length=10000)
+    to_incident_id: Optional[int] = None     # rỗng: gỡ khỏi sự cố
+    reason: Optional[str] = None
 
-class AlertTriaged(AlertOut):
-    triage_type: Optional[str]
-    triage_severity: Optional[AlertSeverity]
-    triage_confidence: Optional[int]
-    triage_assignee: Optional[int]
-    triage_sla_hours: Optional[int]
-    triage_sla_deadline: Optional[datetime]
-    triage_note: Optional[str]
-    triaged_by: Optional[int]
-    triaged_at: Optional[datetime]
-
-    model_config = {"from_attributes": True}
+class MoveOut(BaseModel):
+    id: int
+    alert_id: int
+    from_incident_id: Optional[int] = None
+    to_incident_id: Optional[int] = None
+    moved_by: int
+    moved_by_name: Optional[str] = None
+    moved_at: datetime
+    reason: Optional[str] = None

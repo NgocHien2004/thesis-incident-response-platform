@@ -8,7 +8,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ML = HERE if os.path.isdir(os.path.join(HERE, "models")) else os.path.abspath(os.path.join(HERE, "..", "ml"))
 if not os.path.isdir(os.path.join(ML, "models")):
     ML = os.path.abspath(os.path.join(HERE, "..", "..", "ml"))
-DATA = os.path.join(ML, "data", "processed")
+DATA = os.path.join(ML, "data", "ids", "processed")
 MODELS = os.path.join(ML, "models")
 RESULTS = os.path.join(ML, "results")
 

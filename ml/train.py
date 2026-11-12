@@ -12,7 +12,7 @@ import matplotlib
 matplotlib.use('Agg')  # không cần GUI
 import matplotlib.pyplot as plt
 
-DATA_DIR   = "data/processed"
+DATA_DIR   = "data/ids/processed"
 MODEL_DIR  = "models"
 RESULT_DIR = "results"
 os.makedirs(MODEL_DIR, exist_ok=True)
