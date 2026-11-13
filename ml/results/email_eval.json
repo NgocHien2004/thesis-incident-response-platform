@@ -1,0 +1,280 @@
+{
+ "meta": {
+  "sklearn": "1.9.1",
+  "n": 6046,
+  "seed": 42,
+  "thresholds": {
+   "auto_close": 0.15,
+   "review": 0.5,
+   "urgent": 0.8
+  },
+  "groups": {
+   "easy_ham": 2500,
+   "easy_ham_2": 1400,
+   "hard_ham": 250,
+   "spam": 500,
+   "spam_2": 1396
+  },
+  "features": "tiêu đề và nội dung (HTML đổi sang chữ), thêm 3 token cấu trúc; không dùng các tiêu đề kỹ thuật như Received"
+ },
+ "evaluations": {
+  "Chia ngẫu nhiên 80/20": {
+   "n_train": 4836,
+   "n_test": 1210,
+   "models": {
+    "Linear SVM (hiệu chỉnh)": {
+     "n": 1210,
+     "spam_ratio": 0.313,
+     "pr_auc": 0.99806,
+     "roc_auc": 0.9991,
+     "at_0.5": {
+      "tp": 371,
+      "fp": 12,
+      "fn": 8,
+      "tn": 819,
+      "precision": 0.9687,
+      "recall": 0.9789,
+      "f1": 0.9738
+     },
+     "policy_zones": {
+      "spam_in_auto_close": 3,
+      "pct_spam_in_auto_close": 0.792,
+      "pct_ham_auto_closed": 97.59,
+      "urgent_precision": 0.9863
+     },
+     "hard_ham": {
+      "n": 61,
+      "false_positive_rate_at_0.5": 0.1803
+     },
+     "train_seconds": 3.2,
+     "pr_auc_ci95": [
+      0.99624,
+      0.99924
+     ]
+    },
+    "Logistic Regression": {
+     "n": 1210,
+     "spam_ratio": 0.313,
+     "pr_auc": 0.99748,
+     "roc_auc": 0.99882,
+     "at_0.5": {
+      "tp": 373,
+      "fp": 12,
+      "fn": 6,
+      "tn": 819,
+      "precision": 0.9688,
+      "recall": 0.9842,
+      "f1": 0.9764
+     },
+     "policy_zones": {
+      "spam_in_auto_close": 1,
+      "pct_spam_in_auto_close": 0.264,
+      "pct_ham_auto_closed": 96.03,
+      "urgent_precision": 0.9914
+     },
+     "hard_ham": {
+      "n": 61,
+      "false_positive_rate_at_0.5": 0.1803
+     },
+     "train_seconds": 2.8,
+     "pr_auc_ci95": [
+      0.99545,
+      0.99893
+     ]
+    }
+   }
+  },
+  "Huấn luyện bộ 10/2002, thử bộ thu thập sau đó": {
+   "n_train": 3250,
+   "n_test": 2796,
+   "models": {
+    "Linear SVM (hiệu chỉnh)": {
+     "n": 2796,
+     "spam_ratio": 0.499,
+     "pr_auc": 0.99843,
+     "roc_auc": 0.99826,
+     "at_0.5": {
+      "tp": 1292,
+      "fp": 4,
+      "fn": 104,
+      "tn": 1396,
+      "precision": 0.9969,
+      "recall": 0.9255,
+      "f1": 0.9599
+     },
+     "policy_zones": {
+      "spam_in_auto_close": 26,
+      "pct_spam_in_auto_close": 1.862,
+      "pct_ham_auto_closed": 98.43,
+      "urgent_precision": 1.0
+     },
+     "hard_ham": {
+      "n": 0,
+      "false_positive_rate_at_0.5": null
+     },
+     "train_seconds": 2.6,
+     "pr_auc_ci95": [
+      0.99784,
+      0.99905
+     ]
+    },
+    "Logistic Regression": {
+     "n": 2796,
+     "spam_ratio": 0.499,
+     "pr_auc": 0.99711,
+     "roc_auc": 0.99659,
+     "at_0.5": {
+      "tp": 1261,
+      "fp": 0,
+      "fn": 135,
+      "tn": 1400,
+      "precision": 1.0,
+      "recall": 0.9033,
+      "f1": 0.9492
+     },
+     "policy_zones": {
+      "spam_in_auto_close": 25,
+      "pct_spam_in_auto_close": 1.791,
+      "pct_ham_auto_closed": 96.86,
+      "urgent_precision": 1.0
+     },
+     "hard_ham": {
+      "n": 0,
+      "false_positive_rate_at_0.5": null
+     },
+     "train_seconds": 2.3,
+     "pr_auc_ci95": [
+      0.99614,
+      0.9982
+     ]
+    }
+   }
+  }
+ },
+ "top_terms": {
+  "spam": [
+   [
+    "zzhtml",
+    3.284
+   ],
+   [
+    "your",
+    2.098
+   ],
+   [
+    "our",
+    1.627
+   ],
+   [
+    "free",
+    1.475
+   ],
+   [
+    "click here",
+    1.345
+   ],
+   [
+    "please",
+    1.341
+   ],
+   [
+    "you",
+    1.256
+   ],
+   [
+    "remove",
+    1.173
+   ],
+   [
+    "spamassassin sightings",
+    1.101
+   ],
+   [
+    "click",
+    1.092
+   ],
+   [
+    "sightings",
+    1.074
+   ],
+   [
+    "ufffd ufffd",
+    1.049
+   ],
+   [
+    "ufffd",
+    1.021
+   ],
+   [
+    "money",
+    0.955
+   ],
+   [
+    "htm",
+    0.904
+   ]
+  ],
+  "ham": [
+   [
+    "re",
+    -1.589
+   ],
+   [
+    "the",
+    -1.382
+   ],
+   [
+    "wrote",
+    -1.181
+   ],
+   [
+    "url http",
+    -1.171
+   ],
+   [
+    "url",
+    -1.077
+   ],
+   [
+    "it",
+    -1.071
+   ],
+   [
+    "but",
+    -1.047
+   ],
+   [
+    "that",
+    -1.04
+   ],
+   [
+    "date",
+    -0.994
+   ],
+   [
+    "org",
+    -0.976
+   ],
+   [
+    "they",
+    -0.828
+   ],
+   [
+    "spam",
+    -0.769
+   ],
+   [
+    "razor",
+    -0.751
+   ],
+   [
+    "said",
+    -0.73
+   ],
+   [
+    "spamassassin talk",
+    -0.722
+   ]
+  ]
+ }
+}
