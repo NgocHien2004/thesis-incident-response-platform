@@ -67,11 +67,10 @@ def parse_message(raw):
 
 
 def to_text(m):
-    """Chuỗi đưa vào TF-IDF: tiêu đề, nội dung và vài token cấu trúc (có HTML, số URL, có tệp đính kèm)."""
-    marks = []
-    if m["has_html"]:
-        marks.append("zzhtml")
-    marks.append(f"zzurls{min(len(m['urls']), 5)}")
+    """Chuỗi đưa vào TF-IDF: tiêu đề, nội dung và hai token cấu trúc (số URL, có tệp đính kèm).
+    Đã bỏ token 'zzhtml': trong dữ liệu 2002 thư HTML gần như luôn là spam, nhưng thư hợp lệ ngày nay
+    (Gmail, Outlook) cũng thường là HTML, nên token này chỉ phản ánh đặc điểm của bộ dữ liệu."""
+    marks = [f"zzurls{min(len(m['urls']), 5)}"]
     if m["attachments"]:
         marks.append("zzattach")
     return f"{m['subject']}\n{m['body']}\n{' '.join(marks)}"

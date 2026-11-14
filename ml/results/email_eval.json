@@ -1,279 +1,392 @@
 {
  "meta": {
   "sklearn": "1.9.1",
-  "n": 6046,
   "seed": 42,
+  "n": 81887,
   "thresholds": {
    "auto_close": 0.15,
    "review": 0.5,
-   "urgent": 0.8
+   "alert": 0.8
   },
-  "groups": {
-   "easy_ham": 2500,
-   "easy_ham_2": 1400,
-   "hard_ham": 250,
-   "spam": 500,
-   "spam_2": 1396
+  "sources": {
+   "ceas_08": 38962,
+   "enron": 29423,
+   "ling": 2859,
+   "spamassasin": 5800,
+   "nazario": 1552,
+   "nigerian_fraud": 3291
   },
-  "features": "tiêu đề và nội dung (HTML đổi sang chữ), thêm 3 token cấu trúc; không dùng các tiêu đề kỹ thuật như Received"
+  "method": "bỏ lần lượt từng nguồn: huấn luyện trên các nguồn còn lại, đo trên nguồn bị bỏ",
+  "features": "TF-IDF 1-2 gram trên tiêu đề và nội dung (HTML đổi sang chữ) cộng token số URL và tệp đính kèm; Linear SVM hiệu chỉnh"
  },
- "evaluations": {
-  "Chia ngẫu nhiên 80/20": {
-   "n_train": 4836,
-   "n_test": 1210,
-   "models": {
-    "Linear SVM (hiệu chỉnh)": {
-     "n": 1210,
-     "spam_ratio": 0.313,
-     "pr_auc": 0.99806,
-     "roc_auc": 0.9991,
-     "at_0.5": {
-      "tp": 371,
-      "fp": 12,
-      "fn": 8,
-      "tn": 819,
-      "precision": 0.9687,
-      "recall": 0.9789,
-      "f1": 0.9738
-     },
-     "policy_zones": {
-      "spam_in_auto_close": 3,
-      "pct_spam_in_auto_close": 0.792,
-      "pct_ham_auto_closed": 97.59,
-      "urgent_precision": 0.9863
-     },
-     "hard_ham": {
-      "n": 61,
-      "false_positive_rate_at_0.5": 0.1803
-     },
-     "train_seconds": 3.2,
-     "pr_auc_ci95": [
-      0.99624,
-      0.99924
-     ]
-    },
-    "Logistic Regression": {
-     "n": 1210,
-     "spam_ratio": 0.313,
-     "pr_auc": 0.99748,
-     "roc_auc": 0.99882,
-     "at_0.5": {
-      "tp": 373,
-      "fp": 12,
-      "fn": 6,
-      "tn": 819,
-      "precision": 0.9688,
-      "recall": 0.9842,
-      "f1": 0.9764
-     },
-     "policy_zones": {
-      "spam_in_auto_close": 1,
-      "pct_spam_in_auto_close": 0.264,
-      "pct_ham_auto_closed": 96.03,
-      "urgent_precision": 0.9914
-     },
-     "hard_ham": {
-      "n": 61,
-      "false_positive_rate_at_0.5": 0.1803
-     },
-     "train_seconds": 2.8,
-     "pr_auc_ci95": [
-      0.99545,
-      0.99893
-     ]
-    }
-   }
+ "per_source": {
+  "ceas_08": {
+   "n": 38962,
+   "spam": 21674,
+   "ham": 17288,
+   "at_0.5": {
+    "recall": 0.8394,
+    "precision": 0.9327,
+    "fp": 1313,
+    "fn": 3480
+   },
+   "at_0.8": {
+    "recall": 0.7412,
+    "precision": 0.9521,
+    "fp": 808,
+    "fn": 5610
+   },
+   "spam_in_auto_close": 109,
+   "pr_auc": 0.96198,
+   "roc_auc": 0.96417,
+   "pct_ham_auto_closed": 84.95,
+   "seconds": 27.3
   },
-  "Huấn luyện bộ 10/2002, thử bộ thu thập sau đó": {
-   "n_train": 3250,
-   "n_test": 2796,
-   "models": {
-    "Linear SVM (hiệu chỉnh)": {
-     "n": 2796,
-     "spam_ratio": 0.499,
-     "pr_auc": 0.99843,
-     "roc_auc": 0.99826,
-     "at_0.5": {
-      "tp": 1292,
-      "fp": 4,
-      "fn": 104,
-      "tn": 1396,
-      "precision": 0.9969,
-      "recall": 0.9255,
-      "f1": 0.9599
-     },
-     "policy_zones": {
-      "spam_in_auto_close": 26,
-      "pct_spam_in_auto_close": 1.862,
-      "pct_ham_auto_closed": 98.43,
-      "urgent_precision": 1.0
-     },
-     "hard_ham": {
-      "n": 0,
-      "false_positive_rate_at_0.5": null
-     },
-     "train_seconds": 2.6,
-     "pr_auc_ci95": [
-      0.99784,
-      0.99905
-     ]
-    },
-    "Logistic Regression": {
-     "n": 2796,
-     "spam_ratio": 0.499,
-     "pr_auc": 0.99711,
-     "roc_auc": 0.99659,
-     "at_0.5": {
-      "tp": 1261,
-      "fp": 0,
-      "fn": 135,
-      "tn": 1400,
-      "precision": 1.0,
-      "recall": 0.9033,
-      "f1": 0.9492
-     },
-     "policy_zones": {
-      "spam_in_auto_close": 25,
-      "pct_spam_in_auto_close": 1.791,
-      "pct_ham_auto_closed": 96.86,
-      "urgent_precision": 1.0
-     },
-     "hard_ham": {
-      "n": 0,
-      "false_positive_rate_at_0.5": null
-     },
-     "train_seconds": 2.3,
-     "pr_auc_ci95": [
-      0.99614,
-      0.9982
-     ]
-    }
-   }
+  "enron": {
+   "n": 29423,
+   "spam": 13949,
+   "ham": 15474,
+   "at_0.5": {
+    "recall": 0.9298,
+    "precision": 0.7884,
+    "fp": 3482,
+    "fn": 979
+   },
+   "at_0.8": {
+    "recall": 0.8395,
+    "precision": 0.8717,
+    "fp": 1723,
+    "fn": 2239
+   },
+   "spam_in_auto_close": 187,
+   "pr_auc": 0.94263,
+   "roc_auc": 0.94226,
+   "pct_ham_auto_closed": 42.0,
+   "seconds": 28.0
+  },
+  "ling": {
+   "n": 2859,
+   "spam": 458,
+   "ham": 2401,
+   "at_0.5": {
+    "recall": 0.9192,
+    "precision": 0.8127,
+    "fp": 97,
+    "fn": 37
+   },
+   "at_0.8": {
+    "recall": 0.8406,
+    "precision": 0.8953,
+    "fp": 45,
+    "fn": 73
+   },
+   "spam_in_auto_close": 14,
+   "pr_auc": 0.93702,
+   "roc_auc": 0.9855,
+   "pct_ham_auto_closed": 89.71,
+   "seconds": 32.5
+  },
+  "spamassasin": {
+   "n": 5800,
+   "spam": 1710,
+   "ham": 4090,
+   "at_0.5": {
+    "recall": 0.9801,
+    "precision": 0.785,
+    "fp": 459,
+    "fn": 34
+   },
+   "at_0.8": {
+    "recall": 0.9637,
+    "precision": 0.8855,
+    "fp": 213,
+    "fn": 62
+   },
+   "spam_in_auto_close": 6,
+   "pr_auc": 0.98535,
+   "roc_auc": 0.99272,
+   "pct_ham_auto_closed": 75.35,
+   "seconds": 32.2
+  },
+  "nazario": {
+   "n": 1552,
+   "spam": 1552,
+   "ham": 0,
+   "at_0.5": {
+    "recall": 0.5619,
+    "precision": 1.0,
+    "fp": 0,
+    "fn": 680
+   },
+   "at_0.8": {
+    "recall": 0.346,
+    "precision": 1.0,
+    "fp": 0,
+    "fn": 1015
+   },
+   "spam_in_auto_close": 348,
+   "seconds": 33.5
+  },
+  "nigerian_fraud": {
+   "n": 3291,
+   "spam": 3291,
+   "ham": 0,
+   "at_0.5": {
+    "recall": 0.9942,
+    "precision": 1.0,
+    "fp": 0,
+    "fn": 19
+   },
+   "at_0.8": {
+    "recall": 0.9836,
+    "precision": 1.0,
+    "fp": 0,
+    "fn": 54
+   },
+   "spam_in_auto_close": 13,
+   "seconds": 33.0
   }
+ },
+ "nazario_by_period": {
+  "trước 2020": {
+   "n": 223,
+   "spam": 223,
+   "ham": 0,
+   "at_0.5": {
+    "recall": 0.5561,
+    "precision": 1.0,
+    "fp": 0,
+    "fn": 99
+   },
+   "at_0.8": {
+    "recall": 0.3363,
+    "precision": 1.0,
+    "fp": 0,
+    "fn": 148
+   },
+   "spam_in_auto_close": 47
+  },
+  "từ 2020": {
+   "n": 179,
+   "spam": 179,
+   "ham": 0,
+   "at_0.5": {
+    "recall": 0.2402,
+    "precision": 1.0,
+    "fp": 0,
+    "fn": 136
+   },
+   "at_0.8": {
+    "recall": 0.1061,
+    "precision": 1.0,
+    "fp": 0,
+    "fn": 160
+   },
+   "spam_in_auto_close": 91
+  },
+  "không rõ ngày": {
+   "n": 1150,
+   "spam": 1150,
+   "ham": 0,
+   "at_0.5": {
+    "recall": 0.613,
+    "precision": 1.0,
+    "fp": 0,
+    "fn": 445
+   },
+   "at_0.8": {
+    "recall": 0.3852,
+    "precision": 1.0,
+    "fp": 0,
+    "fn": 707
+   },
+   "spam_in_auto_close": 210
+  }
+ },
+ "pooled_out_of_source": {
+  "n": 81887,
+  "spam": 42634,
+  "ham": 39253,
+  "at_0.5": {
+   "recall": 0.8774,
+   "precision": 0.8748,
+   "fp": 5351,
+   "fn": 5229
+  },
+  "at_0.8": {
+   "recall": 0.7877,
+   "precision": 0.9233,
+   "fp": 2789,
+   "fn": 9053
+  },
+  "spam_in_auto_close": 677,
+  "pr_auc": 0.95009,
+  "roc_auc": 0.9472,
+  "pct_ham_auto_closed": 67.31
  },
  "top_terms": {
   "spam": [
    [
-    "zzhtml",
-    3.284
-   ],
-   [
     "your",
-    2.098
-   ],
-   [
-    "our",
-    1.627
-   ],
-   [
-    "free",
-    1.475
-   ],
-   [
-    "click here",
-    1.345
-   ],
-   [
-    "please",
-    1.341
+    3.625
    ],
    [
     "you",
-    1.256
+    2.272
+   ],
+   [
+    "http",
+    2.101
    ],
    [
     "remove",
-    1.173
+    2.099
    ],
    [
-    "spamassassin sightings",
-    1.101
+    "our",
+    1.694
    ],
    [
-    "click",
-    1.092
+    "here",
+    1.537
    ],
    [
-    "sightings",
-    1.074
+    "her",
+    1.528
    ],
    [
-    "ufffd ufffd",
-    1.049
+    "mobile email",
+    1.486
    ],
    [
-    "ufffd",
-    1.021
+    "life",
+    1.479
    ],
    [
-    "money",
-    0.955
+    "site",
+    1.478
    ],
    [
-    "htm",
-    0.904
+    "phone mobile",
+    1.462
+   ],
+   [
+    "sex",
+    1.362
+   ],
+   [
+    "men",
+    1.33
+   ],
+   [
+    "viagra",
+    1.329
+   ],
+   [
+    "no",
+    1.306
+   ],
+   [
+    "software",
+    1.306
+   ],
+   [
+    "bank",
+    1.294
+   ],
+   [
+    "your account",
+    1.293
+   ],
+   [
+    "man",
+    1.292
+   ],
+   [
+    "investment",
+    1.289
    ]
   ],
   "ham": [
    [
-    "re",
-    -1.589
-   ],
-   [
-    "the",
-    -1.382
+    "enron",
+    -4.518
    ],
    [
     "wrote",
-    -1.181
+    -3.329
    ],
    [
-    "url http",
-    -1.171
+    "vince",
+    -2.97
    ],
    [
-    "url",
-    -1.077
+    "opensuse",
+    -2.525
    ],
    [
-    "it",
-    -1.071
+    "the",
+    -2.469
    ],
    [
-    "but",
-    -1.047
+    "thanks",
+    -2.457
    ],
    [
-    "that",
-    -1.04
+    "louise",
+    -2.318
    ],
    [
-    "date",
-    -0.994
+    "fork",
+    -1.938
    ],
    [
-    "org",
-    -0.976
+    "on",
+    -1.937
    ],
    [
-    "they",
-    -0.828
+    "edu",
+    -1.872
    ],
    [
-    "spam",
-    -0.769
+    "to",
+    -1.826
    ],
    [
-    "razor",
-    -0.751
+    "ie rant",
+    -1.825
    ],
    [
-    "said",
-    -0.73
+    "nz",
+    -1.757
    ],
    [
-    "spamassassin talk",
-    -0.722
+    "uai",
+    -1.745
+   ],
+   [
+    "perl",
+    -1.727
+   ],
+   [
+    "university",
+    -1.715
+   ],
+   [
+    "doc",
+    -1.71
+   ],
+   [
+    "rant",
+    -1.687
+   ],
+   [
+    "tony",
+    -1.666
+   ],
+   [
+    "february",
+    -1.635
    ]
   ]
  }
