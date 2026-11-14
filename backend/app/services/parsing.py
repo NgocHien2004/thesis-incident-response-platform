@@ -1,7 +1,13 @@
 import csv
+import email
+import email.policy
 import json
 import math
 import re
+import zipfile
+import zlib
+from email.utils import parseaddr
+from html.parser import HTMLParser
 from typing import Iterator, Optional
 
 class ValidationError(Exception):
@@ -10,6 +16,11 @@ class ValidationError(Exception):
 EMAIL_COLUMNS = ("subject", "body", "sender", "urls")
 MAX_BODY_CHARS = 20000
 URL_SPLIT = re.compile(r"[\s,;|]+")
+URL_RE = re.compile(r"https?://[^\s<>\"')\]]+", re.I)
+# Giới hạn khi đọc thư thô (.eml, .zip); đặt thấp để file ZIP nén cực mạnh không làm cạn bộ nhớ
+MAX_EML_BYTES = 5 * 1024 * 1024
+MAX_ZIP_TOTAL_BYTES = 500 * 1024 * 1024
+MAX_ATTACHMENTS = 20
 
 def _key(name) -> str:
     return str(name).strip().casefold()
@@ -73,8 +84,162 @@ def _iter_json(path: str) -> Iterator[dict]:
             raise ValidationError(f"Phần tử {i} của file JSON không phải đối tượng")
         yield {str(k).strip(): v for k, v in item.items()}
 
+# ---------- thư thô: .eml và .zip chứa nhiều .eml ----------
+class _Html(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.parts, self.links, self.skip = [], [], 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("script", "style"):
+            self.skip += 1
+        elif tag == "a":
+            for k, v in attrs:
+                if k == "href" and v and v.strip().lower().startswith(("http://", "https://")):
+                    self.links.append(v.strip())
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style") and self.skip:
+            self.skip -= 1
+
+    def handle_data(self, data):
+        if not self.skip:
+            self.parts.append(data)
+
+def _html_to_text(html: str) -> tuple:
+    # Trả về (chữ hiển thị, các liên kết trong thẻ href); liên kết ẩn sau chữ hiển thị là dấu hiệu phishing hay gặp
+    p = _Html()
+    try:
+        p.feed(html)
+    except Exception:
+        return re.sub(r"<[^>]+>", " ", html), []
+    return " ".join(p.parts), p.links
+
+def _part_text(part) -> Optional[str]:
+    try:
+        text = part.get_content()
+        if isinstance(text, str):
+            return text
+    except Exception:
+        pass
+    try:
+        payload = part.get_payload(decode=True)
+    except Exception:
+        return None
+    if not isinstance(payload, bytes):
+        return None
+    for enc in (part.get_content_charset() or "utf-8", "utf-8"):
+        try:
+            return payload.decode(enc, errors="replace")
+        except LookupError:
+            continue
+    return None
+
+def parse_eml(raw: bytes, name: str = "") -> dict:
+    """Đọc một thư .eml thành {subject, body, sender, urls, has_html, attachments}.
+    Nội dung ưu tiên phần văn bản thuần; chỉ dùng phần HTML khi phần thuần trống hoặc quá ngắn.
+    Tệp đính kèm chỉ ghi tên, không đọc nội dung."""
+    label = f'Thư "{name}"' if name else "File .eml"
+    try:
+        msg = email.message_from_bytes(raw, policy=email.policy.default)
+        has_headers = any(msg.get(h) for h in ("From", "Subject", "To", "Date", "Message-ID"))
+        subject = str(msg.get("Subject", "") or "").strip()
+        from_raw = str(msg.get("From", "") or "").strip()
+        plain, html, links, attachments = [], [], [], []
+        for part in msg.walk():
+            if part.is_multipart():
+                continue
+            try:
+                fname = part.get_filename()
+            except Exception:
+                fname = None
+            if fname:
+                if len(attachments) < MAX_ATTACHMENTS:
+                    attachments.append(str(fname)[:255])
+                continue
+            ctype = part.get_content_type()
+            if ctype not in ("text/plain", "text/html"):
+                continue
+            text = _part_text(part)
+            if text is None:
+                continue
+            if ctype == "text/html":
+                t, l = _html_to_text(text)
+                html.append(t)
+                links += l
+            else:
+                plain.append(text)
+    except Exception:
+        raise ValidationError(f"{label}: không đọc được, có thể không phải file thư hợp lệ")
+    if not has_headers:
+        raise ValidationError(f"{label}: không thấy tiêu đề thư (From, Subject...), có thể không phải file .eml")
+    plain_text, html_text = "\n".join(plain), "\n".join(html)
+    body = plain_text if len(plain_text.strip()) >= 20 or not html_text.strip() else html_text
+    urls, seen = [], set()
+    for u in URL_RE.findall(body) + links:
+        u = u.rstrip(".,;:!?")
+        if u and u not in seen:
+            seen.add(u)
+            urls.append(u)
+    sender = (parseaddr(from_raw)[1] or from_raw)[:320]
+    if not subject and not body.strip():
+        raise ValidationError(f"{label}: không có tiêu đề và nội dung")
+    return {"subject": subject, "body": body, "sender": sender, "urls": urls[:50],
+            "has_html": bool(html), "attachments": attachments}
+
+def _iter_eml(path: str) -> Iterator[dict]:
+    try:
+        with open(path, "rb") as f:
+            raw = f.read(MAX_EML_BYTES + 1)
+    except OSError:
+        raise ValidationError("Không đọc được file .eml")
+    if len(raw) > MAX_EML_BYTES:
+        raise ValidationError(f"File .eml lớn hơn {MAX_EML_BYTES // (1024 * 1024)} MB")
+    yield parse_eml(raw)
+
+def _is_eml_member(filename: str) -> bool:
+    name = filename.replace("\\", "/")
+    base = name.rsplit("/", 1)[-1]
+    return name.lower().endswith(".eml") and not name.startswith("__MACOSX/") and not base.startswith("._")
+
+def _iter_zip(path: str) -> Iterator[dict]:
+    # Mỗi file .eml trong ZIP là một dòng; thứ tự theo tên file. Bỏ qua thư mục, file ngoài .eml và rác của macOS.
+    try:
+        zf = zipfile.ZipFile(path)
+    except (zipfile.BadZipFile, OSError):
+        raise ValidationError("File ZIP hỏng hoặc không phải file ZIP")
+    with zf:
+        members = sorted((i for i in zf.infolist() if not i.is_dir() and _is_eml_member(i.filename)),
+                         key=lambda i: i.filename)
+        if not members:
+            raise ValidationError("File ZIP không chứa file .eml nào")
+        total = 0
+        for info in members:
+            name = info.filename.replace("\\", "/")[:255]
+            try:
+                with zf.open(info) as f:
+                    raw = f.read(MAX_EML_BYTES + 1)
+            except (RuntimeError, NotImplementedError, zipfile.BadZipFile, zlib.error, EOFError):
+                raise ValidationError(f'Không đọc được "{name}" trong ZIP (file bị mã hóa hoặc hỏng)')
+            if len(raw) > MAX_EML_BYTES:
+                raise ValidationError(f'"{name}" lớn hơn {MAX_EML_BYTES // (1024 * 1024)} MB')
+            total += len(raw)
+            if total > MAX_ZIP_TOTAL_BYTES:
+                raise ValidationError(f"Tổng dung lượng sau giải nén vượt {MAX_ZIP_TOTAL_BYTES // (1024 * 1024)} MB")
+            row = parse_eml(raw, name)
+            row["source_file"] = name
+            yield row
+
 def iter_raw(path: str, fmt: str) -> Iterator[dict]:
-    return _iter_csv(path) if fmt == "csv" else _iter_json(path)
+    if fmt == "csv":
+        return _iter_csv(path)
+    if fmt == "json":
+        return _iter_json(path)
+    if fmt == "eml":
+        return _iter_eml(path)
+    if fmt == "zip":
+        return _iter_zip(path)
+    raise ValidationError("Định dạng file không được hỗ trợ")
 
 def _to_float(value, row_no: int, col: str) -> float:
     if isinstance(value, bool) or value is None:
@@ -94,6 +259,19 @@ def _urls(value) -> list:
     else:
         items = URL_SPLIT.split(str(value).strip())
     return [u for u in items if u][:50]
+
+def _truthy(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    return str(value or "").strip().lower() in ("1", "true", "yes")
+
+def _names(value) -> list:
+    if value is None:
+        return []
+    items = value if isinstance(value, list) else re.split(r"[;|]", str(value))
+    return [s for s in (str(v).strip()[:255] for v in items) if s][:MAX_ATTACHMENTS]
 
 class Schema:
     # features: danh sách cột bắt buộc của mô hình luồng mạng (None với email)
@@ -125,8 +303,12 @@ class Schema:
         body = str(by_key.get("body") or "")
         if not subject.strip() and not body.strip():
             raise ValidationError(f"Dòng {row_no}: subject và body đều trống")
-        return {"subject": subject[:500], "body": body[:MAX_BODY_CHARS],
-                "sender": str(by_key.get("sender") or "")[:320], "urls": _urls(by_key.get("urls"))}
+        out = {"subject": subject[:500], "body": body[:MAX_BODY_CHARS],
+               "sender": str(by_key.get("sender") or "")[:320], "urls": _urls(by_key.get("urls")),
+               "has_html": _truthy(by_key.get("has_html")), "attachments": _names(by_key.get("attachments"))}
+        if by_key.get("source_file"):
+            out["source_file"] = str(by_key["source_file"])[:255]
+        return out
 
 def validate_file(path: str, fmt: str, schema: Schema, max_rows: int) -> int:
     # Quét toàn bộ file một lần: kiểm tra cột và từng ô, trả về số dòng dữ liệu
