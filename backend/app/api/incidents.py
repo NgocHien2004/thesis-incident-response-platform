@@ -151,7 +151,8 @@ def list_incidents(
         query = query.filter(Incident.occurred_at <= d_to)
     col = SEVERITY_RANK if sort_by == "severity" else getattr(Incident, sort_by)
     direction = col.asc() if order == "asc" else col.desc()
-    rows, total = apply_page(query, [direction, Incident.id.desc()], page, page_size)
+    order_by = [direction] if sort_by == "id" else [direction, Incident.id.desc()]
+    rows, total = apply_page(query, order_by, page, page_size)
     names, type_names = _maps(db, rows)
     a, u = _counts(db, [r.id for r in rows])
     return page_response([_out(r, names, type_names, a, u) for r in rows], total, page, page_size)
@@ -253,6 +254,7 @@ def delete_incident(incident_id: int, db: Session = Depends(get_db), user: User 
         raise HTTPException(409, "Còn file đang xử lý, hãy đợi xong rồi mới xóa")
     from app.api.uploads import delete_upload_files
     delete_upload_files(db, inc.id)
+    db.flush()
     db.query(IncidentStatusHistory).filter(IncidentStatusHistory.incident_id == inc.id).delete()
     db.delete(inc)
     db.commit()

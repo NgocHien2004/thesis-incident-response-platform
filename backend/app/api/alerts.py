@@ -58,7 +58,9 @@ def list_alerts(db, incident_id, unassigned, page, page_size, sort_by, order, la
     if min_confidence is not None:
         q = q.filter(Alert.confidence >= min_confidence)
     col = getattr(Alert, sort_by)
-    rows, total = apply_page(q, [col.asc() if order == "asc" else col.desc(), Alert.id.asc()], page, page_size)
+    direction = col.asc() if order == "asc" else col.desc()
+    order_by = [direction] if sort_by == "id" else [direction, Alert.id.asc()]
+    rows, total = apply_page(q, order_by, page, page_size)
     items = [alert_dict(a, f, c, v) for a, f, c, v in rows]
     return page_response(items, total, page, page_size)
 
