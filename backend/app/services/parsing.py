@@ -137,7 +137,7 @@ def _part_text(part) -> Optional[str]:
 
 def parse_eml(raw: bytes, name: str = "") -> dict:
     """Đọc một thư .eml thành {subject, body, sender, urls, has_html, attachments}.
-    Nội dung ưu tiên phần văn bản thuần; chỉ dùng phần HTML khi phần thuần trống hoặc quá ngắn.
+    Nội dung lấy từ phần văn bản thuần; chỉ dùng phần HTML khi chữ HTML dài hơn hẳn (hơn 1,5 lần), vì bản thuần thường chỉ là dòng giữ chỗ.
     Tệp đính kèm chỉ ghi tên, không đọc nội dung."""
     label = f'Thư "{name}"' if name else "File .eml"
     try:
@@ -174,7 +174,9 @@ def parse_eml(raw: bytes, name: str = "") -> dict:
     if not has_headers:
         raise ValidationError(f"{label}: không thấy tiêu đề thư (From, Subject...), có thể không phải file .eml")
     plain_text, html_text = "\n".join(plain), "\n".join(html)
-    body = plain_text if len(plain_text.strip()) >= 20 or not html_text.strip() else html_text
+    # Thư thường có cả bản thuần và bản HTML cùng nội dung: lấy một bản để không nhân đôi. Bản thuần thường chỉ là dòng
+    # giữ chỗ ("xem bản HTML"), nên chỉ chuyển sang HTML khi chữ HTML dài hơn hẳn (hơn 1,5 lần) bản thuần.
+    body = html_text if html_text.strip() and len(html_text.strip()) > 1.5 * len(plain_text.strip()) else plain_text
     urls, seen = [], set()
     for u in URL_RE.findall(body) + links:
         u = u.rstrip(".,;:!?")

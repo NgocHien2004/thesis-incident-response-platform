@@ -81,6 +81,12 @@ check("Phần thuần quá ngắn thì dùng chữ từ HTML", "Vui lòng" in r[
 check("Có cờ has_html", r["has_html"] is True)
 check("Lấy cả liên kết ẩn trong href lẫn chữ hiển thị", "http://evil.example/login" in r["urls"] and "http://bank.vn/dang-nhap" in r["urls"], str(r["urls"]))
 check("Bỏ nội dung script", "tracker" not in r["body"] and "http://tracker.example" not in r["urls"])
+m3 = EmailMessage()
+m3["Subject"] = "Xác minh"
+m3.set_content("View this message in HTML.")
+m3.add_alternative("<html><body><p>Dear customer, we detected unusual activity on your bank account and will suspend it unless you verify your password.</p></body></html>", subtype="html")
+r = parsing.parse_eml(m3.as_bytes())
+check("Bản thuần chỉ là dòng giữ chỗ (26 ký tự) thì vẫn lấy nội dung từ HTML", "unusual activity" in r["body"] and "View this message" not in r["body"], r["body"])
 m2 = EmailMessage()
 m2["Subject"] = "Thư đủ dài"
 m2.set_content("Đây là phần văn bản thuần khá dài, đủ để dùng làm nội dung chính của thư này.")

@@ -8,7 +8,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPExcepti
 from sqlalchemy.orm import Session
 from database import get_db
 from app.core.dependencies import get_current_user
-from app.core.constants import DATA_TYPES, FILE_FORMATS, UPLOADABLE_STATUSES
+from app.core.constants import DATA_TYPES, EMAIL_ONLY_FORMATS, FILE_FORMATS, UPLOADABLE_STATUSES
 from app.core.storage import UPLOAD_STORAGE_DIR
 from app.core.timeutils import utcnow
 from app.models.user import User
@@ -75,7 +75,9 @@ def create_upload(incident_id: int, background: BackgroundTasks, data_type: str 
     original = clean_filename(file.filename)
     ext = os.path.splitext(original)[1].lower()
     if ext not in FILE_FORMATS:
-        raise HTTPException(422, "Chỉ nhận file .csv hoặc .json")
+        raise HTTPException(422, "Chỉ nhận file .csv, .json, .eml hoặc .zip (chứa các file .eml)")
+    if FILE_FORMATS[ext] in EMAIL_ONLY_FORMATS and data_type != "email":
+        raise HTTPException(422, "File .eml và .zip chỉ dùng được cho nguồn Email")
 
     max_bytes = get_int(db, "max_upload_mb") * 1024 * 1024
     folder = os.path.join(UPLOAD_STORAGE_DIR, str(inc.id))

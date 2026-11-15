@@ -10,9 +10,15 @@ function FormatHint({ dataType, models }) {
   const [open, setOpen] = useState(false)
   if (dataType === 'email') {
     return (
-      <div className="text-xs text-gray-600 bg-gray-50 border rounded-lg p-3">
-        File <b>.csv</b> hoặc <b>.json</b> với các cột bắt buộc: <code>subject</code>, <code>body</code>, <code>sender</code>, <code>urls</code>
-        (urls cách nhau bằng dấu cách, phẩy hoặc chấm phẩy; trong JSON có thể là mảng). Mỗi dòng là một thư.
+      <div className="text-xs text-gray-600 bg-gray-50 border rounded-lg p-3 space-y-1">
+        <div>
+          File <b>.csv</b> hoặc <b>.json</b> với các cột bắt buộc: <code>subject</code>, <code>body</code>, <code>sender</code>, <code>urls</code>
+          (urls cách nhau bằng dấu cách, phẩy hoặc chấm phẩy; trong JSON có thể là mảng). Mỗi dòng là một thư.
+        </div>
+        <div>
+          Hoặc file thư <b>.eml</b> (một thư), hoặc file <b>.zip</b> chứa nhiều file <b>.eml</b> (tải thư về từ Gmail, Outlook...).
+          Hệ thống tự đọc tiêu đề, người gửi, nội dung và liên kết; tệp đính kèm chỉ ghi tên, không lưu nội dung.
+        </div>
       </div>
     )
   }
@@ -58,6 +64,13 @@ export default function UploadPanel({ incident, uploads, canUpload, onUploaded, 
 
   useEffect(() => { getModels().then(r => setModels(r.data)).catch(() => {}) }, [])
 
+  // Đổi nguồn thì bỏ file đang chọn, vì .eml và .zip chỉ hợp lệ với nguồn Email
+  const changeDataType = (value) => {
+    setDataType(value)
+    setFile(null)
+    if (inputRef.current) inputRef.current.value = ''
+  }
+
   const submit = async (e) => {
     e.preventDefault()
     if (!file) return
@@ -82,10 +95,11 @@ export default function UploadPanel({ incident, uploads, canUpload, onUploaded, 
         <form onSubmit={submit} className="bg-white border rounded-lg p-4 space-y-3">
           <div className="font-medium text-gray-800">Tải dữ liệu lên để phân loại</div>
           <div className="flex flex-wrap gap-3 items-center">
-            <select className={ctl} value={dataType} onChange={e => setDataType(e.target.value)}>
+            <select className={ctl} value={dataType} onChange={e => changeDataType(e.target.value)}>
               {Object.entries(DATA_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
-            <input ref={inputRef} type="file" accept=".csv,.json" onChange={e => setFile(e.target.files[0] || null)} className="text-sm" />
+            <input ref={inputRef} type="file" accept={dataType === 'email' ? '.csv,.json,.eml,.zip' : '.csv,.json'}
+              onChange={e => setFile(e.target.files[0] || null)} className="text-sm" />
             <button disabled={!file || busy} className="px-4 py-2 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-lg disabled:opacity-50">
               {busy ? 'Đang gửi...' : 'Upload'}
             </button>

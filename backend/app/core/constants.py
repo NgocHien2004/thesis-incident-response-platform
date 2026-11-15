@@ -23,7 +23,9 @@ INCIDENT_SOURCES = ("ids_ips", "email", "endpoint", "manual", "other")
 DATA_TYPES = ("network", "email")
 UPLOAD_STATUSES = ("pending", "processing", "completed", "failed")
 VERIFICATION_STATUSES = ("unverified", "verified", "dismissed")
-FILE_FORMATS = {".csv": "csv", ".json": "json"}
+# .eml (một thư) và .zip (nhiều file .eml) chỉ dùng cho nguồn email
+FILE_FORMATS = {".csv": "csv", ".json": "json", ".eml": "eml", ".zip": "zip"}
+EMAIL_ONLY_FORMATS = {"eml", "zip"}
 
 BENIGN_LABELS = {"BENIGN", "NON_SPAM", "HAM"}
 
