@@ -1,642 +1,347 @@
-## Tổng quan hệ thống
+# Thiết kế hệ thống
 
-Hệ thống quản lý vòng đời sự cố an ninh mạng (Incident Response Platform) dành cho tổ chức vừa và nhỏ, tích hợp AI phân loại cảnh báo và ánh xạ MITRE ATT&CK. Được thiết kế theo NIST SP 800-61 Rev.2 lifecycle với tham chiếu CSF 2.0.
+Hệ thống quản lý sự cố an ninh mạng tích hợp AI phân loại cảnh báo từ dữ liệu đa nguồn (luồng mạng và email), dành cho tổ chức vừa và nhỏ. Đây là bản thu gọn từ đề tài 10 theo gợi ý của giảng viên; yêu cầu chức năng và cách đáp ứng từng mục nằm ở `GOI_Y_GIAO_VIEN.md`, cấu trúc cơ sở dữ liệu ở `DATABASE.md`.
 
-**Mục tiêu:** Chuẩn hóa quy trình tiếp nhận cảnh báo → phân tích → xử lý → phục hồi → học hỏi mà không cần xây dựng SIEM thương mại đầy đủ.
+## 1. Tổng quan
 
-**Phạm vi MVP:**
-
-- Web quản lý tài sản, cảnh báo, incident, bằng chứng, task, phê duyệt, phục hồi và postmortem
-- Nhập cảnh báo từ CSV/JSON/webhook mô phỏng
-- Một mô hình phân loại cảnh báo mạng (CIC-IDS2017) và ánh xạ ATT&CK bằng retrieval
-- Dashboard SLA và timeline; chưa tích hợp tự động với firewall/EDR thật
-
-**Tech stack:**
-
-| Tầng | Công nghệ |
-| --- | --- |
-| Frontend | React 18 + Vite + Tailwind CSS |
-| Backend | Python FastAPI + SQLAlchemy |
-| Database | Microsoft SQL Server |
-| AI Service |Local FastAPI |
-| ML | scikit-learn Random Forest, TF-IDF |
-| Auth | JWT (access 15 phút, refresh 7 ngày) + bcrypt |
-
-## Role và phân quyền
-
-Đề bài liệt kê 7 **nhóm người dùng**. Đây là các nhóm người trong tổ chức, không phải 7 vai trò kỹ thuật, nên hệ thống gộp chúng thành 3 vai trò theo quyền hạn thực tế.
-
-| # | Nhóm trong đề | Vai trò hệ thống | Cách xử lý |
-| --- | --- | --- | --- |
-| 1 | Nhân viên gửi báo cáo phishing | không cần tài khoản | Báo qua email hoặc điện thoại cho helpdesk, helpdesk nhập vào hệ thống (bước 2: "email nghi phishing, báo cáo thủ công") |
-| 2 | IT/helpdesk | `it_helpdesk` | |
-| 3 | Chuyên viên an ninh/SOC | `analyst_soc` | |
-| 4 | Incident commander / quản lý CNTT | `analyst_soc` được chỉ định làm commander của từng vụ (`commander_id`) | Commander là vai trò theo từng incident, có thẩm quyền cao hơn trong phạm vi vụ đó |
-| 5 | Chủ hệ thống / nghiệp vụ bị ảnh hưởng | `stakeholder` | |
-| 6 | Lãnh đạo, pháp chế, truyền thông | `stakeholder` | Đề ghi "trong kịch bản mô phỏng", nên là vai diễn, không cần role riêng |
-| 7 | Kiểm toán viên | `analyst_soc` | Hệ thống không có vai trò kiểm toán riêng. Việc xem, xuất và kiểm tra toàn vẹn nhật ký kiểm toán do Analyst đảm nhiệm; mọi thao tác của chính Analyst vẫn nằm trong nhật ký |
-
-| Role | Tương đương thực tế | Trách nhiệm chính |
-| --- | --- | --- |
-| `it_helpdesk` | Tier 1 SOC / IT Staff | Tiếp nhận và triage sơ bộ cảnh báo, thu thập bằng chứng, đề xuất và thực hiện containment, thực hiện recovery |
-| `analyst_soc` | Tier 2 SOC / Incident Responder | Triage, tạo incident (người tạo mặc định là commander), phân tích phạm vi, phê duyệt containment, xác minh, soạn và duyệt thông báo, postmortem, xem và xuất nhật ký kiểm toán, cấp tài khoản |
-| `stakeholder` | Chủ hệ thống / Lãnh đạo | Xác nhận recovery, xác nhận đã nhận thông báo, xem dữ liệu |
-
-**Ma trận quyền:**
-
-| Hành động | IT | Analyst | Stakeholder |
-| --- | --- | --- | --- |
-| Xem dữ liệu (alert, incident, tài sản, dashboard, timeline) | ✅ | ✅ | ✅ |
-| Tạo, sửa tài sản | ✅ | ✅ | ❌ |
-| Xóa tài sản | ❌ | ✅ | ❌ |
-| Tạo / upload alert; triage | ✅ | ✅ | ❌ |
-| Đánh dấu báo nhầm; tạo incident; đổi trạng thái incident; phân tích phạm vi | ❌ | ✅ | ❌ |
-| Thu thập và khóa bằng chứng | ✅ | ✅ | ❌ |
-| Đề xuất containment | ✅ | ✅ | ❌ |
-| Phê duyệt containment | ❌ | ✅ (xem quy tắc bên dưới) | ❌ |
-| Thực hiện containment | ✅ | ✅ | ❌ |
-| Xác minh containment | ❌ | ✅ (người khác người thực hiện) | ❌ |
-| Tạo, cập nhật hành động recovery | ✅ | ✅ | ❌ |
-| Xác nhận recovery | ❌ | ❌ | ✅ |
-| Soạn thông báo | ❌ | ✅ | ❌ |
-| Phê duyệt thông báo | ❌ | ✅ (người khác người soạn) | ❌ |
-| Gửi thông báo đã duyệt | ❌ | ✅ | ❌ |
-| Xác nhận đã nhận thông báo | ❌ | ❌ | ✅ |
-| Viết postmortem | ❌ | ✅ | ❌ |
-| Đánh dấu hoàn thành action item | ✅ | ✅ | ❌ |
-| Xem playbook và công việc của incident | ✅ | ✅ | ✅ |
-| Tạo, sửa, ngừng dùng playbook | ❌ | ✅ | ❌ |
-| Áp dụng playbook; giao việc, đặt hạn; tạo hoặc xóa công việc thủ công | ❌ | ✅ | ❌ |
-| Nhận việc, làm và hoàn thành công việc (việc giao cho mình, hoặc việc chưa giao thuộc IT) | ✅ | ✅ | ❌ |
-| Bỏ qua hoặc mở lại công việc | ❌ | ✅ (việc bắt buộc chỉ commander; luôn ghi lý do) | ❌ |
-| Đóng hoặc mở lại incident; chốt postmortem | ❌ | ✅ (chỉ commander của vụ) | ❌ |
-| Xem, xuất nhật ký kiểm toán; kiểm tra chuỗi băm | ❌ | ✅ | ❌ |
-| Cấp tài khoản mới | ❌ | ✅ | ❌ |
-| Gọi AI suggest | ✅ | ✅ | ✅ |
-
-**Ma trận thẩm quyền và tách nhiệm vụ.** Đề yêu cầu quyền thực thi containment nằm trong ma trận thẩm quyền của tổ chức. Hệ thống áp dụng các quy tắc sau, kiểm tra ở backend và có trong bộ kiểm thử phân quyền:
-
-- Người phê duyệt containment phải khác người đề xuất.
-- Containment rủi ro cao chỉ do commander của vụ phê duyệt.
-- Người xác minh containment phải khác người thực hiện.
-- Người duyệt thông báo phải khác người soạn; thông báo ra ngoài hoặc leo thang do commander duyệt.
-- Recovery chỉ do chủ hệ thống (stakeholder) xác nhận, analyst không xác nhận thay.
-- Chỉ commander của vụ được đóng, mở lại incident và chốt postmortem.
-
-**Bảo mật tài khoản.** Mật khẩu băm bcrypt. Token JWT hết hạn sau 15 phút. Sai mật khẩu 5 lần thì khóa tài khoản 15 phút. Tài khoản đầu tiên được tạo tự do để khởi tạo hệ thống; sau đó chỉ Analyst mới cấp tài khoản và phân vai trò. Mọi lần đăng nhập, đăng nhập sai và cấp tài khoản đều được ghi vào nhật ký kiểm toán.
-
-**Lý do thiết kế.** Gộp thành 3 vai trò để phù hợp tổ chức vừa và nhỏ nhưng vẫn giữ được tách nhiệm vụ. Commander là vai trò theo từng vụ chứ không phải một loại tài khoản, đúng với NIST SP 800-61 và CISA playbook. Hệ thống không có vai trò kiểm toán viên riêng: chức năng nhật ký kiểm toán do Analyst dùng để tự rà soát và truy vết. Hạn chế: không có người kiểm tra độc lập với người vận hành, nên chuỗi băm là lớp bảo vệ chính cho tính toàn vẹn của nhật ký. Trong tổ chức thật, nên cấp thêm một vai trò chỉ đọc cho kiểm toán nội bộ.
-
-## Quy trình nghiệp vụ 12 bước
-
-Mỗi bước mô tả ai làm gì, đầu vào, đầu ra và điều kiện chuyển tiếp.
-
-### Bước 1 — Quản lý tài sản
-
-**Ai làm:** IT/Helpdesk, Analyst/SOC **Đầu vào:** Thông tin máy chủ, ứng dụng, tài khoản **Đầu ra:** Danh mục tài sản với mức quan trọng (critical/high/medium/low) **Ghi chú:** Làm trước khi có sự cố. Tài sản được liên kết với cảnh báo và incident để đánh giá mức độ ảnh hưởng.
-
-### Bước 2 — Tiếp nhận cảnh báo
-
-**Ai làm:** IT/Helpdesk, Analyst/SOC **Đầu vào:** File CSV/JSON, POST webhook, hoặc nhập thủ công **Đầu ra:** Alert với status `new`, có ID, timestamp, nguồn gốc **Ghi chú:** Mọi cảnh báo đều vào hàng chờ, chưa phán xét. Nhân viên báo cáo nghi phishing qua email hoặc điện thoại, helpdesk nhập vào hệ thống (nhân viên thường không có tài khoản). Chưa hỗ trợ nhập trực tiếp tệp email (.eml). Cảnh báo nhập từ ngoài (webhook, CSV, JSON) có thể kèm `affected_asset` (id), `asset_hostname` hoặc `asset_ip` để gắn đúng tài sản, và `flow_features` (đặc trưng luồng mạng) để được chấm điểm bằng mô hình Random Forest; không có thì cảnh báo vẫn nhập được và được chấm điểm theo cách dự phòng. Payload cũng có thể kèm `source` (`ids_ips`, `endpoint` hoặc `email`) để cảnh báo được tính đúng độ tin cậy của nguồn; thiếu, sai hoặc là `manual` thì dùng kênh nhập (`webhook` với webhook, `csv_upload` với CSV và JSON). `manual` không nhận từ nhập tự động vì đó là báo cáo của con người, chỉ tạo qua `POST /alerts/`.
-
-### Bước 3 — Chuẩn hóa & chống trùng
-
-**AI làm:** Hệ thống tự động (gọi sau mỗi lần tạo alert) **Đầu vào:** Alert mới tạo **Đầu ra:** Alert được gán `group_id`, các alert cùng IOC trong 60 phút được gom nhóm **Ghi chú:** Chuẩn hóa IOC về lowercase, loại trùng. Giữ link về alert gốc. Tham số cửa sổ thời gian (60 phút) có thể cấu hình.
-
-### Bước 3b — Chấm điểm và chia vùng ưu tiên
-
-**Ai làm:** Hệ thống tự động (sau chuẩn hóa và chống trùng); IT, Analyst chấm lại được **Đầu vào:** Cảnh báo, mức quan trọng của tài sản, độ tin cậy của nguồn, đặc trưng luồng mạng nếu có **Đầu ra:** Điểm ưu tiên 0 đến 100, vùng (`urgent`, `review`, `auto_close`), giải thích và các cảnh báo tương tự, lưu trên alert **Ghi chú:** Chi tiết ở mục *Chấm điểm và chia vùng ưu tiên* của phần AI/ML. Chấm điểm lỗi không làm hỏng việc tiếp nhận. Kết quả là gợi ý do AI tạo; Analyst quyết định.
-
-### Bước 4 — Triage
-
-**Ai làm:** IT/Helpdesk (sơ bộ), Analyst/SOC (chính thức) **Đầu vào:** Alert ở trạng thái `new` hoặc `reviewing` **Đầu ra:** Alert với loại tấn công, mức độ, độ tin cậy, SLA deadline, người phụ trách **Điều kiện:** AI suggest có thể điền sẵn mức độ và ATT&CK technique — Analyst xác nhận trước khi lưu **Nhánh:** Đủ thông tin → `triaged` → Bước 5 | False positive → `false_positive` → đóng
-
-### Bước 5 — Tạo incident
-
-**Ai làm:** Analyst/SOC **Đầu vào:** Alert đã `triaged` **Đầu ra:** Incident với ID, commander, checklist ban đầu, liên kết đến các alert **Ghi chú:** Một incident có thể gộp nhiều alert liên quan; các alert chuyển sang `escalated`. Commander mặc định là người tạo, hoặc một Analyst khác được chỉ định; commander phải là tài khoản Analyst đang hoạt động. Khi tạo vụ có thể chọn một playbook; mỗi bước của playbook trở thành một công việc (task) của vụ, xem mục *Playbook và công việc*.
-
-### Bước 6 — Thu thập bằng chứng
-
-**Ai làm:** IT/Helpdesk, Analyst/SOC **Đầu vào:** Log, email, tệp tải lên, hash, screenshot **Đầu ra:** Evidence với SHA-256 hash tự tính, chain of custody log **Ghi chú:** Mỗi thao tác (thu thập, xem, cấp bản sao làm việc, kiểm tra toàn vẹn, lock) đều ghi vào chain of custody. Sau khi lock, bằng chứng không thể sửa.
-
-**Bằng chứng dạng tệp (theo NIST SP 800-86: thu thập, bảo quản, bản sao làm việc, chain of custody).** `POST /incidents/{id}/evidences/upload` nhận tệp (tối đa 20 MB, đổi bằng biến môi trường `EVIDENCE_MAX_MB`). SHA-256 được tính trên đúng các byte nhận được, ngay khi ghi vào kho `backend/evidence_store/` (đổi bằng `EVIDENCE_STORAGE_DIR`, đã nằm trong `.gitignore`). Tệp lưu dưới tên do máy chủ sinh (`{incident_id}/{uuid}`), không dùng tên người dùng; tên gốc đã bỏ đường dẫn và ký tự điều khiển, chỉ để hiển thị; tệp được đặt chế độ chỉ đọc (cố gắng tối đa theo hệ điều hành). API không trả khóa lưu trữ, và `file_path` do client khai chỉ là ghi chú, không bao giờ dùng để đọc tệp. Tệp gốc không bao giờ được phát trực tiếp: `GET .../download` cấp **bản sao làm việc** sau khi băm lại tệp gốc và thấy khớp mã băm ghi nhận, rồi ghi `working_copy_issued` kèm mã băm vào chain of custody. Tệp có thể là mã độc nên được phát dạng tải về (`attachment`, `application/octet-stream`, `nosniff`); giao diện tự băm lại bản sao vừa tải để so với mã băm ghi nhận. `POST .../verify` băm lại dữ liệu đang lưu (tệp hoặc nội dung chữ) và ghi `verified` hoặc `integrity_failed`; khóa bằng chứng dạng tệp cũng kiểm tra trước và từ chối nếu tệp đã khác. Chỉ IT và Analyst tải lên, tải về và kiểm tra; Stakeholder chỉ xem danh sách. `tests/verify_system.py` kiểm tra mọi tệp có trong DB còn nằm trong kho và khớp mã băm.
-
-**Hạn chế của bằng chứng dạng tệp:** mã băm nằm cùng DB và tệp nằm cùng máy chủ, nên người có quyền quản trị cả hai vẫn có thể thay tệp và sửa mã băm (chuỗi băm của nhật ký kiểm toán phát hiện sửa bản ghi nhưng không chứng minh nội dung tệp trước lúc tải lên); chuỗi bảo quản chỉ bắt đầu khi tệp tới hệ thống, không chứng minh tệp trùng bản gốc trên máy nguồn (người thu thập nên ghi hash nguồn vào mô tả); bản sao làm việc là luồng byte giống bản gốc, hệ thống không kiểm soát người nhận dùng nó thế nào; máy chủ vẫn nhận xong tệp tạm trước khi từ chối tệp quá lớn (kiểm tra `Content-Length` chỉ chặn sớm yêu cầu khai báo quá lớn); không quét mã độc, không mã hóa tệp khi lưu, chưa có chính sách lưu giữ hay xóa tệp, chưa có dấu thời gian từ bên thứ ba.
-
-### Bước 7 — Phân tích & phạm vi ảnh hưởng
-
-**Ai làm:** Analyst/SOC **Đầu vào:** Bằng chứng đã thu thập, IOC, tài sản **Đầu ra:** Danh sách IOC, tài sản/tài khoản bị ảnh hưởng, ATT&CK techniques, tóm tắt phân tích **Ghi chú:** AI đề xuất Top-K ATT&CK techniques qua retrieval + reranking. Lưu phiên bản ATT&CK tại thời điểm ánh xạ.
-
-### Bước 8 — Containment
-
-**Ai làm:** IT/Helpdesk hoặc Analyst (đề xuất, thực hiện), Analyst khác (phê duyệt, xác minh) **Đầu vào:** Incident đang điều tra, đã khống chế hoặc đang phục hồi **Flow:** Đề xuất (`proposed`) → phê duyệt hoặc từ chối → thực hiện (`executed`) → xác minh (`verified`) **Quy tắc thẩm quyền:** người duyệt khác người đề xuất; rủi ro cao chỉ commander duyệt; người xác minh khác người thực hiện. **Quan trọng:** MVP chỉ mô phỏng, không tự động khóa tài khoản hay cô lập máy trên hệ thống thật; "thực hiện" chỉ ghi nhận việc con người đã làm kèm ghi chú.
-
-### Bước 9 — Eradication & Recovery
-
-**Ai làm:** IT/Helpdesk hoặc Analyst (thực hiện), Stakeholder là chủ hệ thống (xác nhận) **Đầu vào:** Incident đã `contained` **Đầu ra:** Danh sách recovery actions với trạng thái và xác nhận của chủ hệ thống **Ghi chú:** Khi mọi hành động đã xong được chủ hệ thống xác nhận, incident chuyển sang `recovering`. Analyst không được xác nhận thay chủ hệ thống.
-
-### Bước 10 — Thông báo & phối hợp
-
-**Ai làm:** Analyst/SOC (soạn, duyệt, gửi), Stakeholder (xác nhận đã nhận) **Đầu ra:** Log thông báo với subject, recipients, thời gian gửi, người xác nhận đã đọc **Flow:** Nháp → Analyst khác người soạn phê duyệt nội dung → gửi → Stakeholder xác nhận. Thông báo ra ngoài hoặc leo thang cần commander phê duyệt. Chưa có mẫu thông báo và danh bạ bên liên quan.
-
-### Bước 11 — Đóng vụ & Postmortem
-
-**Ai làm:** Commander của vụ (đóng, chốt postmortem), Analyst (viết postmortem) **Tiêu chí đóng:** đã có mốc khống chế; không còn đề xuất containment chưa xử lý; mọi containment đã thực hiện đều được xác minh; không còn hành động recovery đang chờ hoặc đang làm; có ít nhất một hành động recovery được chủ hệ thống xác nhận; không còn công việc bắt buộc theo playbook ở trạng thái chưa làm hoặc đang làm (công việc bắt buộc phải xong, hoặc được commander bỏ qua kèm lý do). **Postmortem:** viết khi incident đã sang giai đoạn phục hồi hoặc đã đóng; chốt (finalize) khi incident đã đóng và có ít nhất một action item; chốt không thay đổi trạng thái hay thời điểm đóng của incident. **Mở lại:** commander có thể mở lại incident đã đóng kèm lý do bắt buộc. Incident đã đóng không nhận thêm bằng chứng, containment hay recovery.
-
-### Bước 12 — Đo lường
-
-**Ai làm:** Hệ thống tự động tính, tất cả role xem được **Đầu ra:** MTTD, MTTA, MTTR, số vụ mở, lỗi lặp, % hoàn thành action items, SLA breached alerts **Định nghĩa:** MTTD là thời gian từ cảnh báo đầu tiên của vụ đến khi mở incident; MTTA là thời gian từ lúc tạo cảnh báo đến khi được triage; MTTR là thời gian từ khi mở incident đến khi đóng. MTTD và MTTR tính trên các vụ đã đóng. Vi phạm SLA là cảnh báo đã triage, quá hạn mà chưa được nâng thành incident. **Hạn chế:** chỉ số "lỗi lặp" so khớp chuỗi nguyên nhân gốc nên chưa đáng tin.
-
-### Playbook và công việc (task)
-
-Đề yêu cầu chuyển các phase, checklist, điểm phê duyệt và tiêu chí đóng của playbook CISA thành mẫu cấu hình được cho doanh nghiệp vừa và nhỏ. Hệ thống cài đặt hai đối tượng:
-
-- **Playbook** là mẫu theo loại sự cố (`phishing`, `credential_compromise`, `malware`, `web_attack`, `other`), gồm các bước có thứ tự. Mỗi bước có tiêu đề, mô tả, giai đoạn (`analysis`, `evidence`, `containment`, `recovery`, `communication`, `closure`), vai trò thường đảm nhiệm (IT/Helpdesk hoặc Analyst/SOC), hạn tính bằng giờ kể từ lúc tạo vụ, và cờ bắt buộc. Hệ thống nạp sẵn 5 playbook mẫu: 4 playbook theo loại sự cố do tác giả soạn theo khung pha và danh sách kiểm tra của CISA, NIST SP 800-61 Rev. 3 và biện pháp giảm thiểu của ATT&CK (37 bước, mỗi bước ghi mã tham chiếu riêng), và 1 playbook tham chiếu chuẩn bám cấu trúc checklist của CISA (xem mục sau). Analyst tạo, sửa hoặc ngừng dùng playbook trên giao diện. Nội dung mẫu là điều chỉnh của tác giả, không phải bản sao tài liệu gốc.
-- **Công việc (task)** là bản sao của một bước playbook gắn với một incident, hoặc do Analyst tạo tay. Task lưu tiêu đề, giai đoạn, hạn, cờ bắt buộc, người được giao, ghi chú và người hoàn thành. Vì là bản sao, sửa hoặc ngừng dùng playbook về sau không làm đổi các task đã tạo.
-
-### Playbook tham chiếu chuẩn và đối chiếu với CISA
-
-CISA không có playbook riêng theo loại sự cố: tài liệu chỉ có một playbook ứng phó sự cố chung và một playbook xử lý lỗ hổng, và playbook ứng phó chỉ áp dụng cho hoạt động độc hại đã xác nhận có thể thành sự cố lớn. Tài liệu còn nêu rõ không áp dụng cho các hoạt động không có khả năng thành sự cố lớn, ví dụ người dùng nhấp email phishing mà không bị chiếm quyền, hay mã độc thông thường trên một máy. Nhiều bước chỉ dành cho cơ quan liên bang Mỹ (báo CISA trong 1 giờ, báo OMB và Quốc hội, kích hoạt FNA). Vì vậy 4 playbook theo loại sự cố ở trên là chuyển thể của tác giả: mỗi bước ghi trong trường tham chiếu mã mục tương ứng của Phụ lục B, NIST hoặc biện pháp giảm thiểu ATT&CK (đối chiếu là phán đoán của tác giả; riêng bước thu hồi thư khỏi hộp thư người nhận của playbook phishing chưa có chỗ tựa trong các nguồn đã đọc); hạn giờ, cờ bắt buộc và vai trò đảm nhiệm của từng bước không có trong nguồn và là lựa chọn của tác giả; các bước thông báo của phishing, credential và mã độc dặn báo qua điện thoại, không qua email, và bước phân tích mẫu của mã độc dặn không gửi mẫu lên dịch vụ phân tích công cộng (CISA tr. 9, Phụ lục C 7b và 7e; ATT&CK M1060 cho T1114.003). Với DB đã có sẵn playbook, khi khởi động hệ thống chỉ điền mã vào bước còn trống và chỉ thay mô tả khi nó vẫn đúng bằng bản cũ, nên chỗ analyst đã sửa được giữ nguyên. Còn playbook **"Tham chiếu chuẩn: ứng phó sự cố theo CISA (điều chỉnh)"** (31 bước) giữ nguyên thứ tự 11 bước của Phụ lục B (Incident Response Checklist, bản tháng 11/2021), diễn đạt lại bằng tiếng Việt, không dịch từng câu. Mỗi bước có trường tham chiếu riêng ghi mã mục tương ứng trong Phụ lục B (ví dụ "CISA B 3a–3b"), hiển thị cạnh giai đoạn và vai trò, không lẫn vào phần hướng dẫn thực hiện; công việc tạo từ playbook không mang trường này. Mô tả của playbook chỉ nêu mục đích và cách dùng, còn lai lịch chuyển thể (mục nào bỏ, mục nào chuyển thể) nằm ở bảng dưới đây và ở trường nguồn tham chiếu.
-
-| Bước CISA (Phụ lục B) | Mục | Công việc trong playbook (số thứ tự) | Ghi chú |
-| --- | --- | --- | --- |
-| 1. Declare Incident | 1a–1c | 1, 2, 3 | 1c chuyển thành báo lãnh đạo và đánh giá nghĩa vụ báo cáo; bỏ 1d (đầu mối liên lạc với CISA) |
-| 2. Determine Investigation Scope | 2a–2b | 4 | |
-| 3. Collect and Preserve Data | 3a–3b | 5 | Hệ thống tự ghi chain of custody |
-| 4. Perform Technical Analysis | 4a–4bb | 6 đến 12 | Gồm ánh xạ ATT&CK (4r–4y) và điều kiện kết thúc phân tích (4d); phần báo cáo cho CISA ở 4c, 4q chuyển thành chia sẻ nội bộ và với đối tác |
-| 5. Third-Party Analysis Support | 5a, 5c, 5d | 13 | Bỏ 5b (FNA của liên bang Mỹ) |
-| 6. Adjust Tools | 6a–6b | 14 | |
-| 7. Contain Activity | 7a–7n | 15 đến 19 | Bỏ 7j (dẫn kẻ tấn công vào sandbox, chỉ cho SOC nâng cao); 7l (báo CISA) chuyển thành cập nhật cho các bên liên quan; biện pháp cụ thể thực hiện ở tab Containment |
-| 8. Execute Eradication Plan | 8a–8m | 20 đến 22 | 8b (báo cáo tình trạng cho CISA) chuyển thành cập nhật cho các bên liên quan |
-| 9. Recovery (bản gốc đặt trùng tiêu đề với bước 8) | 9a–9l | 23 đến 26 | 9a và 9l trùng nội dung trong bản gốc; chủ hệ thống xác nhận ở tab Recovery |
-| 10. Post-Incident Activities | 10a–10r | 29 đến 31 | Bỏ 10g, 10h (báo CISA); 10e chuyển thành đánh giá nghĩa vụ báo cáo |
-| 11. Coordination with CISA | 11a–11h | 27, 28 | Chỉ giữ 11d–11f dưới dạng cập nhật nội bộ và chia sẻ với đối tác; bỏ 11a–11c, 11g, 11h |
-
-Phần chuẩn bị trước sự cố (Phụ lục C) không nằm trong playbook này; việc quản lý tài sản, giám sát và nhật ký do các chức năng khác của hệ thống đảm nhiệm. Bảng đối chiếu do tác giả lập từ bản CISA tháng 11/2021 và cần soát lại với bản gốc trước khi nộp. Khi khởi động, hệ thống tự thêm cột tham chiếu vào bảng `playbook_steps` nếu chưa có, làm mới nội dung playbook tham chiếu được tạo bởi bản cũ (chưa có mã tham chiếu ở bước nào, giữ nguyên mã và các công việc đã tạo), và thêm playbook tham chiếu vào cơ sở dữ liệu đã có sẵn playbook khác; việc nhận biết dựa trên tên và trường nguồn tham chiếu nên không thêm lại nếu bạn đã đổi tên hoặc ngừng dùng playbook này.
-
-**Áp dụng playbook:** chọn lúc tạo incident (`playbook_id`) hoặc về sau (`POST /incidents/{id}/tasks/apply-playbook`). Áp dụng lại cùng playbook không tạo trùng: bước nào đã có task cùng playbook và cùng tiêu đề trong vụ thì bị bỏ qua. Không áp dụng được cho incident đã đóng. Giao diện gợi ý playbook theo loại triage hoặc tiêu đề của cảnh báo.
-
-**Quyền làm việc:** Analyst giao việc, đặt hạn, tạo hoặc xóa việc thủ công và làm mọi việc. IT/Helpdesk chỉ đổi trạng thái việc giao cho mình hoặc việc chưa giao thuộc vai trò IT; nhận một việc chưa giao thì tự được gán cho người nhận. Stakeholder chỉ xem. Bỏ qua một công việc luôn cần lý do; công việc bắt buộc chỉ commander của vụ được bỏ qua hoặc mở lại. Mở lại việc đã xong cần Analyst và lý do.
-
-**Liên hệ với tiêu chí đóng vụ:** vụ không đóng được khi còn công việc bắt buộc ở trạng thái chưa làm hoặc đang làm. Playbook mẫu đặt bước "viết bản nháp postmortem" là bắt buộc, vì postmortem cần được soạn trước khi đóng, còn việc chốt do commander thực hiện sau khi đóng (xem bước 11). Vì incident đã đóng không nhận thay đổi công việc, các việc sau khi đóng được theo dõi bằng action item của postmortem.
-
-**Giới hạn:** chưa có phụ thuộc giữa các công việc (việc B chỉ mở khi việc A xong), chưa có nhắc việc hoặc leo thang tự động khi quá hạn (chỉ đếm và tô đỏ trên giao diện và dashboard), chưa gắn công việc với từng bước phê duyệt của containment; người xác nhận một công việc đã xong chính là Analyst hoặc commander khi đóng vụ chứ không có bước xác nhận riêng cho từng việc.
-
-### Sơ đồ quy trình và cơ sở (NIST SP 800-61 Rev. 3)
-
-Quy trình gồm 12 bước do đề bài định sẵn (kèm bảng nguồn BP10.1 đến BP10.5). Ba sơ đồ trong `bpmn/` vẽ ba chức năng xử lý sự cố của NIST CSF 2.0; mỗi task ghi mã phần NIST tương ứng trong nhãn, và chú thích (`documentation`) của task nêu số trang NIST, FIRST, CISA cùng endpoint hoặc trạng thái của hệ thống:
-
-| Sơ đồ | Chức năng NIST | Các bước | Nội dung |
-| --- | --- | --- | --- |
-| `bpmn1_detect_alert_to_incident.bpmn` | Detect | 2 đến 5 | Nhập cảnh báo, chuẩn hóa và gom nhóm, chấm điểm ba vùng, triage, rà soát, tạo incident hoặc đóng báo nhầm |
-| `bpmn2_respond_investigate_contain.bpmn` | Respond | 6 đến 8 và 10 | Bằng chứng, phân tích phạm vi, đề xuất containment, duyệt (khác người đề xuất), thực hiện mô phỏng, xác minh, thông báo |
-| `bpmn3_recover_close_improve.bpmn` | Recover và cải tiến (ID.IM) | 9, 11, 12 | Recovery, chủ hệ thống xác nhận, tiêu chí đóng, postmortem, action item, đo lường |
-
-Các sơ đồ chỉ vẽ luồng chính. Các nhánh phụ (từ chối do sai vai trò hoặc sai trạng thái, mở lại hay bỏ qua công việc, các điều kiện chặn đóng vụ) nằm ở mô tả từng bước và bảng trạng thái trong tài liệu này. Bước 1 (tài sản) và các điểm cấu hình nằm ngoài sơ đồ.
-
-Cơ sở của từng bước (số trang là số in trong tài liệu; NIST = SP 800-61 Rev. 3, đã đọc toàn văn):
-
-| Bước | Phần NIST (trang) | Tài liệu khác | Phần do tác giả chọn |
-| --- | --- | --- | --- |
-| 1 Tài sản | ID.AM-05, ID.AM-01, ID.AM-02 (15 đến 16) | FIRST 8.1.2 (43 đến 44); CISA tr. 6 | 4 mức quan trọng |
-| 2 Tiếp nhận | DE.CM-09 (24); RS.MA-02 (27) | FIRST 6.1 (14 đến 15) | Quy tắc nhập chi tiết |
-| 3 Chuẩn hóa, chống trùng | DE.AE-03 (25) | FIRST 5.2.1 (13) | Cửa sổ 60 phút, chuẩn hóa IOC |
-| 3b Chấm điểm ba vùng | DE.AE R1 (25); RS.MA N2 (27); GV.RM-06 (12 đến 13) | FIRST 5.2.2 (13) | Trọng số, độ tin cậy nguồn, ngưỡng 0.15, 0.50, 0.80 |
-| 4 Triage | RS.MA-02, RS.MA-03 (27 đến 28) | FIRST 6.1.2 (15 đến 16), 6.2.1 (17); CISA tr. 10 | Mốc SLA do người triage nhập |
-| 5 Tạo incident | DE.AE-08 (26); RS.MA-01 C1 (27) | CISA Phụ lục B bước 1 | Commander phải là Analyst |
-| 6 Bằng chứng | RS.AN-07, RS.AN-06 (29) | NIST SP 800-86; FIRST 6.2.2 (17 đến 18) | Giới hạn 20 MB; chuỗi băm nhật ký |
-| 7 Phân tích, phạm vi | RS.AN-03 (28); RS.AN-08 (29 đến 30); DE.AE-07 (26) | FIRST 6.3 (19 đến 23); CISA tr. 11 đến 13; ATT&CK | Cách xếp hạng Top-K |
-| 8 Containment | RS.MI-01, RS.MI-02 (32 đến 33); PR.AA-05 (21); mục 2.3 (9) | FIRST 6.4.2 (24); CISA tr. 14 | Ma trận thẩm quyền chi tiết |
-| 9 Eradication, Recovery | RC.RP-02 đến RC.RP-05 (33 đến 34) | FIRST 6.4.3 (25); CISA tr. 15 | Không đáng kể |
-| 10 Thông báo | RS.CO-02, RS.CO-03 (30 đến 32); RC.CO-03 (35) | FIRST 6.5 (26 đến 28); CISA tr. 17 | Luồng duyệt chi tiết; mẫu và danh bạ chưa có |
-| 11 Đóng, postmortem | RC.RP-06 (34); ID.IM-03 (19 đến 20) | FIRST 6.2.4 (18), 6.2.5 (19); CISA tr. 16 | Danh sách tiêu chí đóng |
-| 12 Đo lường | Mục 2.3 (9); ID.IM-01 (19) | FIRST 6.5.5 (28) | Định nghĩa MTTD, MTTA, MTTR |
-| Playbook | Mục 2.3 (9) | CISA Playbooks | Nội dung 4 playbook mẫu |
-
-Ghi chú về nguồn và phạm vi:
-- NIST SP 800-61 Rev. 3 (tr. 3) là bộ khuyến nghị xếp theo sáu chức năng CSF 2.0 và không còn mô tả cách thực hiện chi tiết; vì vậy NIST là cơ sở cho khung và nguyên tắc, còn các bước thực hiện dựa vào CISA và FIRST. Bảng 1 (tr. 6) ánh xạ các pha cũ (Preparation; Detection and Analysis; Containment, Eradication and Recovery; Post-Incident) sang các chức năng mới.
-- Trang 5 của playbook CISA nói rõ nó dành cho hoạt động độc hại đã xác nhận có khả năng thành sự cố lớn, và loại trừ các trường hợp như người dùng bấm vào email phishing mà không bị xâm nhập. Vì vậy chỉ nói rằng hệ thống lấy các pha và danh sách kiểm tra của CISA làm khuôn để chuyển thành playbook cho tổ chức vừa và nhỏ (đúng như BP10.2 gợi ý), không nói CISA quy định cách xử lý phishing.
-- FIRST (tr. 6) nêu rằng không CSIRT nào được kỳ vọng cung cấp mọi dịch vụ, mỗi nhóm chọn dịch vụ phù hợp; đây là cơ sở để giữ quy trình gọn.
-- Email, tệp pcap và VirusTotal không có quy trình riêng. Email và CSV, JSON, webhook là kênh nhập ở bước 2; các bộ phân lớp (luồng mạng bằng Random Forest, email bằng TF-IDF kết hợp Linear SVM chưa cài đặt, mô tả sự cố sang ATT&CK bằng truy hồi) đưa điểm vào bước 3b; VirusTotal tra theo mã băm là bước làm giàu thông tin ở bước 7 (chưa cài đặt). Gửi tệp lên VirusTotal cần người có quyền duyệt vì CISA tr. 9 (OPSEC) khuyên không gửi mẫu mã độc lên dịch vụ phân tích công cộng. Hành động containment cho email lấy từ biện pháp giảm thiểu của ATT&CK (ví dụ T1204.002 có M1038 Execution Prevention) và chỉ được đề xuất, duyệt rồi mô phỏng thực hiện.
-- Các con số và quy tắc ở cột cuối là lựa chọn của tác giả, không có trong nguồn; chuỗi băm của nhật ký kiểm toán là cơ chế do tác giả chọn để đáp ứng RS.AN-06 (tr. 29) về toàn vẹn hồ sơ điều tra.
-
-### Mức độ có cơ sở của toàn hệ thống
-
-Nói thẳng: **chưa phải mọi thứ đều có cơ sở.** Khung quy trình và các cơ chế chính có cơ sở; các con số và quy tắc chi tiết do tác giả chọn; một số phần chưa cài đặt hoặc chưa kiểm chứng đầy đủ.
-
-| Nhóm | Thành phần | Ghi chú |
-| --- | --- | --- |
-| Có nguồn trực tiếp cho khung và nội dung | 12 bước và các nhóm người dùng | Do đề bài định sẵn, kèm bảng nguồn BP10.1 đến BP10.5 |
-| | Ba sơ đồ BPMN theo Detect, Respond, Recover | Mỗi task ghi mã NIST và chú thích số trang NIST, FIRST, CISA |
-| | Playbook tham chiếu CISA (31 bước) | Cả 31 mã tham chiếu đã đối chiếu khớp Phụ lục B |
-| | Bốn playbook mẫu (37 bước) | Mỗi bước ghi mã CISA Phụ lục B, NIST hoặc ATT&CK; đối chiếu là phán đoán của tác giả; 1 bước chỉ có chỗ tựa một phần |
-| | Bằng chứng, SHA-256, chain of custody, bản sao làm việc | NIST RS.AN-06, RS.AN-07; FIRST 6.2.2, 6.3; đề (BP10.4) |
-| | Phân tách nhiệm vụ; containment do người quyết định | NIST PR.AA-05 (tr. 21), RS.MI-01 (tr. 33) |
-| | Ánh xạ ATT&CK, biện pháp giảm thiểu | Dữ liệu STIX có phiên bản (đề yêu cầu lưu phiên bản) |
-| Có nguồn cho khung; tham số hoặc quy tắc do tác giả chọn | Chấm điểm ba vùng | Trọng số, độ tin cậy từng nguồn, ngưỡng 0.15, 0.50, 0.80 |
-| | Chống trùng, SLA, commander, ma trận thẩm quyền, tiêu chí đóng, MTTD, MTTA, MTTR | Cửa sổ 60 phút; mốc SLA do người triage nhập; định nghĩa chỉ số do tác giả điều chỉnh |
-| | Hạn giờ, cờ bắt buộc, vai trò của bước playbook | Không có trong nguồn |
-| | Bộ phân lớp luồng mạng | Random Forest trên CIC-IDS2017; so với Logistic Regression và Gradient Boosting; giữ Random Forest là quyết định thực dụng; dữ liệu có lỗi đã công bố, chia ngẫu nhiên, một lần huấn luyện |
-| | Quy tắc nhập CSV, JSON, giới hạn 20 MB | Do tác giả chọn |
-| Bổ sung của tác giả, không có nguồn trực tiếp | Cơ chế chuỗi băm của nhật ký kiểm toán | Nhu cầu giữ toàn vẹn hồ sơ có cơ sở ở RS.AN-06 (tr. 29), cách làm là của tác giả |
-| | Ba vai trò | Thu gọn từ 7 nhóm theo lời khuyên của giảng viên |
-| Chưa cài đặt | Mô hình email (TF-IDF và Linear SVM), nhận `.eml`, tra VirusTotal | Dự kiến, chưa có |
-| | Mẫu thông báo và danh bạ bên liên quan; liên kết ATT&CK với phát hiện và khắc phục; báo cáo xu hướng | Chưa có |
-| | Thử nghiệm triage có và không có AI; nhập CSV luồng CIC; nhập pcap | Chưa có |
-| Chưa kiểm chứng đủ | Nguồn | NIST SP 800-86 chưa đọc toàn văn; FIRST đọc qua một bản sao lưu; điều khoản VirusTotal chưa đọc bản chính thức; nghĩa vụ báo cáo theo pháp luật Việt Nam chưa tra; số trang nên đối chiếu lại khi trích |
-| | Sơ đồ và môi trường | Ba sơ đồ BPMN chưa mở trong công cụ BPMN thật; các test mới chạy ở môi trường thử SQLite, trên SQL Server do người dùng chạy |
-
-## Luồng dữ liệu & State machine
-
-### Luồng tổng thể
-
-&#91;embedded content: luồng nghiệp vụ · 12 bước · 3 row\]
+### 1.1 Luồng nghiệp vụ
 
 ```
-Nguồn ngoài (IDS/email/manual)
-    ↓ upload CSV / POST webhook
-Alert (status: new)
-    ↓ chuẩn hóa + dedup tự động
-AlertGroup (gom theo IOC)
-    ↓ triage (IT hoặc Analyst)
-Alert (status: triaged)
-    ↓ tạo incident (Analyst)
-Incident (status: open)
-    ↓ thu thập bằng chứng + phân tích
-Evidence + ImpactAnalysis
-    ↓ đề xuất containment (IT) → phê duyệt (Analyst)
-Containment (executed) → Incident (status: contained) → xác minh (Analyst khác)
-    ↓ eradication & recovery (IT) → xác nhận (Stakeholder)
-RecoveryAction (is_confirmed: true) → Incident (status: recovering)
-    ↓ thông báo (Analyst soạn, Analyst khác duyệt, Stakeholder xác nhận)
-Communication (status: acknowledged)
-    ↓ đóng incident (commander, đủ tiêu chí đóng)
-Incident (status: closed)
-    ↓ postmortem (Analyst) → chốt (commander)
-Postmortem (is_finalized: true)
-    ↓ tự động tính metrics
-Dashboard (MTTD, MTTA, MTTR, SLA...)
+Tạo sự cố (Mới)
+   ↓ upload file vào sự cố (nguồn: luồng mạng hoặc email)
+Kiểm tra định dạng, cột, kích thước, trùng hash  → lỗi 4xx, không để lại bản ghi
+   ↓ xử lý nền theo lô
+Dịch vụ AI phân loại từng dòng → nhãn + confidence
+   ↓ nhãn thuộc lớp nguy hiểm VÀ confidence ≥ ngưỡng
+Cảnh báo, tự gắn vào sự cố  (một giao dịch cuối; lỗi → file "failed", 0 cảnh báo)
+   ↓ chuyên viên xem dòng gốc
+Đã xác minh / Bỏ qua / Chuyển sang sự cố khác / Gỡ khỏi sự cố
+   ↓
+Chuyển trạng thái sự cố: Mới → Đang xử lý → Đã xử lý → Đã đóng (hoặc Đã hủy)
+   ↓
+Dashboard (sự cố theo trạng thái và loại tấn công, cảnh báo theo nhãn, tỉ lệ bỏ qua)
 ```
 
-### State machine — Alert
+### 1.2 Phạm vi
 
-| Trạng thái | Chuyển sang | Điều kiện |
-| --- | --- | --- |
-| `new` | `reviewing` | Analyst mở xem |
-| `new` / `reviewing` | `triaged` | Triage thành công (IT hoặc Analyst) |
-| `new` / `reviewing` | `false_positive` | Analyst đánh dấu báo nhầm |
-| `new` / `reviewing` / `triaged` | `closed` | Analyst đóng kèm lý do (không áp dụng cho alert đã thành incident); hoặc luật tự đóng an toàn nếu được bật |
-| `closed` | `new` | Analyst mở lại kèm lý do |
-| `triaged` | `escalated` | Tạo incident gộp alert này |
-| `escalated` | — | Trạng thái cuối (theo dõi qua incident) |
+Trong phạm vi: một vai trò chuyên viên; quản lý sự cố và lịch sử trạng thái; upload CSV/JSON (luồng mạng, email) và `.eml`/`.zip` (chỉ email); phân loại theo lô; sinh, xác minh, chuyển, gỡ cảnh báo; cấu hình ngưỡng và lớp nguy hiểm; dashboard.
 
-### State machine — Incident
+Ngoài phạm vi (không cài đặt): quản lý tài sản, bằng chứng và chain of custody, containment, recovery, thông báo, postmortem, playbook, SLA, nhật ký kiểm toán chuỗi băm, ánh xạ ATT&CK, phân quyền nhiều vai trò, nhập pcap thô và `.msg`. Đề tài 10 gốc có các phần này; phiên bản luận văn không làm.
 
-Chỉ các chuyển trạng thái trong bảng được chấp nhận; mọi chuyển khác bị từ chối (HTTP 400).
+`.eml` và `.zip` là phần mở rộng ngoài danh sách yêu cầu của giảng viên (giảng viên chỉ nêu CSV/JSON).
 
-| Từ | Sang | Điều kiện |
-| --- | --- | --- |
-| `open` | `investigating` | Analyst |
-| `investigating` | `contained` | Có ít nhất một containment đã thực hiện (hệ thống tự chuyển khi thực hiện containment) |
-| `contained` | `recovering` | Có hành động recovery (hệ thống tự chuyển khi mọi hành động đã xong được xác nhận) |
-| `contained` / `recovering` | `closed` | Commander của vụ, và đủ tiêu chí đóng (xem bước 11) |
-| `contained` / `recovering` | `investigating` | Quay lại điều tra, bắt buộc ghi lý do |
-| `closed` | `investigating` | Commander mở lại, bắt buộc ghi lý do |
+### 1.3 Công nghệ
 
-### State machine — Containment
+| Tầng | Công nghệ | Cổng |
+|---|---|---|
+| Frontend | React 19, Vite 8, Tailwind CSS 3, axios, recharts, react-hot-toast | 5173 |
+| Backend | Python FastAPI, SQLAlchemy 2, pydantic | 8000 |
+| Cơ sở dữ liệu | Microsoft SQL Server (ODBC Driver 17) | |
+| Dịch vụ AI | FastAPI riêng (`ml/serve.py`), scikit-learn | 8001 |
+| Mô hình | Random Forest (luồng mạng), TF-IDF + Linear SVM hiệu chỉnh (email) | |
+| Xác thực | JWT access token (mặc định 60 phút) + bcrypt | |
 
-| Trạng thái | Chuyển sang | Điều kiện |
-| --- | --- | --- |
-| `proposed` | `approved` | Analyst khác người đề xuất; rủi ro cao chỉ commander |
-| `proposed` | `rejected` | Analyst từ chối |
-| `approved` | `executed` | IT hoặc Analyst thực hiện (chỉ ghi nhận) |
-| `executed` | `verified` | Analyst khác người thực hiện xác minh |
+```
+Trình duyệt ──HTTP──▶ Backend :8000 ──SQL──▶ SQL Server
+   (React)               │   └── upload_store/ (file gốc đã upload)
+                         └──HTTP──▶ Dịch vụ AI :8001 ──▶ models/*.pkl
+```
 
-### State machine — Evidence
+Backend gọi dịch vụ AI qua `AI_SERVICE_URL` (mặc định `http://127.0.0.1:8001`). Dịch vụ AI chỉ nạp mô hình lúc khởi động, nên phải khởi động lại sau mỗi lần huấn luyện.
 
-| Trạng thái | Chuyển sang | Điều kiện |
-| --- | --- | --- |
-| `is_locked: false` | `is_locked: true` | IT hoặc Analyst khóa |
-| `is_locked: true` | — | Không thể sửa sau khi khóa; mỗi lần thu thập, xem, cấp bản sao làm việc, kiểm tra toàn vẹn và khóa đều ghi vào chain of custody; bằng chứng dạng tệp chỉ khóa được khi tệp còn khớp mã băm |
+## 2. Tài khoản và xác thực
 
-### State machine — Recovery check
+Chỉ có một vai trò `analyst`; mọi tài khoản đăng nhập được đều có đầy đủ quyền.
 
-| Trạng thái | Chuyển sang | Điều kiện |
-| --- | --- | --- |
-| `pending` | `in_progress` | IT hoặc Analyst bắt đầu (chỉ tạo được sau khi incident đã khống chế) |
-| `in_progress` | `done` / `failed` | IT hoặc Analyst cập nhật |
-| `done` | `is_confirmed: true` | Chủ hệ thống (stakeholder) xác nhận |
+- Mật khẩu băm bcrypt. Tên đăng nhập tối thiểu 3 ký tự, mật khẩu tối thiểu 6 ký tự.
+- `POST /auth/login` trả `access_token` và `refresh_token`. **Chỉ access token được dùng**; hệ thống chưa có endpoint làm mới token. Khi token hết hạn (mặc định 60 phút, đổi bằng `ACCESS_TOKEN_EXPIRE_MINUTES`) hoặc gặp 401, frontend xóa phiên và chuyển về trang đăng nhập.
+- `POST /auth/register`: tài khoản đầu tiên tạo tự do để khởi tạo hệ thống; sau đó phải đăng nhập mới cấp được tài khoản mới. `seed.py` tạo sẵn `analyst01` và `analyst02`.
+- Không khóa tài khoản sau đăng nhập sai và không có nhật ký kiểm toán chuỗi băm (khác bản thiết kế đầu). Lịch sử thay đổi được lưu bằng `incident_status_history` và `alert_move_history`.
+- `SECRET_KEY` đọc từ `backend/.env`; thiếu thì không ký được token.
 
-### State machine — Communication
+## 3. Sự cố
 
-| Trạng thái | Chuyển sang | Điều kiện |
-| --- | --- | --- |
-| `draft` | `draft` (đã duyệt) | Analyst khác người soạn duyệt; ra ngoài hoặc leo thang cần commander |
-| `draft` (đã duyệt) | `sent` | Analyst gửi |
-| `sent` | `acknowledged` | Stakeholder xác nhận đã nhận |
+### 3.1 Dữ liệu
 
-### State machine — Công việc (task)
+Tiêu đề, mô tả, loại tấn công (`attack_types`), mức độ (`low, medium, high, critical`), thời gian xảy ra, nguồn (`ids_ips, email, endpoint, manual, other`), trạng thái, người tạo, các mốc `resolved_at`, `closed_at`. Mã sự cố dạng `INC-2026-0001`, duy nhất; khi tạo, nếu trùng mã do hai yêu cầu đồng thời thì thử lại tối đa 3 lần.
 
-| Trạng thái | Chuyển sang | Điều kiện |
-| --- | --- | --- |
-| `todo` | `in_progress` | IT hoặc Analyst bắt đầu; IT chỉ với việc giao cho mình hoặc việc chưa giao thuộc IT (việc chưa giao thì gán cho người nhận) |
-| `todo` / `in_progress` | `done` | Như trên; ghi người hoàn thành và thời điểm |
-| `in_progress` | `todo` | Trả lại việc |
-| `todo` / `in_progress` | `skipped` | Chỉ Analyst, bắt buộc có lý do; việc bắt buộc chỉ commander |
-| `done` | `in_progress` | Chỉ Analyst, bắt buộc có lý do |
-| `skipped` | `todo` | Chỉ Analyst; việc bắt buộc chỉ commander |
+Lưu ý: "nguồn" của sự cố khác với "nguồn dữ liệu" của file upload (`network`/`email`).
 
-Incident đã đóng không nhận thay đổi công việc (409).
+### 3.2 Máy trạng thái
 
-### State machine — Postmortem và action item
+| Từ | Sang | Ghi chú |
+|---|---|---|
+| `new` (Mới) | `in_progress`, `cancelled` | Hủy bắt buộc lý do |
+| `in_progress` (Đang xử lý) | `resolved`, `cancelled` | Hủy bắt buộc lý do |
+| `resolved` (Đã xử lý) | `closed`, `in_progress`, `cancelled` | Mở lại và hủy bắt buộc lý do |
+| `closed` (Đã đóng) | không | Trạng thái cuối |
+| `cancelled` (Đã hủy) | không | Trạng thái cuối |
 
-| Trạng thái | Chuyển sang | Điều kiện |
-| --- | --- | --- |
-| chưa có | đang soạn | Analyst viết khi incident đang phục hồi hoặc đã đóng |
-| đang soạn | `is_finalized: true` | Commander chốt khi incident đã đóng và có ít nhất một action item |
-| action item `done: false` | `done: true` | IT hoặc Analyst đánh dấu; tính vào chỉ số hoàn thành |
+- Lý do tối thiểu 3 ký tự.
+- Khi còn file đang xử lý (`pending`/`processing`), không chuyển sang `resolved`, `closed`, `cancelled` và không xóa sự cố (409); giao diện cũng ẩn các nút này.
+- Sự cố đã đóng hoặc đã hủy không sửa được. Mỗi lần chuyển ghi một dòng `incident_status_history` kèm người đổi, thời điểm, lý do. Mở lại từ `resolved` xóa `resolved_at`.
+- **Xóa:** chỉ khi không có cảnh báo nào thuộc sự cố và không có cảnh báo nào truy vết về file của sự cố (kể cả cảnh báo đã được chuyển đi nơi khác). Xóa thì xóa luôn file đã upload. Ngược lại dùng Hủy hoặc Đóng.
 
-Đối tượng **approval** của state machine tối thiểu không tách thành bảng riêng: việc phê duyệt được ghi ngay trên containment (người duyệt, thời điểm, kết quả) và trên thông báo (người duyệt), cùng nhật ký kiểm toán. Checklist 5 dòng mặc định của incident vẫn tồn tại để tương thích, nhưng công việc có người phụ trách, hạn và trạng thái là đối tượng task ở trên.
+### 3.3 Danh sách và lọc
 
-## Nhật ký kiểm toán (audit log)
+Phân trang (`page`, `page_size` ≤ 200), sắp xếp theo `id, code, title, severity, status, attack_type, occurred_at, created_at, updated_at` (mức độ sắp theo độ nghiêm trọng chứ không theo chữ cái), lọc theo `q` (mã hoặc tiêu đề), `status` (nhiều giá trị cách nhau bằng dấu phẩy), `attack_type`, `severity`, `date_from`, `date_to` (ngày cuối tính trọn ngày).
 
-Mọi thay đổi dữ liệu nghiệp vụ và mọi sự kiện đăng nhập được ghi tự động vào bảng `audit_log`. Các đối tượng được theo dõi: tài sản, alert, incident, bằng chứng, chain of custody, phân tích phạm vi, containment, recovery, thông báo, postmortem, công việc, playbook, cùng đăng nhập, đăng nhập sai, khóa tài khoản và cấp tài khoản.
+## 4. Upload và xử lý
 
-- **Ghi tự động ở tầng dữ liệu:** một bộ lắng nghe trên session của SQLAlchemy ghi mỗi lần tạo, sửa, xóa các đối tượng trên, nên không thể quên ghi ở một endpoint nào đó. Mỗi bản ghi có người thực hiện (id, tên, vai trò), thời điểm UTC, hành động (ví dụ `containment.approved`), đối tượng, incident liên quan và chi tiết thay đổi (giá trị cũ và mới).
-- **Chỉ thêm vào:** không có endpoint sửa hoặc xóa nhật ký.
-- **Phát hiện chỉnh sửa:** mỗi bản ghi chứa mã băm SHA-256 của chính nó và của bản ghi trước. Endpoint `/audit/verify` tính lại toàn bộ chuỗi và báo bản ghi đầu tiên bị sửa hoặc mất.
-- **Truy cập:** chỉ Analyst xem và xuất CSV.
-- **Timeline** của incident được dựng từ nhật ký (gồm cả các sự kiện của cảnh báo trước khi có incident), nên luôn khớp với nhật ký.
+### 4.1 Định dạng chấp nhận
 
-**Hạn chế:** chuỗi băm phát hiện chỉnh sửa nhưng không ngăn được người có quyền quản trị trực tiếp cơ sở dữ liệu; hai thao tác ghi đồng thời có thể làm chuỗi rẽ nhánh; lượt đọc dữ liệu không được ghi (riêng các thao tác xem chi tiết, cấp bản sao làm việc và kiểm tra toàn vẹn bằng chứng được ghi trong chain of custody).
+| Nguồn dữ liệu | Định dạng | Yêu cầu |
+|---|---|---|
+| Luồng mạng | `.csv`, `.json` | Đủ các cột đặc trưng CIC-IDS2017 của mô hình đang dùng (danh sách lấy từ bảng `models.feature_names`); cột thừa như `Label`, `Timestamp` bị bỏ qua |
+| Email | `.csv`, `.json` | Đủ các cột `subject, body, sender, urls`; `has_html`, `attachments` tùy chọn |
+| Email | `.eml` | Một thư là một dòng |
+| Email | `.zip` | Chứa nhiều `.eml`, mỗi thư là một dòng |
 
-## Module AI/ML
+`.eml` và `.zip` với nguồn luồng mạng bị từ chối (422).
 
-AI service chạy độc lập tại `http://localhost:8001`, backend gọi qua HTTP khi cần.
+### 4.2 Kiểm tra trước khi nhận
 
-### Mô hình phân loại cảnh báo mạng
+Toàn bộ file được quét một lần trước khi tạo bản ghi `uploads`; lỗi thì trả 4xx, xóa file tạm và không để lại gì:
 
-**Dataset:** CIC-IDS2017 (Canadian Institute for Cybersecurity) — 2.8M network flow records, 78 features, 15 loại tấn công + BENIGN.
+1. Sự cố phải ở trạng thái Mới hoặc Đang xử lý (409).
+2. Nguồn dữ liệu hợp lệ; đuôi file thuộc `.csv, .json, .eml, .zip` (422).
+3. Kích thước tối đa `max_upload_mb` (413, kiểm tra khi đọc từng khối 1 MB, không cần đọc hết file); file rỗng bị từ chối.
+4. Trùng hash SHA-256 với file không lỗi trong cùng sự cố → 409 nêu số upload bị trùng. Cùng file ở sự cố khác vẫn nhận kèm `warnings`.
+5. Phải có mô hình đang dùng cho nguồn đó; thiếu thì 503. Với luồng mạng, nếu mô hình chưa có danh sách cột thì tự đồng bộ từ dịch vụ AI.
+6. Cấu trúc và giá trị: CSV/JSON phải UTF-8, số cột mỗi dòng khớp tiêu đề; đủ cột bắt buộc (báo rõ cột thiếu); ô luồng mạng phải là số (báo dòng và cột sai); `Infinity`/`NaN` quy về 0; hai cột trùng tên (`Fwd Header Length`) được đặt `.1`; số dòng không vượt `max_rows`; email phải có `subject` hoặc `body`.
 
-**Mô hình:** Random Forest (100 trees, max\_depth=20, class\_weight=balanced)
+### 4.3 Đọc thư `.eml` và `.zip`
 
-**Kết quả:**
+- Tiêu đề giải mã RFC 2047; `sender` lấy địa chỉ trong `From`.
+- Nội dung lấy từ phần văn bản thuần. Chỉ dùng phần HTML (đã bỏ thẻ, bỏ `script`/`style`) khi chữ HTML dài hơn 1,5 lần bản thuần, vì bản thuần nhiều khi chỉ là dòng giữ chỗ.
+- URL gồm cả địa chỉ hiển thị trong nội dung và địa chỉ trong thuộc tính `href` (liên kết ẩn sau chữ hiển thị là dấu hiệu phishing hay gặp); tối đa 50.
+- Tệp đính kèm chỉ ghi tên (tối đa 20), không đọc nội dung.
+- ZIP: mỗi `.eml` là một dòng, xếp theo tên file (thứ tự này là `row_index`); bỏ qua thư mục, file không phải `.eml`, rác macOS (`__MACOSX/`, `._*`); tên file gốc lưu ở `row_data.source_file`.
+- Giới hạn chống ZIP bomb: mỗi thư ≤ 5 MB, tổng dung lượng sau giải nén ≤ 500 MB. ZIP mã hóa hoặc hỏng, thư rỗng hoặc không phải thư: từ chối **cả file** và nêu tên thư lỗi.
+- Không hỗ trợ `.msg` của Outlook cổ điển.
+- Việc đọc diễn ra ngay trong request kiểm tra; ZIP rất nhiều thư có thể làm request chậm (chưa đo).
 
-| Chỉ số | Giá trị |
-| --- | --- |
-| PR-AUC | 0.9998 |
-| ROC-AUC | 0.9999 |
-| Accuracy | \~99.9% |
-| False Negative | 82 / 111,311 attack samples |
+### 4.4 Xử lý nền
 
-**Ngưỡng 3 vùng:**
+Sau khi nhận, upload có trạng thái `pending` và trả 202; một tác vụ nền trong tiến trình backend (`BackgroundTasks`) xử lý:
 
-| Vùng | Ngưỡng | Hành động |
-| --- | --- | --- |
-| auto\_close | prob < 0.15 | Tự đóng (BENIGN chắc chắn) |
-| review | 0.15 ≤ prob < 0.80 | Analyst xem xét |
-| urgent | prob ≥ 0.80 | Ưu tiên khẩn |
+1. Chuyển `processing`, chụp lại cấu hình: ngưỡng của nguồn, `batch_size`, tập nhãn nguy hiểm đang bật, mô hình đang dùng.
+2. Đọc từng dòng, gom thành lô `batch_size` dòng, gọi `POST /predict/batch` của dịch vụ AI; sau mỗi lô cập nhật `processed_rows` (frontend thăm dò 1,5 giây để vẽ thanh tiến độ).
+3. Nếu phiên bản mô hình đổi giữa chừng thì báo lỗi (yêu cầu upload lại). Nhãn mới chưa có trong bảng `labels` được thêm tự động; mặc định nguy hiểm trừ `BENIGN`, `NON_SPAM`, `HAM`.
+4. Ứng viên cảnh báo (nhãn nguy hiểm và `confidence ≥ ngưỡng`) được giữ **trong bộ nhớ**. Xử lý xong cả file mới ghi.
+5. **Một giao dịch cuối** ghi toàn bộ cảnh báo (chèn theo khối 1.000), nhãn mới, và hoàn tất file: `alert_count`, `avg_confidence`, `label_distribution`, `threshold_used`, `dangerous_labels_used`, `model_id`, `processed_at`, trạng thái `completed`.
+6. Có lỗi ở bất kỳ bước nào (dịch vụ AI hỏng, số dòng xử lý khác số dòng đã kiểm tra...) → `failed` kèm `error_message`, **không có cảnh báo nào được ghi**. Tiến độ các lô đã chạy vẫn giữ để chẩn đoán.
+7. Khi backend khởi động, mọi upload còn `pending`/`processing` (do tắt máy chủ giữa chừng) bị đánh `failed`.
 
-Đây là ngưỡng của riêng mô hình RF, đã được đánh giá trên tập kiểm thử. Backend không dùng nó trực tiếp để đóng cảnh báo mà hợp nhất xác suất với mức quan trọng của tài sản và độ tin cậy của nguồn (mục tiếp theo); riêng ngưỡng 0.15 được dùng làm một trong các luật an toàn để đề xuất tự đóng.
+Việc lưu ngưỡng, lớp nguy hiểm và phiên bản mô hình theo từng file giúp giải thích về sau vì sao file đó sinh ra số cảnh báo như vậy, kể cả khi cấu hình đã đổi.
 
-### Chấm điểm và chia vùng ưu tiên
+## 5. Cảnh báo
 
-Mô-đun này nối mô hình RF vào luồng cảnh báo và trả lời yêu cầu của đề: hợp nhất điểm với mức quan trọng của tài sản và độ tin cậy của nguồn, chia ba vùng, và trả về loại cảnh báo, xác suất độc hại, mức ưu tiên đề xuất, đặc trưng chính và cảnh báo tương tự.
+### 5.1 Quy tắc sinh
 
-**Xác suất độc hại (P).** Nếu cảnh báo có `flow_features`, backend gọi `/classify` của AI service và dùng xác suất của mô hình RF. Nếu không có (email, endpoint, báo cáo thủ công), P được suy từ mức độ khai báo: `info` 0,10; `low` 0,25; `medium` 0,50; `high` 0,75; `critical` 0,90. Cách suy này chỉ là heuristic, kết quả ghi rõ nguồn xác suất (`rf` hay `declared_severity`). Nếu AI service không phản hồi, hệ thống dùng cách dự phòng và ghi lỗi vào kết quả. Hiện chưa có mô hình ML cho email (đề xuất TF-IDF kết hợp SVM của đề chưa cài đặt).
+Cảnh báo được sinh cho một dòng khi **cả hai** điều kiện đúng: nhãn dự đoán thuộc lớp nguy hiểm (`labels.is_dangerous` và `is_active`), và `confidence ≥ ngưỡng` (`threshold_network` hoặc `threshold_email`, mặc định 0,80). Cảnh báo tự gắn vào sự cố của file (`auto_linked = true`), lưu nhãn, confidence, số thứ tự dòng trong file gốc (`row_index`, tính từ 1, không kể dòng tiêu đề) và `row_data` (JSON dòng gốc) để xem lại mà không cần mở file. `UNIQUE(upload_id, row_index)` bảo đảm một dòng không sinh hai cảnh báo.
 
-**Điểm ưu tiên** = 100 × P × (0,5 + 0,3 × A + 0,2 × S), trong đó A là hệ số tài sản (`critical` 1,0; `high` 0,75; `medium` 0,5; `low` 0,25; không rõ tính như `medium`) và S là độ tin cậy của nguồn (`endpoint` 0,9; `ids_ips` 0,8; `webhook` 0,7; `manual` 0,7; `email` 0,6; `csv_upload` 0,6); với cảnh báo nhập tự động, S theo `source` khai báo trong payload nếu hợp lệ, nếu không thì theo kênh nhập (xem Bước 2). Các trọng số và hệ số do tác giả chọn để công thức dễ giải thích, không được học từ dữ liệu; cần ghi rõ điều này trong phần hạn chế.
+Chỉ các dòng thành cảnh báo mới được lưu kết quả từng dòng. Với các dòng khác, hệ thống chỉ lưu tổng hợp theo file (số mẫu, phân bố nhãn, confidence trung bình), vì một file có thể có hàng trăm nghìn dòng. Hệ quả: không kiểm tra lại được các dòng bị bỏ sót (false negative) từ dữ liệu trong hệ thống. Nếu cần, thêm bảng `predictions(upload_id, row_index, label, confidence)`.
 
-**Ba vùng:**
+### 5.2 Trạng thái xác minh
 
-| Vùng | Điều kiện |
-| --- | --- |
-| `urgent` (ưu tiên khẩn) | Điểm từ 65, hoặc P từ 0,80 trên tài sản mức cao trở lên |
-| `auto_close` (đề xuất tự đóng) | Đạt đủ 6 luật an toàn bên dưới và không rơi vào vùng khẩn |
-| `review` (cần Analyst xem) | Các trường hợp còn lại |
+`unverified` (Chưa xác minh) ↔ `verified` (Đã xác minh) / `dismissed` (Bỏ qua); có thể đặt lại về `unverified`. Ghi người xác minh, thời điểm, ghi chú.
 
-**Luật an toàn để đề xuất tự đóng** (phải đạt tất cả): xác suất do mô hình RF tính chứ không phải suy từ mức độ khai báo; P dưới 0,15; tài sản đã biết với mức quan trọng thấp hoặc trung bình; mức độ khai báo không phải cao hoặc nghiêm trọng; không phải báo cáo thủ công của con người; không có cảnh báo nào cùng nhóm đang ở vùng cần xem hoặc khẩn. Nghĩa là cảnh báo không có mô hình ML không bao giờ được đề xuất tự đóng.
+Điều kiện: cảnh báo phải đang gắn một sự cố, và sự cố đó không ở trạng thái đã đóng hoặc đã hủy (409).
 
-**Tự đóng thật sự là tùy chọn và mặc định tắt.** Mặc định hệ thống chỉ đề xuất, Analyst bấm "Đóng theo đề xuất" kèm lý do. Đặt biến môi trường `ALERT_AUTO_CLOSE=1` để hệ thống tự đóng cảnh báo `new` ở vùng `auto_close`; khi đó nhật ký ghi người thực hiện là "hệ thống (luật tự đóng an toàn)" và Analyst có thể mở lại. Việc tự đóng chỉ đổi trạng thái cảnh báo, hệ thống không tự thực thi containment trên hệ thống thật.
+### 5.3 Thao tác hàng loạt
 
-**Giải thích.** Kết quả gồm thành phần của điểm (xác suất, tài sản, nguồn), các luật đã kiểm tra, lý do chọn vùng, tối đa 5 đặc trưng luồng nổi bật và tối đa 3 cảnh báo tương tự. Đặc trưng nổi bật được tính bằng độ quan trọng toàn cục của đặc trưng trong rừng cây nhân với độ lệch chuẩn hóa của giá trị trong luồng này; đây là cách giải thích gần đúng, không phải SHAP. Cảnh báo tương tự dùng cosine TF-IDF trên tiêu đề, mô tả và IOC của 300 cảnh báo gần nhất, ngưỡng 0,35. Mọi kết quả được đánh dấu là nội dung do AI tạo.
+`POST /alerts/bulk-verify` và `POST /alerts/move` nhận tối đa 10.000 id và **chạy theo kiểu tất cả hoặc không gì cả**: nếu có cảnh báo không hợp lệ (không tồn tại, chưa gắn sự cố, sự cố đã đóng/hủy, đã ở đúng đích...) thì trả 409 kèm danh sách `items` (tối đa 50) và không thay đổi gì.
 
-**Đánh giá.** `tests/test_scoring.py` kiểm tra công thức, từng luật tự đóng, phân quyền và nhật ký (chạy được ngay cả khi không có AI service ở phần hàm thuần). `tests/evaluate_flow_scoring.py` lấy mẫu luồng từ tập kiểm thử CIC-IDS2017 (mặc định ngẫu nhiên theo `--attacks` và `--benign`; `--per-class N` lấy tối thiểu N luồng cho mỗi lớp tấn công để lớp hiếm như Bot, Infiltration không bị bỏ qua, khi đó chỉ đọc kết quả theo từng lớp vì tỷ lệ tấn công trong mẫu không còn phản ánh tập kiểm thử), gửi qua webhook kèm `source` là `ids_ips`, gắn lần lượt vào các tài sản hiện có và báo bảng vùng theo nhãn thật: số tấn công bị đề xuất tự đóng, tỷ lệ lành tính được tự đóng, tỷ lệ cảnh báo analyst phải xem. Kết quả phụ thuộc vào cách gắn tài sản nên là đánh giá toàn hệ thống chứ không phải đánh giá riêng mô hình.
+### 5.4 Chuyển và gỡ
 
-**Giới hạn:** nguồn cảnh báo do bên gửi tự khai báo trong payload, hệ thống chưa xác thực từng cảm biến (ví dụ bằng khóa API riêng), nên người có quyền nhập có thể khai nguồn tin cậy hơn thực tế để tăng điểm; trọng số do tác giả chọn, chưa kiểm chứng với mức ưu tiên do chuyên gia gán; mô hình RF chỉ nhận luồng mạng kiểu CIC-IDS2017 nên cảm biến phải cung cấp đủ đặc trưng; độ tương tự chỉ dựa trên từ vựng, không nhận ra cảnh báo diễn đạt khác nhau; tài sản chỉ được gắn khi nguồn gửi kèm id, tên máy hoặc địa chỉ IP trùng với danh mục.
+- Chuyển sang sự cố khác: sự cố đích phải ở trạng thái Mới hoặc Đang xử lý.
+- Gỡ khỏi sự cố (gắn nhầm): đặt `to_incident_id` rỗng; cảnh báo vào danh sách "Chưa gắn sự cố" và gắn lại được sau.
+- Cảnh báo thuộc sự cố đã đóng/hủy không chuyển đi được.
+- Mỗi lần chuyển hoặc gỡ ghi `alert_move_history` (từ đâu, đến đâu, ai, khi nào, lý do).
 
-### ATT&CK Retrieval + Reranking
+### 5.5 Xem và lọc
 
-**Dữ liệu:** MITRE ATT&CK Enterprise (snapshot tải từ mitre/cti) — 697 techniques (không revoked, không deprecated). Snapshot được định danh bằng ngày sửa đổi mới nhất của dữ liệu (nhãn `ent-YYYY-MM-DD`) và SHA-256 của file, ghi trong `ml/models/attck_version.json`.
+Phân trang (`page_size` ≤ 500); lọc theo `label`, `verification_status`, `source_type`, `upload_id`, `min_confidence`, `unassigned`, `incident_id`; sắp xếp theo `id, row_index, confidence, created_at, predicted_label, verification_status, source_type`. Giao diện có "Chọn tất cả N cảnh báo khớp bộ lọc" (lặp qua các trang 500).
 
-**Quy trình:**
+## 6. Cấu hình
 
-1. Mỗi technique tạo một tài liệu gồm: tên (nhân ba trọng số) + mô tả + gợi ý phát hiện + tối đa 40 ví dụ thực tế (procedure examples lấy từ các quan hệ `uses` trong dữ liệu; 611/697 technique có ví dụ, tổng 17,136 ví dụ).
-2. Chỉ mục BM25 (k1 = 1.5, b = 0.75), unigram, stop words tiếng Anh.
-3. Truy vấn tiếng Việt được dịch cụm từ sang tiếng Anh bằng bảng thuật ngữ an ninh mạng 173 mục (`ml/attck_glossary_vi.json`) trước khi tìm.
-4. Reranking: nhân điểm 1.5 nếu tên technique xuất hiện trong truy vấn.
-5. Với `/alert/suggest`, IP, email và tên miền (IOC) được loại khỏi truy vấn truy hồi vì chúng mô tả chỉ báo chứ không mô tả hành vi.
-6. Trả về Top-K kết quả cùng điểm BM25 (không nằm trong khoảng 0–1).
+| Khóa | Mặc định | Khoảng hợp lệ | Ý nghĩa |
+|---|---|---|---|
+| `threshold_network` | 0,80 | 0 đến 1 | Ngưỡng confidence sinh cảnh báo, luồng mạng |
+| `threshold_email` | 0,80 | 0 đến 1 | Ngưỡng confidence sinh cảnh báo, email |
+| `max_upload_mb` | 50 | 1 đến 500 | Kích thước tối đa một file |
+| `max_rows` | 100.000 | 100 đến 1.000.000 | Số dòng tối đa một file |
+| `batch_size` | 500 | 10 đến 5.000 | Số dòng gửi mô hình mỗi lô |
 
-**Lưu phiên bản:** `models/attck_version.json` ghi nhãn snapshot, SHA-256, số technique, số ví dụ và thời điểm lập chỉ mục. Khi lưu phân tích phạm vi có kỹ thuật ATT&CK mà không nhập phiên bản, backend tự điền nhãn này từ AI service.
+Thay đổi chỉ áp dụng cho file upload sau đó. Trang Cấu hình còn cho bật/tắt cờ "Nguy hiểm" và "Đang dùng" của từng nhãn (ví dụ bỏ chọn `BENIGN`, `NON_SPAM`), và nút **Đồng bộ từ dịch vụ AI** để nạp danh sách mô hình, nhãn và cột đầu vào vào bảng `models` và `labels`.
 
-### Tích hợp vào hệ thống
+`labels` (nhãn đầu ra của mô hình, mang cờ nguy hiểm) tách khỏi `attack_types` (loại tấn công do người dùng chọn khi tạo sự cố) vì hai thứ khác bản chất: `BENIGN` không phải loại tấn công, còn `DoS Hulk` chi tiết hơn loại của sự cố.
 
-Endpoint `/ai/alert/suggest` trong backend nhận title + description + IOC, gọi AI service, trả về:
+## 7. Dashboard
 
-- `severity_suggestion`: mức độ đề xuất, tính bằng luật từ khóa (tiếng Anh, cùng bản dịch của truy vấn tiếng Việt). Đây không phải đầu ra của mô hình Random Forest.
-- `attck_techniques`: Top-5 techniques với id, tên, tactic, điểm BM25
-- `summary`: tóm tắt ngắn gọn bằng tiếng Việt
-- `ai_generated: true` — đánh dấu rõ nội dung do AI tạo, kèm `generated_by`
-- `warning`: nhắc Analyst xác nhận trước khi sử dụng
+`GET /dashboard` trả: tổng sự cố và số sự cố theo trạng thái; sự cố theo loại tấn công; tổng cảnh báo, số chưa gắn sự cố, cảnh báo theo nhãn, theo trạng thái xác minh; và
 
-Mô hình Random Forest phục vụ qua `/classify` của AI service (đầu vào là thuộc tính luồng mạng). Backend gọi endpoint này khi cảnh báo có `flow_features` (xem mục chấm điểm ở trên); giao diện không gọi trực tiếp.
+> tỉ lệ bỏ qua = Bỏ qua / (Đã xác minh + Bỏ qua)
 
-**Bảo mật:** Sanitize input trước khi xử lý, giới hạn độ dài 2000 ký tự, từ chối các pattern nguy hiểm. Hệ thống không dùng LLM nên rủi ro prompt injection ở mức thấp; bộ lọc này là lớp phòng vệ bổ sung.
+Mẫu số bằng 0 thì trả `null` và giao diện hiển thị "chưa có".
 
-### Kết quả đánh giá
+## 8. Module AI/ML
 
-**Bộ phân loại luồng mạng** (tập test 565,576 luồng, 111,311 tấn công; chia ngẫu nhiên 80/20 trên CIC-IDS2017):
+Dịch vụ AI (`ml/serve.py`) cung cấp cho backend hai endpoint: `GET /info` (mô hình đang chạy, nhãn, cột đầu vào) và `POST /predict/batch` (tối đa 5.000 dòng mỗi lô, trả `{label, confidence}` từng dòng kèm `model_version`). Các endpoint `/classify`, `/classify_email`, `/attck/search`, `/alert/suggest` còn trong mã nhưng backend v2 không gọi. Chuỗi phiên bản là hằng số (`rf_multiclass_v1`, `rf_binary_v1`, `email_svm_v1`), nên huấn luyện lại **không đổi phiên bản**; ghi nhớ điều này khi đối chiếu kết quả theo thời gian.
+
+### 8.1 Mô hình luồng mạng
+
+- **Dữ liệu:** CIC-IDS2017, 15 nhãn (BENIGN và 14 loại tấn công), chia ngẫu nhiên 80/20 có phân tầng theo nhãn nhị phân (tập kiểm thử 565.576 luồng).
+- **Mô hình phục vụ:** Random Forest nhiều lớp (`rf_multiclass.pkl`, 100 cây, độ sâu tối đa 20, `class_weight=balanced_subsample`) cùng `network_labels.json`. Nếu thiếu một trong hai file thì dịch vụ **âm thầm quay về mô hình nhị phân** (`rf_binary.pkl`, nhãn `BENIGN`/`ATTACK`); kiểm tra `/info` sau khi khởi động.
+- **Đầu vào:** các cột đặc trưng chuẩn hóa bằng `scaler.pkl`; đối chiếu tên cột không phân biệt hoa thường và bỏ khoảng trắng đầu/cuối; cột thiếu coi là 0.
+- **Confidence** là xác suất cao nhất của lớp dự đoán.
+
+**Kết quả của mô hình nhiều lớp** (`results/multiclass_report.json`, nhãn theo argmax, **chưa đo ở ngưỡng 0,8**):
 
 | Chỉ số | Giá trị |
-| --- | --- |
-| PR-AUC / ROC-AUC | 0.9998 / 0.9999 |
-| Ngưỡng 0.5: Precision / Recall / F1 | 0.9951 / 0.9993 / 0.9972 |
-| Ngưỡng 0.5: False Positive / False Negative | 546 / 82 |
-| Vùng tự đóng (prob < 0.15) | 80.07% số luồng, bỏ sót 24 tấn công (0.022%) |
-| Recall nhóm mức độ cao, gộp theo số mẫu | 0.9991 |
-| Recall nhóm mức độ cao, trung bình đều theo lớp | khoảng 0.948 (Bot 0.873; Infiltration 0.667 với n = 6) |
+|---|---|
+| Accuracy | 0,9946 |
+| Macro F1 | 0,789 |
+| Weighted F1 | 0,996 |
 
-Kết quả có thể cao hơn thực tế do cách chia ngẫu nhiên (các luồng gần giống nhau có thể nằm ở cả hai tập). Các lớp hiếm (Heartbleed n = 2, SQL Injection n = 2, Infiltration n = 6) không đủ mẫu để kết luận theo từng lớp.
+| Lớp | Precision | Recall | Số mẫu kiểm thử |
+|---|---|---|---|
+| BENIGN | 0,9999 | 0,9937 | 454.265 |
+| DDoS | 0,9999 | 0,9996 | 25.775 |
+| DoS Hulk | 0,989 | 0,9997 | 45.887 |
+| PortScan | 0,994 | 0,9997 | 31.757 |
+| Bot | **0,158** | 0,992 | 393 |
+| Web Attack - Brute Force | 0,806 | 0,654 | 312 |
+| Web Attack - XSS | **0,300** | 0,605 | 124 |
+| Web Attack - Sql Injection | 0,0 | 0,0 | 2 |
+| Infiltration | 1,0 | 0,667 | 6 |
+| Heartbleed | 1,0 | 0,5 | 2 |
 
-**So sánh với mô hình baseline** (cùng tập huấn luyện 2.262.300 luồng và tập kiểm thử 565.576 luồng; khoảng tin cậy 95% lấy mẫu lại tập kiểm thử 100 lần; kết quả đầy đủ trong `ml/results/baseline_comparison.json`, sinh bởi `ml/train_baselines.py`):
+Các lớp lớn đạt rất cao; các lớp web attack và Bot kém rõ rệt (Bot gần như toàn dương tính giả: precision 0,158; Brute Force và XSS nhầm lẫn nhau). Heartbleed, SQL Injection, Infiltration chỉ có 2 đến 6 mẫu nên **không đủ để kết luận theo từng lớp**.
+
+**Tham chiếu từ bài toán nhị phân** (BENIGN so với tấn công; `results/baseline_comparison.json`, cùng tập huấn luyện 2.262.300 và kiểm thử 565.576 luồng; khoảng tin cậy 95% lấy mẫu lại tập kiểm thử 100 lần). Đây là mô hình nhị phân, không phải mô hình đang phục vụ khi nhiều lớp khả dụng; dùng để so sánh các họ mô hình:
 
 | Chỉ số | Random Forest | Gradient Boosting | Logistic Regression |
-| --- | --- | --- | --- |
-| PR-AUC (khoảng tin cậy 95%) | 0.99976 (0.99972 đến 0.99980) | 0.99935 (0.99906 đến 0.99957) | 0.92117 (0.91979 đến 0.92242) |
-| Ngưỡng 0.5: False Positive / False Negative | 546 / 82 | 497 / 25 | 42,859 / 4,285 |
-| Ngưỡng 0.5: Precision / Recall | 0.9951 / 0.9993 | 0.9956 / 0.9998 | 0.7141 / 0.9615 |
-| Vùng tự đóng (prob < 0.15): tấn công bị đưa vào | 24 (0.022%) | 14 (0.013%) | 549 (0.49%) |
-| Vùng tự đóng: % lành tính được tự đóng | 99.69% | 99.87% | 82.18% |
-| % lành tính tự đóng được nếu cho phép bỏ sót 0.02% tấn công (ngưỡng chọn ngay trên tập kiểm thử) | 99.62% | 99.89% | 4.75% |
-| Recall nhóm mức độ cao (ngưỡng 0.5, gộp theo số mẫu) | 0.9991 | 0.9998 | 0.9787 |
-| Kích thước mô hình | 35.3 MB | 0.76 MB | dưới 0.01 MB |
-| Thời gian huấn luyện | không đo | 31 giây | 110 giây |
+|---|---|---|---|
+| PR-AUC (khoảng tin cậy 95%) | 0,99976 (0,99972 đến 0,99980) | 0,99935 (0,99906 đến 0,99957) | 0,92117 (0,91979 đến 0,92242) |
+| Ngưỡng 0,5: Precision / Recall | 0,9951 / 0,9993 | 0,9956 / 0,9998 | 0,7141 / 0,9615 |
+| Ngưỡng 0,5: FP / FN | 546 / 82 | 497 / 25 | 42.859 / 4.285 |
 
-Logistic Regression kém rõ rệt: PR-AUC thấp hơn Random Forest khoảng 0.078 (khoảng tin cậy của chênh lệch từ -0.080 đến -0.077), recall bằng 0 trên Web Attack Brute Force, Infiltration và SQL Injection, 0.016 trên XSS, 0.26 trên Bot, nên mô hình tuyến tính không đủ cho bài toán này và không dùng được cho luật tự đóng. Giữa Random Forest và Gradient Boosting hai thước đo không đồng thuận: PR-AUC của Random Forest cao hơn khoảng 0.0004 (khoảng tin cậy của chênh lệch từ -0.0007 đến -0.00018), nhưng ở các ngưỡng vận hành Gradient Boosting có ít sai sót hơn (25 so với 82 False Negative, 14 so với 24 tấn công bị đưa vào vùng tự đóng) và tự đóng được nhiều lành tính hơn. Vì vậy chưa kết luận mô hình nào tốt hơn. Khác biệt theo lớp rõ nhất là Bot (n = 393): recall 0.980 với Gradient Boosting so với 0.873 với Random Forest, chưa kiểm định thống kê. Các lớp hiếm (Heartbleed n = 2, SQL Injection n = 2, Infiltration n = 6) không đủ mẫu để so sánh.
+Logistic Regression kém rõ rệt (recall bằng 0 ở nhiều lớp web attack và Infiltration), nên mô hình tuyến tính không đủ cho dữ liệu này. Giữa Random Forest và Gradient Boosting hai thước đo không đồng thuận (PR-AUC nghiêng về Random Forest, số lỗi ở ngưỡng vận hành nghiêng về Gradient Boosting); mỗi mô hình chỉ huấn luyện một lần, một hạt giống, chưa tinh chỉnh siêu tham số, nên chưa kết luận mô hình nào tốt hơn. Đề bài gợi ý Gradient Boosting làm mô hình chính; hệ thống giữ Random Forest do đã tích hợp và kiểm thử toàn bộ luồng, đây là quyết định thực dụng chứ không phải kết luận rằng nó tốt nhất.
 
-Giới hạn: khoảng tin cậy chỉ phản ánh nhiễu do lấy mẫu tập kiểm thử, không phản ánh biến thiên giữa các lần huấn luyện; mỗi mô hình chỉ huấn luyện một lần với một hạt giống và chưa tinh chỉnh siêu tham số. Các ngưỡng 0.15, 0.50 và 0.80 được chọn cho xác suất của Random Forest nên so sánh ở cùng ngưỡng chưa công bằng tuyệt đối; dòng "nếu cho phép bỏ sót 0.02%" chọn ngưỡng ngay trên tập kiểm thử nên chỉ là cận trên để so sánh giữa các mô hình, không phải ngưỡng vận hành. PR-AUC ở đây tính bằng `average_precision_score`, khác cách tính hình thang trong `train.py` (hai cách cùng làm tròn thành 0.9998 với Random Forest). Gradient Boosting là `HistGradientBoostingClassifier` (tối đa 300 cây, learning rate 0.1, 63 lá, `class_weight=balanced`, dừng sớm ở 102 cây). Hai mô hình baseline lưu ở `ml/models/lr_binary.pkl` và `hgb_binary.pkl`, chưa nối vào dịch vụ; lý do chọn mô hình phục vụ ở mục tiếp theo.
+### 8.2 Mô hình email
 
-**Lựa chọn mô hình phục vụ: vì sao giữ Random Forest.** Đề bài gợi ý Gradient Boosting làm mô hình chính cho đặc trưng có cấu trúc; hệ thống đã cài đặt và đánh giá cả Gradient Boosting lẫn Logistic Regression trên cùng dữ liệu. Bảng dưới liệt kê từng tiêu chí và bên có số tốt hơn. Random Forest không thắng ở mọi tiêu chí; quyết định giữ nó là quyết định thực dụng dưới sự không chắc chắn, không phải kết luận rằng nó là mô hình tốt nhất.
+- **Dữ liệu:** sáu nguồn từ bộ "Phishing Email Dataset" trên Kaggle: CEAS_08, Enron, Ling, SpamAssassin, Nazario, Nigerian Fraud (file `phishing_email.csv` là bản nối của sáu file kia nên bỏ qua). Sau làm sạch và loại trùng nguyên văn: 81.887 thư, 52,1% nhãn spam/phishing. Thư thuộc khoảng 2000 đến 2022.
+- **Mô hình:** TF-IDF 1 đến 2 gram trên tiêu đề và nội dung (HTML thô đổi sang chữ), sau đó Linear SVM hiệu chỉnh xác suất (`CalibratedClassifierCV`, sigmoid, 5 lần). Mô hình cuối huấn luyện trên **cả sáu nguồn**.
+- **Nhãn và confidence:** `SPAM`/`NON_SPAM`; confidence = max(p, 1 − p) với p là xác suất spam. Vì vậy một thư spam sinh cảnh báo khi p ≥ 0,8 (ngưỡng mặc định).
+- **Đặc trưng thực sự dùng:** chữ trong tiêu đề và nội dung. `has_html` và `attachments` được đọc và lưu vào `row_data` nhưng **mô hình không dùng**. Chuỗi mã đánh dấu số URL (`zzurls`) có trong `ml/email_features.py` nhưng bị bộ tách từ loại bỏ (vì chứa chữ số), nên đặc trưng số URL thực tế **chưa hoạt động**; đừng mô tả mô hình là "có dùng đặc trưng URL".
+- **Cách đánh giá:** "bỏ một nguồn ra": lần lượt bỏ từng nguồn, huấn luyện trên năm nguồn còn lại, đo trên nguồn bị bỏ. Cách này đo khả năng tổng quát sang nguồn chưa thấy, thực tế hơn điểm nội bộ (điểm nội bộ chia ngẫu nhiên đạt khoảng 0,997 nhưng không phản ánh khả năng tổng quát).
 
-| Tiêu chí | Random Forest | Gradient Boosting | Logistic Regression | Bên tốt hơn |
-| --- | --- | --- | --- | --- |
-| PR-AUC (tiêu chí tối ưu chính của đề) | 0.99976 | 0.99935 | 0.92117 | Random Forest (khác biệt có ý nghĩa theo nhiễu lấy mẫu, độ lớn nhỏ) |
-| Recall nhóm mức độ cao (ngưỡng 0.5) | 0.9991 | 0.9998 | 0.9787 | Gradient Boosting |
-| Precision ngưỡng 0.5 / Precision vùng khẩn | 0.9951 / 0.9974 | 0.9956 / 0.9973 | 0.7141 / 0.8466 | Random Forest và Gradient Boosting ngang nhau |
-| Ma trận nhầm lẫn (FP / FN) | 546 / 82 | 497 / 25 | 42,859 / 4,285 | Gradient Boosting |
-| Tấn công bị đưa vào vùng tự đóng | 24 | 14 | 549 | Gradient Boosting |
-| Lành tính tự đóng được | 99.69% | 99.87% | 82.18% | Gradient Boosting |
-| Recall lớp Bot (n = 393) | 0.873 | 0.980 | 0.257 | Gradient Boosting |
-| Lớp hiếm (n từ 2 đến 6) | không đủ mẫu | không đủ mẫu | không đủ mẫu | Không kết luận |
-| Cho `top_features` giải thích từng cảnh báo | Có sẵn (`feature_importances_`) | Không có sẵn | Có (hệ số) | Random Forest (đã tích hợp) |
-| Đã chạy trong bài đánh giá chấm điểm ba vùng và chạy qua toàn bộ hệ thống | Có | Chưa | Chưa | Random Forest |
-| Kích thước / thời gian dự đoán theo lô | 35.3 MB / 1.45 µs mỗi luồng | 0.76 MB / 2.01 µs | dưới 0.01 MB / 0.08 µs | Cả ba đủ nhanh; Gradient Boosting và Logistic Regression nhỏ hơn |
-| Biến thiên giữa các lần huấn luyện | chưa đo | chưa đo | chưa đo | Chưa biết |
+| Nguồn bị bỏ | Ngưỡng 0,5: recall / precision | Ngưỡng 0,8: recall / precision | PR-AUC |
+|---|---|---|---|
+| CEAS_08 | 0,839 / 0,933 | 0,741 / 0,952 | 0,962 |
+| Enron | 0,930 / 0,788 | 0,840 / 0,872 | 0,943 |
+| Ling | 0,919 / 0,813 | 0,841 / 0,895 | 0,937 |
+| SpamAssassin | 0,980 / 0,785 | 0,964 / 0,885 | 0,985 |
+| Nigerian Fraud | 0,994 / chỉ spam | 0,984 / chỉ spam | không đo được |
+| Nazario | **0,562** / chỉ spam | **0,346** / chỉ spam | không đo được |
+| **Gộp (81.887 thư)** | 0,877 / 0,875 | **0,788 / 0,923** | **0,950** |
 
-Lý do không dùng từng mô hình:
-- **Logistic Regression: loại, bằng chứng mạnh.** PR-AUC thấp hơn khoảng 0.078, precision 0.714, bỏ sót hoàn toàn nhiều lớp và chỉ tự đóng an toàn được 4.75% lành tính ở mức rủi ro mà Random Forest tự đóng được 99.62%. Mô hình tuyến tính không đủ cho dữ liệu này.
-- **Gradient Boosting: chưa chọn, không phải vì kém hơn.** Nó tốt hơn ở các ngưỡng vận hành. Chưa chuyển vì (1) PR-AUC, tiêu chí đề bài nêu, thấp hơn một cách có ý nghĩa; (2) chưa có cách giải thích đặc trưng cho từng cảnh báo vì mô hình không có `feature_importances_`, trong khi `ml/serve.py` đang dùng thuộc tính này; (3) các ngưỡng 0.15, 0.50, 0.80, bài đánh giá chấm điểm theo lớp và các kiểm thử đều thiết lập và chạy với xác suất của Random Forest; (4) mỗi mô hình mới huấn luyện một lần nên chưa phân biệt được chênh lệch giữa hai mô hình với dao động giữa các lần huấn luyện.
-- **Điều kiện để xem xét lại Gradient Boosting:** huấn luyện lặp lại Random Forest và Gradient Boosting với nhiều hạt giống và thấy chênh lệch về tấn công lọt vào vùng tự đóng lớn hơn dao động; có phương pháp giải thích đặc trưng thay thế; hiệu chỉnh lại ngưỡng trên một tập validation tách riêng; chạy lại bài đánh giá chấm điểm ba vùng theo từng lớp với xác suất của Gradient Boosting.
+Nigerian Fraud và Nazario chỉ có thư spam/phishing nên chỉ đo được recall, không đo được báo nhầm.
 
-**Ánh xạ ATT&CK** (tập giữ lại 29 mô tả, viết và đóng băng trước khi cải tiến; Top-K tính theo ID chính xác):
+**Điểm yếu cần nêu rõ:** với phishing kiểu Nazario, recall chỉ 0,562 ở ngưỡng 0,5 và 0,346 ở ngưỡng 0,8; trong số 402 thư có ngày hợp lệ, thư từ năm 2020 (n = 179) chỉ đạt 0,240 và 0,106 (trước 2020, n = 223: 0,556 và 0,336), nghĩa là phishing càng mới càng dễ bị bỏ lọt. Ngoài ra: mô hình còn học đặc điểm của nguồn dữ liệu (các từ như `enron`, `vince`, `opensuse` đứng đầu danh sách nghiêng về thư hợp lệ); chỉ học thư tiếng Anh nên thư tiếng Việt cho kết quả vô nghĩa; dữ liệu thư hợp lệ đều là thư cũ nên không đo được tỉ lệ báo nhầm trên thư ngày nay. Kết quả cho biết khả năng phân biệt spam và phishing trên các nguồn cũ, không chứng minh bắt được phishing hiện đại. Cảnh báo email nên do chuyên viên quyết định và không nên dùng để tự đóng thư.
 
-| Truy vấn | Phương pháp | Top-1 | Top-3 | Top-5 | MRR |
-| --- | --- | --- | --- | --- | --- |
-| Tiếng Anh | TF-IDF (trước) | 51.7% | 72.4% | 79.3% | 0.630 |
-| Tiếng Anh | BM25 + ví dụ thực tế | 62.1% | 79.3% | 82.8% | 0.709 |
-| Tiếng Việt | TF-IDF (trước) | 24.1% | 34.5% | 34.5% | 0.292 |
-| Tiếng Việt | BM25 + ví dụ + bảng thuật ngữ | 58.6% | 72.4% | 82.8% | 0.675 |
+### 8.3 Giới hạn chung của đánh giá mô hình
 
-Với n = 29, khoảng tin cậy 95% của Top-5 tiếng Anh chồng lấn giữa hai phương pháp nên mức cải thiện này chưa đủ để khẳng định; mức cải thiện tiếng Việt thì rõ ràng. Nhãn và các câu mô tả do tác giả xây dựng.
+- Luồng mạng: chia ngẫu nhiên 80/20 trên CIC-IDS2017, các luồng gần giống nhau có thể nằm ở cả hai tập nên số liệu có thể cao hơn khi gặp lưu lượng của môi trường khác; chưa đo tỉ lệ dòng kiểm thử giống hệt dòng huấn luyện (`preprocess.py` không loại dòng trùng). Mỗi mô hình huấn luyện một lần, một hạt giống.
+- Chưa đo mô hình nhiều lớp ở ngưỡng sinh cảnh báo 0,8: chưa biết số cảnh báo giả trên mỗi 1.000 luồng của từng lớp (Bot và XSS đáng quan tâm nhất).
+- CIC-IDS2017 là dữ liệu lab 2017; không đảm bảo hiệu quả trên hệ thống thật.
 
-**Gom nhóm cảnh báo** (tập mô phỏng 102 cảnh báo, 39 sự cố; luật: cùng IOC chuẩn hóa, cùng tài sản, trong cửa sổ 60 phút):
+## 9. API
 
-| Chỉ số | Giá trị |
-| --- | --- |
-| Precision / Recall / F1 theo cặp | 91.3% / 68.3% / 78.1% |
-| Sự cố được gom trọn vẹn | 16/25 |
+Địa chỉ: `http://localhost:8000`; tài liệu tự sinh ở `/docs`. Mọi endpoint (trừ đăng nhập và đăng ký lần đầu) cần header `Authorization: Bearer <token>`.
 
-Luật hoạt động tốt khi cảnh báo có cùng IOC và cùng tài sản. Luật không gom được trong các trường hợp: sự cố lan sang nhiều tài sản, cảnh báo thiếu IOC, IOC chồng lấn một phần, khoảng cách giữa hai cảnh báo lớn hơn 60 phút.
+| Nhóm | Phương thức và đường dẫn | Mô tả |
+|---|---|---|
+| Xác thực | `POST /auth/login` | Đăng nhập, nhận JWT |
+| | `POST /auth/register` | Tạo tài khoản (tài khoản đầu tiên tự do) |
+| | `GET /auth/me` | Người dùng hiện tại |
+| Sự cố | `POST /incidents` | Tạo (trạng thái Mới) |
+| | `GET /incidents` | Danh sách: phân trang, sắp xếp, lọc |
+| | `GET /incidents/{id}` | Chi tiết: số cảnh báo theo trạng thái xác minh, file đang xử lý, chuyển trạng thái cho phép, có xóa được không |
+| | `PUT /incidents/{id}` | Sửa (chặn khi đã đóng/hủy) |
+| | `PATCH /incidents/{id}/status` | Đổi trạng thái (kèm `note` khi cần) |
+| | `GET /incidents/{id}/history` | Lịch sử trạng thái |
+| | `DELETE /incidents/{id}` | Xóa (chỉ khi chưa có cảnh báo) |
+| Upload | `POST /incidents/{id}/uploads` | Upload (form: `data_type`, `file`); trả 202 |
+| | `GET /incidents/{id}/uploads` | Danh sách file của sự cố |
+| | `GET /uploads/{id}` | Chi tiết và kết quả phân loại của một file |
+| Cảnh báo | `GET /incidents/{id}/alerts` | Cảnh báo của sự cố |
+| | `GET /alerts` | Mọi cảnh báo; `unassigned=true` cho cảnh báo chưa gắn |
+| | `GET /alerts/{id}` | Chi tiết kèm dòng gốc |
+| | `GET /alerts/{id}/moves` | Lịch sử chuyển/gỡ |
+| | `PATCH /alerts/{id}/verify` | Xác minh một cảnh báo |
+| | `POST /alerts/bulk-verify` | Xác minh hàng loạt |
+| | `POST /alerts/move` | Chuyển hoặc gỡ hàng loạt |
+| Danh mục | `GET /attack-types` | Loại tấn công của sự cố |
+| | `GET /labels`, `PUT /labels/{id}` | Nhãn đầu ra mô hình; sửa cờ nguy hiểm, đang dùng, tên |
+| | `GET /settings`, `PUT /settings/{key}` | Cấu hình |
+| | `GET /models`, `POST /models/sync` | Mô hình; đồng bộ từ dịch vụ AI |
+| Dashboard | `GET /dashboard` | Số liệu tổng quan |
+| Hệ thống | `GET /`, `GET /health/db` | Kiểm tra backend và kết nối cơ sở dữ liệu |
 
-**Kiểm thử khói (smoke benchmark) của luồng triage:** `tests/benchmark_ai.py` chạy 7 cảnh báo mô phỏng. Nhãn mong đợi và giá trị `manual_guess` do tác giả gán thủ công, và luật từ khóa của AI trùng với từ khóa trong tiêu đề các cảnh báo thử. Vì vậy các con số (28.6% so với 85.7%) chỉ minh họa luồng chạy, không dùng làm bằng chứng AI cải thiện chất lượng triage. Chỉ số đo được đáng tin cậy duy nhất của benchmark này là độ trễ: gọi AI làm thời gian triage tăng thêm khoảng 2.45 giây. Đánh giá thời gian triage của analyst có/không có AI cần thử nghiệm với người dùng thật.
+Mã lỗi chính: 401 chưa đăng nhập; 404 không tìm thấy; 409 xung đột trạng thái (sự cố đã đóng, file trùng, thao tác hàng loạt có phần tử không hợp lệ...); 413 file quá lớn; 422 dữ liệu không hợp lệ; 503 dịch vụ AI chưa sẵn sàng.
 
-## API Endpoints chính
+## 10. Giao diện
 
-Base URL: `http://localhost:8000` | Docs: `http://localhost:8000/docs`
+Các trang: Đăng nhập; Dashboard; Danh sách sự cố; Chi tiết sự cố (ba tab: Cảnh báo, Dữ liệu tải lên, Lịch sử trạng thái); Danh sách cảnh báo chung; Cấu hình.
 
-### Auth
+- Tab Dữ liệu tải lên: chọn nguồn, chọn file (hộp chọn file chỉ cho `.eml`/`.zip` khi nguồn là Email), hướng dẫn định dạng, thẻ kết quả cho từng file (tổng mẫu, confidence trung bình, phân bố nhãn, ngưỡng và lớp nguy hiểm đã áp dụng, số cảnh báo).
+- Khi có file đang xử lý, giao diện thăm dò mỗi 1,5 giây, hiện thanh tiến độ và thông báo (toast) khi xong hoặc lỗi.
+- Thời gian lưu UTC không múi giờ; frontend thêm hậu tố `Z` để trình duyệt hiển thị theo giờ máy.
+- `AlertDetailModal` chưa hiển thị `attachments` và `source_file` của thư.
 
-| Method | Endpoint | Mô tả | Role |
-| --- | --- | --- | --- |
-| POST | `/auth/register` | Tạo tài khoản (tài khoản đầu tiên tạo tự do, sau đó chỉ Analyst) | Analyst |
-| POST | `/auth/login` | Đăng nhập, nhận JWT | Public |
+## 11. Cách chạy
 
-### Assets
+```powershell
+# Dịch vụ AI (chạy trong thư mục ml; khởi động lại sau mỗi lần huấn luyện)
+cd ml
+uvicorn serve:app --port 8001
 
-| Method | Endpoint | Mô tả | Role |
-| --- | --- | --- | --- |
-| GET | `/assets/` | Danh sách tài sản | All |
-| POST | `/assets/` | Tạo tài sản | IT, Analyst |
-| PUT | `/assets/{id}` | Cập nhật | IT, Analyst |
-| DELETE | `/assets/{id}` | Xóa | Analyst |
+# Backend
+cd backend
+pip install -r requirements.txt
+python seed.py --demo
+uvicorn main:app --reload --port 8000
 
-### Alerts
+# Frontend
+cd frontend
+npm install
+npm run dev
+```
 
-| Method | Endpoint | Mô tả | Role |
-| --- | --- | --- | --- |
-| GET | `/alerts/` | Danh sách (lọc theo `status`, `zone`; `order=priority` xếp theo điểm ưu tiên) | All |
-| POST | `/alerts/` | Tạo thủ công | IT, Analyst |
-| POST | `/alerts/webhook` | Nhận từ hệ thống ngoài (`source` hợp lệ trong payload được ghi nhận) | IT, Analyst |
-| POST | `/alerts/upload/csv` | Upload CSV (cột `source` tùy chọn) | IT, Analyst |
-| POST | `/alerts/upload/json` | Upload JSON (trường `source` tùy chọn) | IT, Analyst |
-| PATCH | `/alerts/{id}/triage` | Triage alert | IT, Analyst |
-| PATCH | `/alerts/{id}/false-positive` | Đánh dấu FP | Analyst |
-| POST | `/alerts/{id}/score` | Chấm điểm và chia vùng ưu tiên lại | IT, Analyst |
-| PATCH | `/alerts/{id}/close` | Đóng cảnh báo kèm lý do | Analyst |
-| PATCH | `/alerts/{id}/reopen` | Mở lại cảnh báo đã đóng kèm lý do | Analyst |
-| GET | `/alerts/groups/list` | Xem nhóm dedup | All |
+- `backend/.env`: `DB_SERVER`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SECRET_KEY`; tùy chọn `AI_SERVICE_URL`, `UPLOAD_STORAGE_DIR`, `ACCESS_TOKEN_EXPIRE_MINUTES`.
+- `seed.py --demo` tạo bảng, danh mục, nhãn, cấu hình, hai tài khoản và 8 sự cố mẫu (chưa có cảnh báo; cảnh báo sinh khi upload file). Ứng dụng cũng tự tạo bảng khi khởi động; `create_all` không sửa bảng đã có, nên khi đổi cấu trúc phải dùng database mới hoặc `reset_table.sql`.
+- Sau khi dịch vụ AI chạy: Cấu hình → **Đồng bộ từ dịch vụ AI**.
+- Dùng `127.0.0.1` thay cho `localhost` khi backend gọi dịch vụ AI trên Windows. CORS của backend chỉ cho `http://localhost:5173`; địa chỉ backend ở frontend cố định `http://localhost:8000` (`frontend/src/api/client.js`).
+- Thứ tự huấn luyện trong `ml/`: `preprocess.py` → `train.py` → `train_baselines.py` → `train_multiclass.py` → `train_email.py` → `serve.py`. Dữ liệu CIC-IDS2017 để ở `ml/data/ids/raw`; CSV email Kaggle ở `ml/data/email/kaggle`.
 
-### Incidents
+## 12. Kiểm thử
 
-| Method | Endpoint | Mô tả | Role |
-| --- | --- | --- | --- |
-| GET | `/incidents/` | Danh sách | All |
-| POST | `/incidents/` | Tạo từ alert | Analyst |
-| GET | `/incidents/{id}` | Chi tiết | All |
-| PATCH | `/incidents/{id}/status` | Đổi trạng thái theo bảng hợp lệ; đóng và mở lại chỉ commander | Analyst |
-| GET | `/incidents/{id}/alerts` | Alerts thuộc incident | All |
-| GET | `/incidents/{id}/timeline` | Timeline dựng từ nhật ký kiểm toán | All |
+| Bộ kiểm thử | Phạm vi | Cách chạy |
+|---|---|---|
+| `tests/test_incident_alert_flow.py` | 146 kiểm tra toàn luồng: đăng nhập, cấu hình, sự cố, upload, cảnh báo, xác minh, chuyển/gỡ, dashboard, trạng thái | Backend chạy cổng 8000 cùng `tests/fake_ai_service.py` ở cổng 8001 (tắt dịch vụ AI thật); dùng database thử vì test đổi cấu hình và tạo nhiều sự cố |
+| `tests/test_eml_parsing.py` | 33 kiểm tra đọc `.eml`, `.zip`, CSV/JSON email | `python tests\test_eml_parsing.py`, không cần backend |
 
-### Evidences
+Dịch vụ AI giả trả kết quả xác định và có "bẫy" để thử lỗi giữa chừng (một giá trị `Flow Duration` đặc biệt làm lô lỗi, một giá trị làm chậm 2 giây, chuỗi `boom-crash` trong email làm lỗi). Sau khi chạy test, bật lại dịch vụ AI thật và đồng bộ mô hình.
 
-| Method | Endpoint | Mô tả | Role |
-| --- | --- | --- | --- |
-| POST | `/incidents/{id}/evidences/` | Thu thập bằng chứng dạng chữ (JSON) | IT, Analyst |
-| POST | `/incidents/{id}/evidences/upload` | Thu thập bằng chứng dạng tệp (multipart; SHA-256 tính trên byte) | IT, Analyst |
-| POST | `/incidents/{id}/evidences/{eid}/verify` | Kiểm tra toàn vẹn: băm lại và so mã băm ghi nhận | IT, Analyst |
-| GET | `/incidents/{id}/evidences/{eid}/download` | Cấp bản sao làm việc (đã kiểm tra khớp bản gốc) | IT, Analyst |
-| PATCH | `/incidents/{id}/evidences/{eid}/lock` | Lock bằng chứng | IT, Analyst |
-| GET | `/incidents/{id}/evidences/{eid}/custody` | Chain of custody | All |
+**Mức độ kiểm chứng:** bộ test luồng được chạy ở môi trường thử (SQLite, dịch vụ AI giả); **chưa có xác nhận chạy trên SQL Server thật**. Chưa có test tích hợp riêng cho upload `.eml`/`.zip` qua backend (chỉ có test của bộ đọc thư). `tests/evaluate_attck.py` là mã cũ cho phần ATT&CK, ngoài phạm vi bản này.
 
-### Containment / Recovery / Communication / Postmortem
+## 13. Hạn chế đã biết
 
-| Method | Endpoint | Mô tả | Role |
-| --- | --- | --- | --- |
-| POST | `/incidents/{id}/containments/` | Đề xuất containment | IT, Analyst |
-| PATCH | `/incidents/{id}/containments/{cid}/review` | Phê duyệt (khác người đề xuất; rủi ro cao: commander) | Analyst |
-| PATCH | `/incidents/{id}/containments/{cid}/execute` | Thực hiện | IT, Analyst |
-| PATCH | `/incidents/{id}/containments/{cid}/verify` | Xác minh (khác người thực hiện) | Analyst |
-| POST | `/incidents/{id}/recovery/` | Tạo recovery action | IT, Analyst |
-| PATCH | `/incidents/{id}/recovery/{rid}/confirm` | Xác nhận recovery | Stakeholder |
-| POST | `/incidents/{id}/communications/` | Tạo thông báo | Analyst |
-| PATCH | `/incidents/{id}/communications/{cid}/approve` | Phê duyệt (khác người soạn; ra ngoài: commander) | Analyst |
-| PATCH | `/incidents/{id}/communications/{cid}/send` | Gửi | Analyst |
-| PATCH | `/incidents/{id}/communications/{cid}/acknowledge` | Xác nhận đã nhận | Stakeholder |
-| POST | `/incidents/{id}/postmortem/` | Viết postmortem | Analyst |
-| PATCH | `/incidents/{id}/postmortem/finalize` | Chốt postmortem (incident đã đóng, commander) | Analyst |
-
-### Playbook và công việc
-
-| Method | Endpoint | Mô tả | Role |
-| --- | --- | --- | --- |
-| GET | `/playbooks/` | Danh sách (lọc `incident_type`, `active_only`) | All |
-| GET | `/playbooks/{id}` | Chi tiết kèm các bước | All |
-| POST | `/playbooks/` | Tạo playbook | Analyst |
-| PUT | `/playbooks/{id}` | Sửa, thay toàn bộ bước, ngừng dùng | Analyst |
-| GET | `/incidents/{id}/tasks/` | Danh sách công việc của vụ | All |
-| GET | `/incidents/{id}/tasks/summary` | Tổng hợp: số việc, bắt buộc chưa xong, quá hạn, % xử lý | All |
-| GET | `/incidents/{id}/tasks/assignees` | Tài khoản có thể được giao việc | Analyst |
-| POST | `/incidents/{id}/tasks/apply-playbook` | Tạo công việc từ playbook, không tạo trùng | Analyst |
-| POST | `/incidents/{id}/tasks/` | Tạo công việc thủ công | Analyst |
-| PATCH | `/incidents/{id}/tasks/{tid}` | Đổi trạng thái; giao việc, đặt hạn (chỉ Analyst) | IT, Analyst |
-| DELETE | `/incidents/{id}/tasks/{tid}` | Xóa việc thủ công chưa xong | Analyst |
-
-### Audit
-
-| Method | Endpoint | Mô tả | Role |
-| --- | --- | --- | --- |
-| GET | `/audit/` | Danh sách, lọc theo incident, người dùng, hành động, đối tượng, thời gian | Analyst |
-| GET | `/audit/verify` | Kiểm tra toàn vẹn chuỗi băm | Analyst |
-| GET | `/audit/export.csv` | Xuất CSV | Analyst |
-
-### Dashboard & AI
-
-| Method | Endpoint | Mô tả | Role |
-| --- | --- | --- | --- |
-| GET | `/dashboard/` | 6 chỉ số + stats + thống kê công việc đang mở và quá hạn | All |
-| GET | `/dashboard/sla` | Alerts vi phạm SLA | All |
-| POST | `/ai/alert/suggest` | AI đề xuất severity + ATT&CK | All |
-| POST | `/ai/attck/search` | Tìm kiếm ATT&CK techniques | All |
-| GET | `/ai/classify/schema` | Danh sách đặc trưng luồng mạng mà mô hình RF cần | All |
-| GET | `/ai/health` | Kiểm tra AI service | All |
+- **Hệ thống:** một vai trò; không khóa tài khoản sau đăng nhập sai; không có làm mới token; không có nhật ký kiểm toán chống sửa; chống trùng chỉ theo hash trong cùng sự cố.
+- **Xử lý nền:** chạy trong tiến trình backend, không có hàng đợi; khởi động lại làm mất tác vụ đang chạy (được đánh `failed`, phải upload lại); ứng viên cảnh báo giữ trong bộ nhớ nên bị giới hạn bởi `max_rows`; ZIP email được đọc đồng bộ trong request.
+- **Dữ liệu:** không lưu dự đoán của dòng không thành cảnh báo; không tải lại được file gốc từ giao diện; CSV/JSON bắt buộc UTF-8 (chưa có chế độ Latin-1).
+- **Mô hình:** xem 8.1 đến 8.3; đặc biệt là phishing mới trong email và các lớp web attack/Bot của luồng mạng.
+- **Giao diện:** chưa kiểm thử tự động; `Table.jsx` còn rỗng.
