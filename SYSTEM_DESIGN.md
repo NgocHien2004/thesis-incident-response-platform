@@ -1,6 +1,6 @@
 # Thiết kế hệ thống
 
-Hệ thống quản lý sự cố an ninh mạng tích hợp AI phân loại cảnh báo từ dữ liệu đa nguồn (luồng mạng và email), dành cho tổ chức vừa và nhỏ. Đây là bản thu gọn từ đề tài 10 theo gợi ý của giảng viên; yêu cầu chức năng và cách đáp ứng từng mục nằm ở `GOI_Y_GIAO_VIEN.md`, cấu trúc cơ sở dữ liệu ở `DATABASE.md`.
+Hệ thống quản lý sự cố an ninh mạng tích hợp AI phân loại cảnh báo từ dữ liệu đa nguồn (luồng mạng và email), dành cho tổ chức vừa và nhỏ. Cấu trúc cơ sở dữ liệu ở `DATABASE.md`. Cập nhật 16/11/2026.
 
 ## 1. Tổng quan
 
@@ -26,7 +26,7 @@ Dashboard (sự cố theo trạng thái và loại tấn công, cảnh báo theo
 
 Trong phạm vi: một vai trò chuyên viên; quản lý sự cố và lịch sử trạng thái; upload CSV/JSON (luồng mạng, email) và `.eml`/`.zip` (chỉ email); phân loại theo lô; sinh, xác minh, chuyển, gỡ cảnh báo; cấu hình ngưỡng và lớp nguy hiểm; dashboard.
 
-Ngoài phạm vi (không cài đặt): quản lý tài sản, bằng chứng và chain of custody, containment, recovery, thông báo, postmortem, playbook, SLA, nhật ký kiểm toán chuỗi băm, ánh xạ ATT&CK, phân quyền nhiều vai trò, nhập pcap thô và `.msg`. Đề tài 10 gốc có các phần này; phiên bản luận văn không làm.
+Ngoài phạm vi (không cài đặt): quản lý tài sản, bằng chứng và chain of custody, containment, recovery, thông báo, postmortem, playbook, SLA, nhật ký kiểm toán chuỗi băm, ánh xạ ATT&CK, chính sách ba vùng (tự đóng, xem, khẩn), phân quyền nhiều vai trò, nhập pcap thô và `.msg`. Đề tài 10 gốc có các phần này; phiên bản luận văn không làm. Giảng viên chỉ yêu cầu một ngưỡng confidence để sinh cảnh báo.
 
 `.eml` và `.zip` là phần mở rộng ngoài danh sách yêu cầu của giảng viên (giảng viên chỉ nêu CSV/JSON).
 
@@ -38,7 +38,7 @@ Ngoài phạm vi (không cài đặt): quản lý tài sản, bằng chứng và
 | Backend | Python FastAPI, SQLAlchemy 2, pydantic | 8000 |
 | Cơ sở dữ liệu | Microsoft SQL Server (ODBC Driver 17) | |
 | Dịch vụ AI | FastAPI riêng (`ml/serve.py`), scikit-learn | 8001 |
-| Mô hình | Random Forest (luồng mạng), TF-IDF + Linear SVM hiệu chỉnh (email) | |
+| Mô hình | Random Forest nhiều lớp (luồng mạng), TF-IDF + Linear SVM hiệu chỉnh (email) | |
 | Xác thực | JWT access token (mặc định 60 phút) + bcrypt | |
 
 ```
@@ -48,6 +48,16 @@ Trình duyệt ──HTTP──▶ Backend :8000 ──SQL──▶ SQL Server
 ```
 
 Backend gọi dịch vụ AI qua `AI_SERVICE_URL` (mặc định `http://127.0.0.1:8001`). Dịch vụ AI chỉ nạp mô hình lúc khởi động, nên phải khởi động lại sau mỗi lần huấn luyện.
+
+### 1.4 Cấu trúc thư mục chính
+
+```
+backend/   main.py, database.py, seed.py, app/{api,core,models,schemas,services}
+frontend/  src/{pages,components,api,context,utils}
+ml/        preprocess.py, train_multiclass.py, train_email.py, email_features.py,
+           serve.py, make_network_samples.py, results/, models/, data/
+tests/     test_incident_alert_flow.py, fake_ai_service.py, test_eml_parsing.py
+```
 
 ## 2. Tài khoản và xác thực
 
@@ -86,6 +96,8 @@ Lưu ý: "nguồn" của sự cố khác với "nguồn dữ liệu" của file 
 
 Phân trang (`page`, `page_size` ≤ 200), sắp xếp theo `id, code, title, severity, status, attack_type, occurred_at, created_at, updated_at` (mức độ sắp theo độ nghiêm trọng chứ không theo chữ cái), lọc theo `q` (mã hoặc tiêu đề), `status` (nhiều giá trị cách nhau bằng dấu phẩy), `attack_type`, `severity`, `date_from`, `date_to` (ngày cuối tính trọn ngày).
 
+Với SQL Server, khi sắp xếp theo `id` không được thêm tiêu chí phụ `id` vào `ORDER BY` (cột lặp gây lỗi 169); mã đã xử lý riêng trường hợp này ở `incidents.py` và `alerts.py`.
+
 ## 4. Upload và xử lý
 
 ### 4.1 Định dạng chấp nhận
@@ -106,9 +118,11 @@ Toàn bộ file được quét một lần trước khi tạo bản ghi `uploads
 1. Sự cố phải ở trạng thái Mới hoặc Đang xử lý (409).
 2. Nguồn dữ liệu hợp lệ; đuôi file thuộc `.csv, .json, .eml, .zip` (422).
 3. Kích thước tối đa `max_upload_mb` (413, kiểm tra khi đọc từng khối 1 MB, không cần đọc hết file); file rỗng bị từ chối.
-4. Trùng hash SHA-256 với file không lỗi trong cùng sự cố → 409 nêu số upload bị trùng. Cùng file ở sự cố khác vẫn nhận kèm `warnings`.
+4. Trùng hash SHA-256 với file không lỗi trong cùng sự cố → 409 nêu số upload bị trùng. Cùng file ở sự cố khác vẫn nhận kèm `warnings`. File đã lỗi (`failed`) không tính là trùng, nên upload lại được.
 5. Phải có mô hình đang dùng cho nguồn đó; thiếu thì 503. Với luồng mạng, nếu mô hình chưa có danh sách cột thì tự đồng bộ từ dịch vụ AI.
 6. Cấu trúc và giá trị: CSV/JSON phải UTF-8, số cột mỗi dòng khớp tiêu đề; đủ cột bắt buộc (báo rõ cột thiếu); ô luồng mạng phải là số (báo dòng và cột sai); `Infinity`/`NaN` quy về 0; hai cột trùng tên (`Fwd Header Length`) được đặt `.1`; số dòng không vượt `max_rows`; email phải có `subject` hoặc `body`.
+
+Bước kiểm tra này chỉ dùng thông tin mô hình đã lưu trong cơ sở dữ liệu, không gọi dịch vụ AI; vì vậy upload vẫn được nhận khi dịch vụ AI tắt, và lỗi chỉ lộ ra ở bước xử lý nền (file chuyển `failed`).
 
 ### 4.3 Đọc thư `.eml` và `.zip`
 
@@ -141,11 +155,13 @@ Việc lưu ngưỡng, lớp nguy hiểm và phiên bản mô hình theo từng 
 
 Cảnh báo được sinh cho một dòng khi **cả hai** điều kiện đúng: nhãn dự đoán thuộc lớp nguy hiểm (`labels.is_dangerous` và `is_active`), và `confidence ≥ ngưỡng` (`threshold_network` hoặc `threshold_email`, mặc định 0,80). Cảnh báo tự gắn vào sự cố của file (`auto_linked = true`), lưu nhãn, confidence, số thứ tự dòng trong file gốc (`row_index`, tính từ 1, không kể dòng tiêu đề) và `row_data` (JSON dòng gốc) để xem lại mà không cần mở file. `UNIQUE(upload_id, row_index)` bảo đảm một dòng không sinh hai cảnh báo.
 
+Với luồng mạng, `confidence` là **xác suất của lớp được dự đoán** (xác suất cao nhất trong 15 lớp). Hệ quả: khi hai lớp giống nhau chia xác suất (ví dụ các kiểu tấn công web), confidence của lớp thắng thấp hơn và có thể không đạt ngưỡng dù chắc chắn đó là tấn công. Xem 8.1 (hai quy tắc A và B).
+
 Chỉ các dòng thành cảnh báo mới được lưu kết quả từng dòng. Với các dòng khác, hệ thống chỉ lưu tổng hợp theo file (số mẫu, phân bố nhãn, confidence trung bình), vì một file có thể có hàng trăm nghìn dòng. Hệ quả: không kiểm tra lại được các dòng bị bỏ sót (false negative) từ dữ liệu trong hệ thống. Nếu cần, thêm bảng `predictions(upload_id, row_index, label, confidence)`.
 
 ### 5.2 Trạng thái xác minh
 
-`unverified` (Chưa xác minh) ↔ `verified` (Đã xác minh) / `dismissed` (Bỏ qua); có thể đặt lại về `unverified`. Ghi người xác minh, thời điểm, ghi chú.
+`unverified` (Chưa xác minh) ↔ `verified` (Đã xác minh) / `dismissed` (Bỏ qua); có thể đặt lại về `unverified`. Ghi người xác minh, thời điểm, ghi chú. Hệ thống chỉ giữ người và thời điểm xác minh **gần nhất** (không có bảng lịch sử xác minh); đặt lại về `unverified` xóa người xác minh.
 
 Điều kiện: cảnh báo phải đang gắn một sự cố, và sự cố đó không ở trạng thái đã đóng hoặc đã hủy (409).
 
@@ -162,7 +178,7 @@ Chỉ các dòng thành cảnh báo mới được lưu kết quả từng dòng
 
 ### 5.5 Xem và lọc
 
-Phân trang (`page_size` ≤ 500); lọc theo `label`, `verification_status`, `source_type`, `upload_id`, `min_confidence`, `unassigned`, `incident_id`; sắp xếp theo `id, row_index, confidence, created_at, predicted_label, verification_status, source_type`. Giao diện có "Chọn tất cả N cảnh báo khớp bộ lọc" (lặp qua các trang 500).
+Phân trang (`page_size` ≤ 500); lọc theo `label`, `verification_status`, `source_type`, `upload_id`, `min_confidence`, `unassigned`, `incident_id`; sắp xếp theo `id, row_index, confidence, created_at, predicted_label, verification_status, source_type`. Giao diện có "Chọn tất cả N cảnh báo khớp bộ lọc" (lặp qua các trang 500); khi N lớn hơn 10.000 thì thao tác hàng loạt bị API từ chối (xem mục 13).
 
 ## 6. Cấu hình
 
@@ -188,54 +204,75 @@ Mẫu số bằng 0 thì trả `null` và giao diện hiển thị "chưa có".
 
 ## 8. Module AI/ML
 
-Dịch vụ AI (`ml/serve.py`) cung cấp cho backend hai endpoint: `GET /info` (mô hình đang chạy, nhãn, cột đầu vào) và `POST /predict/batch` (tối đa 5.000 dòng mỗi lô, trả `{label, confidence}` từng dòng kèm `model_version`). Các endpoint `/classify`, `/classify_email`, `/attck/search`, `/alert/suggest` còn trong mã nhưng backend v2 không gọi. Chuỗi phiên bản là hằng số (`rf_multiclass_v1`, `rf_binary_v1`, `email_svm_v1`), nên huấn luyện lại **không đổi phiên bản**; ghi nhớ điều này khi đối chiếu kết quả theo thời gian.
+Dịch vụ AI (`ml/serve.py`) chỉ có ba endpoint: `GET /` (kiểm tra sống), `GET /info` (mô hình đang chạy, nhãn, cột đầu vào, để backend đồng bộ vào bảng `models`) và `POST /predict/batch` (tối đa 5.000 dòng mỗi lô, trả `{label, confidence}` từng dòng kèm `model_version`).
+
+- Dịch vụ **không khởi động** nếu thiếu `rf_multiclass.pkl`, `network_labels.json`, `scaler.pkl` hoặc `feature_cols.pkl` (không còn mô hình nhị phân dự phòng).
+- Mô hình email là tùy chọn: thiếu `email_svm.pkl` thì `/info` báo `loaded=false` (phiên bản `email_svm_none`) và `/predict/batch` cho email trả 503.
+- **Phiên bản mô hình** = tiền tố (`rf_multiclass_`, `email_svm_`) cộng 8 ký tự đầu của SHA-256 file `.pkl`. Huấn luyện lại tạo phiên bản mới và một dòng mới trong bảng `models`; nút **Đồng bộ từ dịch vụ AI** đặt các bản cũ thành không dùng.
+- Các chức năng ATT&CK, `/classify*` và chính sách ba vùng của bản đầu đã bị loại khỏi hệ thống.
 
 ### 8.1 Mô hình luồng mạng
 
-- **Dữ liệu:** CIC-IDS2017, 15 nhãn (BENIGN và 14 loại tấn công), chia ngẫu nhiên 80/20 có phân tầng theo nhãn nhị phân (tập kiểm thử 565.576 luồng).
-- **Mô hình phục vụ:** Random Forest nhiều lớp (`rf_multiclass.pkl`, 100 cây, độ sâu tối đa 20, `class_weight=balanced_subsample`) cùng `network_labels.json`. Nếu thiếu một trong hai file thì dịch vụ **âm thầm quay về mô hình nhị phân** (`rf_binary.pkl`, nhãn `BENIGN`/`ATTACK`); kiểm tra `/info` sau khi khởi động.
-- **Đầu vào:** các cột đặc trưng chuẩn hóa bằng `scaler.pkl`; đối chiếu tên cột không phân biệt hoa thường và bỏ khoảng trắng đầu/cuối; cột thiếu coi là 0.
-- **Confidence** là xác suất cao nhất của lớp dự đoán.
+**Dữ liệu.** CIC-IDS2017, 15 nhãn (BENIGN và 14 loại tấn công).
 
-**Kết quả của mô hình nhiều lớp** (`results/multiclass_report.json`, nhãn theo argmax, **chưa đo ở ngưỡng 0,8**):
+**Loại dòng trùng trước khi chia.** CIC-IDS2017 có nhiều dòng giống hệt nhau. Bản đầu của dự án chia 80/20 ngẫu nhiên không loại trùng; đo lại cho thấy **13,4%** dòng kiểm thử (75.604/565.576) có một dòng giống hệt trong tập huấn luyện, nên điểm số bị thổi phồng. `preprocess.py` hiện loại dòng trùng (mọi cột kể cả nhãn) **trước khi chia**, và chỉ fit `StandardScaler` trên tập huấn luyện.
 
-| Chỉ số | Giá trị |
+| | Số dòng |
 |---|---|
-| Accuracy | 0,9946 |
-| Macro F1 | 0,789 |
-| Weighted F1 | 0,996 |
+| Dòng gốc (15 nhãn) | 2.830.743 |
+| Sau bỏ ô null/inf | 2.827.876 |
+| Sau loại trùng | **2.520.798** (bỏ 307.078 = 10,9%) |
+| Huấn luyện / kiểm thử (80/20, phân tầng theo nhãn) | 2.016.638 / 504.160 |
+
+Tỉ lệ dòng bị loại theo lớp: PortScan 42,9%; SSH-Patator 45,4%; FTP-Patator 25,3%; DoS Hulk 24,9%; BENIGN 7,8%; Bot 0,4%; các lớp còn lại gần 0%. Có 1.394 dòng có đặc trưng giống một dòng khác nhưng **nhãn khác** (nhãn nhiễu của bộ dữ liệu, giữ nguyên).
+
+Số mẫu huấn luyện / kiểm thử theo lớp: BENIGN 1.676.045 / 419.012; DDoS 102.411 / 25.603; DoS Hulk 138.277 / 34.569; PortScan 72.555 / 18.139; GoldenEye 8.229 / 2.057; FTP-Patator 4.745 / 1.186; Slowloris 4.308 / 1.077; Slowhttptest 4.182 / 1.046; SSH-Patator 2.575 / 644; Bot 1.558 / 390; Web Brute Force 1.176 / 294; XSS 522 / 130; **Infiltration 29 / 7; SQL Injection 17 / 4; Heartbleed 9 / 2**.
+
+**Mô hình phục vụ.** Random Forest nhiều lớp (`rf_multiclass.pkl`, 100 cây, độ sâu tối đa 20, `class_weight=balanced_subsample`) cùng `network_labels.json`. Đầu vào là các cột đặc trưng chuẩn hóa bằng `scaler.pkl`; đối chiếu tên cột không phân biệt hoa thường và bỏ khoảng trắng đầu/cuối; cột thiếu coi là 0. Confidence là xác suất cao nhất của lớp dự đoán.
+
+**Kết quả trên tập kiểm thử đã loại trùng** (`results/multiclass_report.json`, nhãn theo argmax, chưa áp ngưỡng).
+
+- Accuracy khoảng 0,99 (số chính xác: xem `multiclass_report.json`); Macro F1 0,83.
+- Các lớp lớn (PortScan, SSH-Patator, DoS Hulk) đạt precision và recall từ 0,99 đến 1,00, **gần như không đổi** so với lần huấn luyện trên dữ liệu chưa loại trùng dù mất 25 đến 45% dòng, nghĩa là chúng tách được thật chứ không phải nhớ dòng trùng.
+- Các lớp nhỏ không đổi vì gần như không có dòng trùng nên điểm yếu là thật:
 
 | Lớp | Precision | Recall | Số mẫu kiểm thử |
 |---|---|---|---|
-| BENIGN | 0,9999 | 0,9937 | 454.265 |
-| DDoS | 0,9999 | 0,9996 | 25.775 |
-| DoS Hulk | 0,989 | 0,9997 | 45.887 |
-| PortScan | 0,994 | 0,9997 | 31.757 |
-| Bot | **0,158** | 0,992 | 393 |
-| Web Attack - Brute Force | 0,806 | 0,654 | 312 |
-| Web Attack - XSS | **0,300** | 0,605 | 124 |
-| Web Attack - Sql Injection | 0,0 | 0,0 | 2 |
-| Infiltration | 1,0 | 0,667 | 6 |
+| Bot | **0,14** | 0,99 | 390 |
+| Web Attack - Brute Force | 0,81 | 0,69 | 294 |
+| Web Attack - XSS | **0,37** | 0,65 | 130 |
+| Web Attack - Sql Injection | 0,50 | 0,25 | 4 |
+| Infiltration | 1,0 | 1,0 | 7 |
 | Heartbleed | 1,0 | 0,5 | 2 |
 
-Các lớp lớn đạt rất cao; các lớp web attack và Bot kém rõ rệt (Bot gần như toàn dương tính giả: precision 0,158; Brute Force và XSS nhầm lẫn nhau). Heartbleed, SQL Injection, Infiltration chỉ có 2 đến 6 mẫu nên **không đủ để kết luận theo từng lớp**.
+- Macro F1 0,83 so với 0,789 của bản cũ **không phải cải thiện đã chứng minh**: chênh lệch đến từ Infiltration và SQL Injection, chỉ vài mẫu kiểm thử, và tập kiểm thử hai lần khác nhau nên không so được từng con số. Heartbleed, SQL Injection, Infiltration có 2 đến 7 mẫu nên **không đủ để kết luận theo từng lớp**.
+- Bot gần như toàn dương tính giả (precision 0,14); Brute Force và XSS của web attack nhầm lẫn nhau.
 
-**Tham chiếu từ bài toán nhị phân** (BENIGN so với tấn công; `results/baseline_comparison.json`, cùng tập huấn luyện 2.262.300 và kiểm thử 565.576 luồng; khoảng tin cậy 95% lấy mẫu lại tập kiểm thử 100 lần). Đây là mô hình nhị phân, không phải mô hình đang phục vụ khi nhiều lớp khả dụng; dùng để so sánh các họ mô hình:
+**Hai quy tắc sinh cảnh báo cho luồng mạng** (đo trên tập kiểm thử 2017 đã loại trùng, ngưỡng 0,8; 419.012 luồng BENIGN và 85.148 luồng tấn công):
 
-| Chỉ số | Random Forest | Gradient Boosting | Logistic Regression |
-|---|---|---|---|
-| PR-AUC (khoảng tin cậy 95%) | 0,99976 (0,99972 đến 0,99980) | 0,99935 (0,99906 đến 0,99957) | 0,92117 (0,91979 đến 0,92242) |
-| Ngưỡng 0,5: Precision / Recall | 0,9951 / 0,9993 | 0,9956 / 0,9998 | 0,7141 / 0,9615 |
-| Ngưỡng 0,5: FP / FN | 546 / 82 | 497 / 25 | 42.859 / 4.285 |
+- **Quy tắc A (đang áp dụng):** nhãn argmax khác BENIGN và `confidence` (xác suất lớp cao nhất) ≥ ngưỡng.
+- **Quy tắc B (đã đo, chưa áp dụng):** `1 − P(BENIGN) ≥ ngưỡng`, nhãn là lớp tấn công có xác suất cao nhất.
 
-Logistic Regression kém rõ rệt (recall bằng 0 ở nhiều lớp web attack và Infiltration), nên mô hình tuyến tính không đủ cho dữ liệu này. Giữa Random Forest và Gradient Boosting hai thước đo không đồng thuận (PR-AUC nghiêng về Random Forest, số lỗi ở ngưỡng vận hành nghiêng về Gradient Boosting); mỗi mô hình chỉ huấn luyện một lần, một hạt giống, chưa tinh chỉnh siêu tham số, nên chưa kết luận mô hình nào tốt hơn. Đề bài gợi ý Gradient Boosting làm mô hình chính; hệ thống giữ Random Forest do đã tích hợp và kiểm thử toàn bộ luồng, đây là quyết định thực dụng chứ không phải kết luận rằng nó tốt nhất.
+| | A | B |
+|---|---|---|
+| Cảnh báo giả trên 1.000 luồng BENIGN | 2,35 | 2,40 |
+| Tấn công có cảnh báo | 99,13% (84.411/85.148) | 99,72% (84.913/85.148) |
+| Web Brute Force: recall (precision) | 0,282 (0,943) | 0,680 (0,823) |
+| XSS: recall (precision) | 0,031 (0,800) | 0,638 (0,485) |
+| SQL Injection recall (n = 4) | 0 | 0,25 |
+| Infiltration recall (n = 7) / Heartbleed (n = 2) | 0,429 / 0,5 | 0,429 / 0,5 |
+| Bot: precision / recall | 0,324 / 0,956 | 0,324 / 0,956 |
+
+Quy tắc A bỏ sót tấn công web vì xác suất bị chia cho hai lớp web nên không đạt 0,8; B bắt được nhiều hơn rõ rệt với chi phí thêm khoảng 0,05 cảnh báo giả trên 1.000 luồng BENIGN. Cảnh báo giả của BENIGN chủ yếu là Bot (779 luồng) và PortScan (196 luồng). B làm thay đổi ý nghĩa của "confidence" (thành xác suất là tấn công) và ngưỡng nhỏ hơn 0,5 hoạt động như 0,5; nếu chuyển sang B cần sửa `serve.py` và `make_network_samples.py` và ghi rõ trong tài liệu. Hiện hệ thống dùng A; điểm yếu với web attack được ghi ở mục 13.
+
+**Lựa chọn mô hình.** Đề bài gợi ý Gradient Boosting làm mô hình chính. Hệ thống giữ Random Forest do đã tích hợp và kiểm thử toàn bộ luồng; đây là quyết định thực dụng, chưa có phép so sánh công bằng giữa các họ mô hình trên dữ liệu đã loại trùng (các so sánh nhị phân của bản đầu đã bỏ cùng mô hình nhị phân).
 
 ### 8.2 Mô hình email
 
 - **Dữ liệu:** sáu nguồn từ bộ "Phishing Email Dataset" trên Kaggle: CEAS_08, Enron, Ling, SpamAssassin, Nazario, Nigerian Fraud (file `phishing_email.csv` là bản nối của sáu file kia nên bỏ qua). Sau làm sạch và loại trùng nguyên văn: 81.887 thư, 52,1% nhãn spam/phishing. Thư thuộc khoảng 2000 đến 2022.
 - **Mô hình:** TF-IDF 1 đến 2 gram trên tiêu đề và nội dung (HTML thô đổi sang chữ), sau đó Linear SVM hiệu chỉnh xác suất (`CalibratedClassifierCV`, sigmoid, 5 lần). Mô hình cuối huấn luyện trên **cả sáu nguồn**.
 - **Nhãn và confidence:** `SPAM`/`NON_SPAM`; confidence = max(p, 1 − p) với p là xác suất spam. Vì vậy một thư spam sinh cảnh báo khi p ≥ 0,8 (ngưỡng mặc định).
-- **Đặc trưng thực sự dùng:** chữ trong tiêu đề và nội dung. `has_html` và `attachments` được đọc và lưu vào `row_data` nhưng **mô hình không dùng**. Chuỗi mã đánh dấu số URL (`zzurls`) có trong `ml/email_features.py` nhưng bị bộ tách từ loại bỏ (vì chứa chữ số), nên đặc trưng số URL thực tế **chưa hoạt động**; đừng mô tả mô hình là "có dùng đặc trưng URL".
+- **Đặc trưng thực sự dùng:** chữ trong tiêu đề và nội dung. `has_html` và `attachments` được đọc và lưu vào `row_data` nhưng **mô hình không dùng**; các token đánh dấu số URL và tệp đính kèm trong `ml/email_features.py` bị bộ tách từ loại bỏ (vì chứa chữ số) nên không có tác dụng. Đừng mô tả mô hình là "có dùng đặc trưng URL".
 - **Cách đánh giá:** "bỏ một nguồn ra": lần lượt bỏ từng nguồn, huấn luyện trên năm nguồn còn lại, đo trên nguồn bị bỏ. Cách này đo khả năng tổng quát sang nguồn chưa thấy, thực tế hơn điểm nội bộ (điểm nội bộ chia ngẫu nhiên đạt khoảng 0,997 nhưng không phản ánh khả năng tổng quát).
 
 | Nguồn bị bỏ | Ngưỡng 0,5: recall / precision | Ngưỡng 0,8: recall / precision | PR-AUC |
@@ -254,9 +291,10 @@ Nigerian Fraud và Nazario chỉ có thư spam/phishing nên chỉ đo được 
 
 ### 8.3 Giới hạn chung của đánh giá mô hình
 
-- Luồng mạng: chia ngẫu nhiên 80/20 trên CIC-IDS2017, các luồng gần giống nhau có thể nằm ở cả hai tập nên số liệu có thể cao hơn khi gặp lưu lượng của môi trường khác; chưa đo tỉ lệ dòng kiểm thử giống hệt dòng huấn luyện (`preprocess.py` không loại dòng trùng). Mỗi mô hình huấn luyện một lần, một hạt giống.
-- Chưa đo mô hình nhiều lớp ở ngưỡng sinh cảnh báo 0,8: chưa biết số cảnh báo giả trên mỗi 1.000 luồng của từng lớp (Bot và XSS đáng quan tâm nhất).
+- Luồng mạng: chia ngẫu nhiên 80/20 trên CIC-IDS2017 sau khi đã loại dòng trùng nguyên văn. Các luồng gần giống nhau (không trùng hẳn) vẫn có thể nằm ở cả hai tập, nên số liệu có thể cao hơn khi gặp lưu lượng của môi trường khác. Mô hình huấn luyện một lần, một hạt giống.
+- Chưa đo lại độ chính xác cho từng lớp ở ngưỡng sinh cảnh báo 0,8 ngoài hai quy tắc A và B ở trên.
 - CIC-IDS2017 là dữ liệu lab 2017; không đảm bảo hiệu quả trên hệ thống thật.
+- **Thử nghiệm sơ bộ sang CSE-CIC-IDS2018 (không thuộc kết quả chính):** chạy mô hình 2017 trên dữ liệu 2018 (đã ánh xạ cột) gần như không phát hiện được tấn công ở hầu hết các lớp. Một mô hình phân biệt riêng lưu lượng BENIGN của hai bộ đạt AUC xấp xỉ 1,0, với độ quan trọng dàn trải trên nhiều đặc trưng (cổng đích, cửa sổ TCP ban đầu, độ dài header, thời gian giữa các gói...), nên hai bộ có phân bố khác nhau một cách hệ thống và phép so sánh trực tiếp không công bằng. Không kết luận được nguyên nhân (môi trường hay phiên bản công cụ trích đặc trưng). Thử nghiệm này không được giữ lại trong mã nguồn và chỉ dùng để ghi nhận hạn chế: mô hình chỉ được kiểm chứng trên CIC-IDS2017.
 
 ## 9. API
 
@@ -322,26 +360,29 @@ npm run dev
 ```
 
 - `backend/.env`: `DB_SERVER`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SECRET_KEY`; tùy chọn `AI_SERVICE_URL`, `UPLOAD_STORAGE_DIR`, `ACCESS_TOKEN_EXPIRE_MINUTES`.
-- `seed.py --demo` tạo bảng, danh mục, nhãn, cấu hình, hai tài khoản và 8 sự cố mẫu (chưa có cảnh báo; cảnh báo sinh khi upload file). Ứng dụng cũng tự tạo bảng khi khởi động; `create_all` không sửa bảng đã có, nên khi đổi cấu trúc phải dùng database mới hoặc `reset_table.sql`.
+- `seed.py --demo` tạo bảng, danh mục, nhãn, cấu hình, hai tài khoản và 8 sự cố mẫu (chưa có cảnh báo; cảnh báo sinh khi upload file). Ứng dụng cũng tự tạo bảng khi khởi động; `create_all` không sửa bảng đã có, nên khi đổi cấu trúc phải dùng database mới hoặc `reset_table.sql` (cẩn thận: file này cứng `USE thesis_db;` và xóa **toàn bộ** bảng).
 - Sau khi dịch vụ AI chạy: Cấu hình → **Đồng bộ từ dịch vụ AI**.
 - Dùng `127.0.0.1` thay cho `localhost` khi backend gọi dịch vụ AI trên Windows. CORS của backend chỉ cho `http://localhost:5173`; địa chỉ backend ở frontend cố định `http://localhost:8000` (`frontend/src/api/client.js`).
-- Thứ tự huấn luyện trong `ml/`: `preprocess.py` → `train.py` → `train_baselines.py` → `train_multiclass.py` → `train_email.py` → `serve.py`. Dữ liệu CIC-IDS2017 để ở `ml/data/ids/raw`; CSV email Kaggle ở `ml/data/email/kaggle`.
+- Thứ tự huấn luyện trong `ml/`: `preprocess.py` → `train_multiclass.py` → `train_email.py` → `serve.py`. Dữ liệu CIC-IDS2017 để ở `ml/data/ids/raw`; CSV email Kaggle ở `ml/data/email/kaggle`. Trước khi chạy lại `preprocess.py`, xóa thư mục `ml/data/ids/processed` để không lẫn file cũ.
+- `ml/make_network_samples.py` tạo các file mẫu `mau_nhieu_canh_bao.csv`, `mau_nho.json`, `mau_duoi_nguong.csv` bằng mô hình hiện tại và quy tắc A; phải chạy lại sau mỗi lần huấn luyện hoặc đổi quy tắc.
 
 ## 12. Kiểm thử
 
 | Bộ kiểm thử | Phạm vi | Cách chạy |
 |---|---|---|
-| `tests/test_incident_alert_flow.py` | 146 kiểm tra toàn luồng: đăng nhập, cấu hình, sự cố, upload, cảnh báo, xác minh, chuyển/gỡ, dashboard, trạng thái | Backend chạy cổng 8000 cùng `tests/fake_ai_service.py` ở cổng 8001 (tắt dịch vụ AI thật); dùng database thử vì test đổi cấu hình và tạo nhiều sự cố |
+| `tests/test_incident_alert_flow.py` | 146 kiểm tra toàn luồng: đăng nhập, cấu hình, sự cố, upload, cảnh báo, xác minh, chuyển/gỡ, dashboard, trạng thái | Backend chạy cổng 8000 cùng `tests/fake_ai_service.py` ở cổng 8001 (tắt dịch vụ AI thật); **cần database trống mỗi lần** |
 | `tests/test_eml_parsing.py` | 33 kiểm tra đọc `.eml`, `.zip`, CSV/JSON email | `python tests\test_eml_parsing.py`, không cần backend |
 
 Dịch vụ AI giả trả kết quả xác định và có "bẫy" để thử lỗi giữa chừng (một giá trị `Flow Duration` đặc biệt làm lô lỗi, một giá trị làm chậm 2 giây, chuỗi `boom-crash` trong email làm lỗi). Sau khi chạy test, bật lại dịch vụ AI thật và đồng bộ mô hình.
 
-**Mức độ kiểm chứng:** bộ test luồng được chạy ở môi trường thử (SQLite, dịch vụ AI giả); **chưa có xác nhận chạy trên SQL Server thật**. Chưa có test tích hợp riêng cho upload `.eml`/`.zip` qua backend (chỉ có test của bộ đọc thư). `tests/evaluate_attck.py` là mã cũ cho phần ATT&CK, ngoài phạm vi bản này.
+Bộ test luồng **không idempotent**: mỗi lần chạy để lại sự cố (ví dụ 5 sự cố "Sự cố phân trang") nên chạy lại trên database không sạch sẽ làm hỏng kiểm tra tìm theo tiêu đề. Quy trình: tạo database thử (ví dụ `thesis_test`), đổi `DB_NAME` trong `backend/.env`, chạy `python seed.py`, chạy test, rồi đổi lại.
+
+**Mức độ kiểm chứng:** bộ test luồng đã chạy trên **SQL Server thật** (cùng dịch vụ AI giả). Lần chạy đầu trên SQL Server lộ hai lỗi mà SQLite không bắt được và đã sửa: cột lặp trong `ORDER BY` khi sắp theo `id`, và thiếu `flush()` đúng thứ tự khóa ngoại khi xóa sự cố cùng file upload. Chưa có test tích hợp riêng cho upload `.eml`/`.zip` qua backend (chỉ có test của bộ đọc thư), chưa kiểm thử tự động giao diện, chưa đo hiệu năng với file hàng trăm nghìn dòng.
 
 ## 13. Hạn chế đã biết
 
-- **Hệ thống:** một vai trò; không khóa tài khoản sau đăng nhập sai; không có làm mới token; không có nhật ký kiểm toán chống sửa; chống trùng chỉ theo hash trong cùng sự cố.
+- **Hệ thống:** một vai trò; không khóa tài khoản sau đăng nhập sai; không có làm mới token; không có nhật ký kiểm toán chống sửa; chống trùng chỉ theo hash trong cùng sự cố; chỉ giữ người xác minh gần nhất (không có lịch sử xác minh).
 - **Xử lý nền:** chạy trong tiến trình backend, không có hàng đợi; khởi động lại làm mất tác vụ đang chạy (được đánh `failed`, phải upload lại); ứng viên cảnh báo giữ trong bộ nhớ nên bị giới hạn bởi `max_rows`; ZIP email được đọc đồng bộ trong request.
 - **Dữ liệu:** không lưu dự đoán của dòng không thành cảnh báo; không tải lại được file gốc từ giao diện; CSV/JSON bắt buộc UTF-8 (chưa có chế độ Latin-1).
-- **Mô hình:** xem 8.1 đến 8.3; đặc biệt là phishing mới trong email và các lớp web attack/Bot của luồng mạng.
-- **Giao diện:** chưa kiểm thử tự động; `Table.jsx` còn rỗng.
+- **Giao diện:** nút "Chọn tất cả N cảnh báo khớp bộ lọc" không dùng được khi N > 10.000 (API giới hạn 10.000 id mỗi lần, trong khi một file có thể sinh tới `max_rows` cảnh báo); lọc theo ngày hiểu ngày không kèm múi giờ là UTC trong khi giao diện hiển thị giờ máy; chưa kiểm thử tự động; `Table.jsx` còn rỗng.
+- **Mô hình:** xem 8.1 đến 8.3; đặc biệt là các lớp web attack và Bot của luồng mạng (với quy tắc A, XSS chỉ đạt recall 0,03 ở ngưỡng 0,8), phishing mới trong email, và việc mô hình chỉ được kiểm chứng trên CIC-IDS2017.
