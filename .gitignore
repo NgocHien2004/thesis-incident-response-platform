@@ -13,3 +13,4 @@ backend/t.db
 ml/mau_nho.json
 ml/mau_duoi_nguong.csv
 ml/mau_nhieu_canh_bao.csv
+/ml/data
