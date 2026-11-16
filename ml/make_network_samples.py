@@ -12,16 +12,17 @@ MAX_ALERT_PER_LABEL = 30  # tối đa số luồng "chắc chắn ra cảnh báo
 N_BENIGN, N_BELOW = 40, 30
 
 # ---- nạp mô hình y như serve.py ----
+for p in ("data/ids/processed/scaler.pkl", "data/ids/processed/feature_cols.pkl",
+          "models/rf_multiclass.pkl", "models/network_labels.json"):
+    if not os.path.isfile(p):
+        raise SystemExit(f"Thiếu {p}. Chạy preprocess.py rồi train_multiclass.py (trong thư mục ml)")
 scaler = joblib.load("data/ids/processed/scaler.pkl")
 features = [str(c) for c in joblib.load("data/ids/processed/feature_cols.pkl")]
-if os.path.isfile("models/rf_multiclass.pkl") and os.path.isfile("models/network_labels.json"):
-    model = joblib.load("models/rf_multiclass.pkl")
-    labels = json.load(open("models/network_labels.json", encoding="utf-8"))
-    classes = [labels[int(c)] for c in model.classes_]
-else:
-    model = joblib.load("models/rf_binary.pkl")
-    classes = ["BENIGN", "ATTACK"]
-print("Mô hình:", "nhiều lớp" if len(classes) > 2 else "nhị phân", "-", len(classes), "nhãn")
+model = joblib.load("models/rf_multiclass.pkl")
+model.set_params(verbose=0)
+labels = json.load(open("models/network_labels.json", encoding="utf-8"))
+classes = [labels[int(c)] for c in model.classes_]
+print("Mô hình: nhiều lớp -", len(classes), "nhãn")
 
 # ---- lấy ứng viên từ dữ liệu gốc ----
 frames = []
