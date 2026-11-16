@@ -1,0 +1,738 @@
+{
+  "passed": 146,
+  "failed": 0,
+  "total": 146,
+  "pass_rate_pct": 100.0,
+  "details": [
+    {
+      "test": "Không có token thì bị từ chối",
+      "pass": true,
+      "note": "status=401"
+    },
+    {
+      "test": "Sai mật khẩu trả 401",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Đăng nhập thành công",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "/auth/me trả đúng người dùng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Đồng bộ mô hình từ dịch vụ AI",
+      "pass": true,
+      "note": "status=200"
+    },
+    {
+      "test": "Mô hình luồng mạng có danh sách cột đặc trưng",
+      "pass": true,
+      "note": "8 cột"
+    },
+    {
+      "test": "Có mô hình email đang hoạt động",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Có đủ khóa cấu hình",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Ngưỡng ngoài 0..1 bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Giá trị không phải số bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Khóa cấu hình lạ bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Danh sách nhãn có BENIGN không nguy hiểm",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tạo sự cố thành công",
+      "pass": true,
+      "note": "status=201"
+    },
+    {
+      "test": "Trạng thái mặc định là Mới",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Mã sự cố đúng dạng INC-năm-số",
+      "pass": true,
+      "note": "INC-2026-0001"
+    },
+    {
+      "test": "Mã sự cố không trùng nhau",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Mức độ sai bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Loại tấn công không tồn tại bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Nguồn sai bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tiêu đề quá ngắn bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Trang chi tiết đúng dữ liệu",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chi tiết cho biết có thể xóa khi chưa có cảnh báo",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Sửa sự cố",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Sửa với mức độ sai bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lịch sử có bản ghi tạo sự cố",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Phân trang trả đúng cấu trúc",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Hai trang khác nhau không trùng bản ghi",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Sắp xếp tăng theo id",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Sắp xếp theo mức độ đúng thứ tự độ nghiêm trọng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tìm theo mã",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tìm theo tiêu đề (có dấu)",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lọc theo loại tấn công",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lọc theo trạng thái",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lọc theo khoảng thời gian (gồm cả ngày cuối)",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Khoảng thời gian không có sự cố trả rỗng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Cột sắp xếp lạ bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Đuôi file lạ bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Nguồn dữ liệu lạ bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "File rỗng bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Thiếu cột đặc trưng bị từ chối, báo rõ cột thiếu",
+      "pass": true,
+      "note": "Thiếu 3/8 cột đặc trưng CIC-IDS2017: Fwd Header Length.1, Packet Length Mean, Init_Win_byt"
+    },
+    {
+      "test": "Ô không phải số bị từ chối, báo dòng và cột",
+      "pass": true,
+      "note": "Dòng 1, cột \"Flow Duration\": \"abc\" không phải số"
+    },
+    {
+      "test": "File chỉ có tiêu đề bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Email thiếu cột sender/urls bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "JSON hỏng bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "JSON sai cấu trúc bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "File không phải UTF-8 bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "File quá kích thước bị từ chối (413)",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Quá số dòng cho phép bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Upload bị từ chối không để lại bản ghi",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Upload được nhận (202) và có trạng thái",
+      "pass": true,
+      "note": "status=202"
+    },
+    {
+      "test": "Lưu metadata file",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Đã đếm số dòng trước khi xử lý",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Xử lý xong",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Đã xử lý đủ số dòng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Phân bố nhãn đúng",
+      "pass": true,
+      "note": "{'DDoS': 6, 'BENIGN': 10, 'PortScan': 4}"
+    },
+    {
+      "test": "Confidence trung bình hợp lý",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lưu phiên bản mô hình",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lưu ngưỡng và lớp nguy hiểm đã áp dụng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chỉ mẫu vượt ngưỡng và thuộc lớp nguy hiểm sinh cảnh báo",
+      "pass": true,
+      "note": "alert_count=6"
+    },
+    {
+      "test": "Cảnh báo tự gắn vào sự cố",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chỉ số dòng truy vết đúng dòng gốc",
+      "pass": true,
+      "note": "[1, 5, 7, 11, 13, 17]"
+    },
+    {
+      "test": "Cảnh báo ghi file, nguồn, nhãn, confidence, thời gian",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Cảnh báo mới ở trạng thái chưa xác minh",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chi tiết cảnh báo giữ nội dung dòng gốc",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Cùng nội dung trong cùng sự cố bị chặn (409)",
+      "pass": true,
+      "note": "File này đã được upload vào sự cố (upload #1, luong_mang.csv)"
+    },
+    {
+      "test": "Cùng file ở sự cố khác vẫn nhận nhưng cảnh báo",
+      "pass": true,
+      "note": "['File giống hệt file đã upload ở sự cố INC-2026-0001']"
+    },
+    {
+      "test": "Hạ ngưỡng xuống 0.5 thì PortScan cũng sinh cảnh báo",
+      "pass": true,
+      "note": "alert_count=5"
+    },
+    {
+      "test": "Bỏ PortScan khỏi lớp nguy hiểm thì không sinh cảnh báo cho nó",
+      "pass": true,
+      "note": "alert_count=2"
+    },
+    {
+      "test": "Đổi cấu hình không làm đổi cảnh báo của file đã xử lý",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "File gặp lỗi giữa chừng có trạng thái Lỗi",
+      "pass": true,
+      "note": "Dịch vụ AI trả lỗi 500: Lỗi mô phỏng khi xử lý lô"
+    },
+    {
+      "test": "Không có cảnh báo nào được ghi dù các lô trước đã chạy xong",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Vẫn có tiến độ của các lô đã chạy",
+      "pass": true,
+      "note": "processed_rows=20"
+    },
+    {
+      "test": "Upload lại đúng file đã lỗi không bị coi là trùng",
+      "pass": true,
+      "note": "status=202"
+    },
+    {
+      "test": "File đã sửa xử lý xong, theo nhiều lô",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Sự cố đã có cảnh báo thì chi tiết báo không xóa được",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Upload JSON email được nhận",
+      "pass": true,
+      "note": "{'id': 8, 'incident_id': 10, 'original_filename': 'mail.json', 'data_type': 'email', 'file_hash': 'b"
+    },
+    {
+      "test": "Phân bố nhãn email đúng",
+      "pass": true,
+      "note": "{'SPAM': 3, 'NON_SPAM': 1}"
+    },
+    {
+      "test": "Chỉ thư SPAM đủ ngưỡng 0.8 sinh cảnh báo",
+      "pass": true,
+      "note": "alert_count=2"
+    },
+    {
+      "test": "Cảnh báo email truy vết đúng dòng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lưu subject, sender, urls của thư",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Upload CSV email cũng chạy",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Danh sách file của sự cố",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "125 cảnh báo sinh ra từ một file",
+      "pass": true,
+      "note": "alert_count=125"
+    },
+    {
+      "test": "Phân trang cảnh báo",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Sắp xếp cảnh báo theo confidence giảm dần",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lọc theo nhãn",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lọc nhãn không có cảnh báo trả rỗng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lọc theo nguồn",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lọc theo trạng thái xác minh",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Trạng thái xác minh lạ bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Xác minh một cảnh báo",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Trạng thái xác minh sai bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Xác minh hàng loạt 100 cảnh báo",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Bỏ qua hàng loạt 24 cảnh báo",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Đếm theo trạng thái xác minh ở chi tiết sự cố",
+      "pass": true,
+      "note": "(101, 24, 0)"
+    },
+    {
+      "test": "Có id không tồn tại thì không đổi gì (404)",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Cảnh báo không bị đổi sau lần lỗi",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Đặt lại về chưa xác minh",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chuyển 3 cảnh báo sang sự cố khác",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Cảnh báo đã thuộc sự cố mới, không còn tự động",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Cảnh báo vẫn truy vết về file gốc",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lịch sử chuyển cảnh báo",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chuyển vào chính sự cố đang chứa bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Gỡ cảnh báo khỏi sự cố",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Cảnh báo bị gỡ nằm trong danh sách chưa gắn",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Cảnh báo chưa gắn sự cố không xác minh được",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Xác minh hàng loạt có một cảnh báo không hợp lệ thì không đổi cảnh báo nào",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Gắn lại cảnh báo đã gỡ vào sự cố",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lịch sử ghi đủ ba lần (chuyển đi, gỡ, gắn lại)",
+      "pass": true,
+      "note": "3 bản ghi"
+    },
+    {
+      "test": "Số cảnh báo của sự cố cập nhật theo",
+      "pass": true,
+      "note": "alert_count=123"
+    },
+    {
+      "test": "Sự cố đã có cảnh báo thì không xóa được",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Dashboard tổng sự cố khớp tổng theo trạng thái",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Dashboard tổng cảnh báo khớp tổng theo nhãn",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Tỉ lệ bỏ qua = Bỏ qua / (Đã xác minh + Bỏ qua)",
+      "pass": true,
+      "note": "0.1951 vs 0.1951"
+    },
+    {
+      "test": "Dashboard có thống kê theo loại tấn công",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Đang xử lý file thì chi tiết báo số file đang chạy",
+      "pass": true,
+      "note": "processing_uploads=1"
+    },
+    {
+      "test": "Danh sách chuyển trạng thái bỏ Đã xử lý/Đã đóng/Hủy khi còn file chạy",
+      "pass": true,
+      "note": "['in_progress']"
+    },
+    {
+      "test": "Không chuyển sang Đã xử lý khi còn file đang chạy",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không hủy khi còn file đang chạy",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không xóa khi còn file đang chạy",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "File chạy chậm xong bình thường",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Xong file thì chuyển trạng thái được",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không nhảy cóc từ Mới sang Đã đóng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Trạng thái lạ bị từ chối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Mới sang Đang xử lý",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Đang xử lý sang Đã xử lý, có mốc resolved_at",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không upload được khi sự cố đã xử lý",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Mở lại sự cố bắt buộc có lý do",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Mở lại có lý do thì được, xóa resolved_at",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Đã xử lý sang Đã đóng, có mốc closed_at",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Đã đóng là trạng thái cuối",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Sự cố đã đóng không sửa được",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Cảnh báo của sự cố đã đóng không xác minh được",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Cảnh báo của sự cố đã đóng không chuyển đi được",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Không chuyển cảnh báo vào sự cố đã đóng",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Lịch sử chuyển trạng thái đủ và đúng thứ tự",
+      "pass": true,
+      "note": "[(None, 'new'), ('new', 'in_progress'), ('in_progress', 'resolved'), ('resolved', 'in_progress'), ('in_progress', 'resolved'), ('resolved', 'closed')]"
+    },
+    {
+      "test": "Lịch sử ghi người đổi và lý do",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Hủy sự cố bắt buộc có lý do",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Hủy sự cố có lý do",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "File toàn lưu lượng bình thường không sinh cảnh báo",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chưa có cảnh báo thì cho phép xóa",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Xóa sự cố chưa có cảnh báo",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Sự cố đã xóa không còn",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "File của sự cố đã xóa cũng mất",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Chuyển hết cảnh báo đi thì sự cố gốc còn 0 cảnh báo",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "test": "Nhưng vẫn không xóa được vì cảnh báo còn truy vết về file của nó",
+      "pass": true,
+      "note": ""
+    }
+  ]
+}
