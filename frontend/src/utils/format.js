@@ -36,8 +36,6 @@ export const SOURCES = {
   other:    'Khác',
 }
 
-export const SEVERITY_OPTIONS = Object.keys(SEVERITY)
-
 export const TRANSITION_LABEL = {
   in_progress: { new: 'Bắt đầu xử lý', resolved: 'Mở lại xử lý' },
   resolved:    { in_progress: 'Đánh dấu đã xử lý' },

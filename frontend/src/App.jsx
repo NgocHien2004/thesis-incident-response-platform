@@ -1,18 +1,22 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Layout from './components/Layout'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
+import LoadingSpinner from './components/LoadingSpinner'
 import IncidentList from './pages/IncidentList'
 import IncidentDetail from './pages/IncidentDetail'
 import AlertList from './pages/AlertList'
 import Settings from './pages/Settings'
 
+// Dashboard chứa recharts (nặng), chỉ nạp khi cần
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+
 function PrivateRoute({ children }) {
   const { user } = useAuth()
   if (!user) return <Navigate to="/login" replace />
-  return <Layout>{children}</Layout>
+  return <Layout><Suspense fallback={<LoadingSpinner />}>{children}</Suspense></Layout>
 }
 
 export default function App() {

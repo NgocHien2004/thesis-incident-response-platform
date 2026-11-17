@@ -15,7 +15,6 @@ export const getHistory = (id) => api.get(`/incidents/${id}/history`)
 export const deleteIncident = (id) => api.delete(`/incidents/${id}`)
 
 export const listUploads = (incidentId) => api.get(`/incidents/${incidentId}/uploads`)
-export const getUpload = (id) => api.get(`/uploads/${id}`)
 export const createUpload = (incidentId, dataType, file) => {
   const form = new FormData()
   form.append('data_type', dataType)
@@ -40,3 +39,4 @@ export const getSettings = () => api.get('/settings')
 export const updateSetting = (key, value) => api.put(`/settings/${key}`, { value: String(value) })
 export const getModels = () => api.get('/models')
 export const syncModels = () => api.post('/models/sync')
+export const getAiHealth = () => api.get('/ai/health')

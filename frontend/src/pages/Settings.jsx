@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { getSettings, updateSetting, getLabels, updateLabel, getModels, syncModels } from '../api'
+import { getSettings, updateSetting, getLabels, updateLabel, getModels, syncModels, getAiHealth } from '../api'
 import Card from '../components/Card'
 import LoadingSpinner from '../components/LoadingSpinner'
-import { DATA_TYPES, errMsg, formatDateTime } from '../utils/format'
+import { DATA_TYPES, errMsg } from '../utils/format'
 
 const SETTING_NAMES = {
   threshold_network: 'Ngưỡng confidence, luồng mạng',
@@ -49,11 +49,15 @@ export default function Settings() {
   const [labels, setLabels] = useState([])
   const [models, setModels] = useState([])
   const [syncing, setSyncing] = useState(false)
+  const [aiOnline, setAiOnline] = useState(null) // null: chưa biết
 
   const load = useCallback(async () => {
     try {
-      const [s, l, m] = await Promise.all([getSettings(), getLabels(), getModels()])
-      setSettings(s.data); setLabels(l.data); setModels(m.data)
+      const [s, l, m, h] = await Promise.all([
+        getSettings(), getLabels(), getModels(),
+        getAiHealth().then(r => r.data.online).catch(() => null),
+      ])
+      setSettings(s.data); setLabels(l.data); setModels(m.data); setAiOnline(h)
     } catch (err) {
       toast.error(errMsg(err))
     }
@@ -77,6 +81,7 @@ export default function Settings() {
       toast.success('Đã đồng bộ mô hình từ dịch vụ AI')
       load()
     } catch (err) {
+      if (err.response?.status === 503) setAiOnline(false)
       toast.error(errMsg(err))
     } finally {
       setSyncing(false)
@@ -84,6 +89,9 @@ export default function Settings() {
   }
 
   if (!settings) return <LoadingSpinner />
+
+  // Chỉ hiện mô hình đang dùng; bản cũ (kể cả mô hình giả của bộ test) vẫn nằm trong CSDL vì các file đã upload tham chiếu tới
+  const activeModels = models.filter(m => m.is_active)
 
   return (
     <div className="p-6 space-y-6 max-w-5xl">
@@ -119,21 +127,27 @@ export default function Settings() {
           {syncing ? 'Đang đồng bộ...' : 'Đồng bộ từ dịch vụ AI'}
         </button>
       }>
-        {models.length === 0 ? <div className="text-sm text-gray-500">Chưa có mô hình. Bấm “Đồng bộ” khi dịch vụ AI đang chạy.</div> : (
-          <table className="w-full text-sm">
-            <thead className="text-left text-gray-600"><tr><th className="py-1">Tên</th><th>Phiên bản</th><th>Nguồn</th><th>Trạng thái</th><th>Cập nhật</th></tr></thead>
+        {aiOnline === false && (
+          <div className="text-sm text-yellow-800 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 mb-3">
+            Dịch vụ AI không phản hồi. Vui lòng kiểm tra lại.
+          </div>
+        )}
+        {activeModels.length === 0 ? <div className="text-sm text-gray-500">Chưa có mô hình. Bấm “Đồng bộ” khi dịch vụ AI đang chạy.</div> : (
+          <div className="overflow-x-auto"><table className="w-full text-sm">
+            <thead className="text-left text-gray-600"><tr><th className="py-1">Tên</th><th>Phiên bản</th><th>Nguồn</th><th>Trạng thái</th></tr></thead>
             <tbody>
-              {models.map(m => (
+              {activeModels.map(m => (
                 <tr key={m.id} className="border-t">
                   <td className="py-1.5">{m.name}</td>
                   <td>{m.version}</td>
                   <td>{DATA_TYPES[m.task_type]}</td>
-                  <td>{m.is_active ? <span className="text-green-600">Đang dùng</span> : <span className="text-gray-400">Không dùng</span>}</td>
-                  <td className="text-gray-500">{formatDateTime(m.trained_at)}</td>
+                  <td>{!m.is_active ? <span className="text-gray-400">Không dùng</span>
+                    : aiOnline === false ? <span className="text-red-600" title="Dịch vụ AI không phản hồi">Không khả dụng</span>
+                    : <span className="text-green-600">Đang dùng</span>}</td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         )}
       </Card>
     </div>

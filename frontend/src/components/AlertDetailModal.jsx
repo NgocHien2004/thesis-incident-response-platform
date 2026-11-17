@@ -65,6 +65,8 @@ export default function AlertDetailModal({ alertId, onClose, onChanged }) {
                 <div><span className="text-gray-500">Tiêu đề:</span> {rd.subject}</div>
                 <div><span className="text-gray-500">Người gửi:</span> {rd.sender || '—'}</div>
                 <div><span className="text-gray-500">URL:</span> {(rd.urls || []).join(', ') || '—'}</div>
+                <div><span className="text-gray-500">Tệp đính kèm:</span> {(rd.attachments || []).join(', ') || '—'}</div>
+                {rd.source_file && <div><span className="text-gray-500">File thư trong ZIP:</span> {rd.source_file}</div>}
                 <pre className="whitespace-pre-wrap text-xs bg-white border rounded p-2 max-h-48 overflow-auto">{rd.body}</pre>
               </div>
             ) : rd ? (

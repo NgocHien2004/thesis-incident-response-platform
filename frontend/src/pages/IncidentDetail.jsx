@@ -7,7 +7,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import IncidentFormModal from '../components/IncidentFormModal'
 import AlertsTable from '../components/AlertsTable'
 import UploadPanel from '../components/UploadPanel'
-import { getIncident, listUploads, getHistory, changeStatus, deleteIncident, getAttackTypes } from '../api'
+import { getIncident, listUploads, getHistory, changeStatus, deleteIncident } from '../api'
 import {
   STATUS, SEVERITY, SOURCES, formatDateTime, errMsg, transitionLabel, needsReason, isTerminal, canUpload,
 } from '../utils/format'
@@ -25,7 +25,6 @@ export default function IncidentDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [inc, setInc] = useState(null)
-  const [typeName, setTypeName] = useState('')
   const [uploads, setUploads] = useState([])
   const [history, setHistory] = useState([])
   const [tab, setTab] = useState('alerts')
@@ -70,7 +69,6 @@ export default function IncidentDetail() {
   useEffect(() => {
     prevStatus.current = {}
     loadIncident(); refreshUploads(); loadHistory()
-    getAttackTypes().then(r => setTypeName(r.data)).catch(() => {})
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const hasActive = uploads.some(u => u.status === 'pending' || u.status === 'processing')
@@ -83,7 +81,7 @@ export default function IncidentDetail() {
   if (!inc) return <LoadingSpinner />
 
   const terminal = isTerminal(inc.status)
-  const typeLabel = Array.isArray(typeName) ? typeName.find(t => t.code === inc.attack_type)?.name_vi : inc.attack_type
+  const typeLabel = inc.attack_type_name || inc.attack_type
 
   const doTransition = async (reason) => {
     try {

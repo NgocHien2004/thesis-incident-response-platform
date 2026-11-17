@@ -11,6 +11,7 @@ import { VERIFICATION, DATA_TYPES, pct, errMsg } from '../utils/format'
 
 const ctl = 'border rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:border-primary-500'
 const PAGE_SIZE = 50
+const MAX_BULK = 10000 // API chỉ nhận tối đa 10.000 id mỗi lần
 
 // Dùng cho trang chi tiết sự cố (có incidentId) và trang danh sách cảnh báo chung (không có)
 export default function AlertsTable({ incidentId, locked, uploads = [], filterUploadId, onFilterUploadChange, refreshKey, onChanged }) {
@@ -69,6 +70,10 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
 
   // Chọn mọi cảnh báo khớp bộ lọc hiện tại (qua nhiều trang)
   const selectAllMatching = async () => {
+    if (data && data.total > MAX_BULK) {
+      toast.error(`Có ${data.total.toLocaleString('vi-VN')} cảnh báo khớp, vượt giới hạn ${MAX_BULK.toLocaleString('vi-VN')} mỗi lần. Hãy lọc thêm (nhãn, file, trạng thái) rồi chọn lại.`)
+      return
+    }
     setBusy(true)
     try {
       const ids = new Set()
@@ -140,16 +145,23 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
       {selected.size > 0 && (
         <div className="flex flex-wrap items-center gap-2 bg-primary-50 border border-primary-100 rounded-lg px-3 py-2 mb-3 text-sm">
           <b>Đã chọn {selected.size}</b>
-          {data && selected.size < data.total && (
+          {data && selected.size < data.total && (data.total > MAX_BULK ? (
+            <span className="text-gray-500">
+              {data.total.toLocaleString('vi-VN')} cảnh báo khớp bộ lọc, vượt giới hạn {MAX_BULK.toLocaleString('vi-VN')} mỗi lần: hãy lọc thêm
+            </span>
+          ) : (
             <button disabled={busy} onClick={selectAllMatching} className="text-primary-600 hover:underline">
               Chọn tất cả {data.total} cảnh báo khớp bộ lọc
             </button>
+          ))}
+          {selected.size > MAX_BULK && (
+            <span className="text-red-600">Đã chọn quá {MAX_BULK.toLocaleString('vi-VN')}: bỏ bớt trước khi thao tác</span>
           )}
           <span className="flex-1" />
-          <button disabled={busy || locked} onClick={() => doVerify('verified')} className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">Xác minh</button>
-          <button disabled={busy || locked} onClick={() => doVerify('dismissed')} className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50">Bỏ qua</button>
-          <button disabled={busy || locked} onClick={() => doVerify('unverified')} className="px-3 py-1 border bg-white rounded-lg hover:bg-gray-50 disabled:opacity-50">Đặt lại</button>
-          <button disabled={busy || locked} onClick={() => setShowMove(true)} className="px-3 py-1 border bg-white rounded-lg hover:bg-gray-50 disabled:opacity-50">Chuyển / Gỡ</button>
+          <button disabled={busy || locked || selected.size > MAX_BULK} onClick={() => doVerify('verified')} className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">Xác minh</button>
+          <button disabled={busy || locked || selected.size > MAX_BULK} onClick={() => doVerify('dismissed')} className="px-3 py-1 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 disabled:opacity-50">Bỏ qua</button>
+          <button disabled={busy || locked || selected.size > MAX_BULK} onClick={() => doVerify('unverified')} className="px-3 py-1 border bg-white rounded-lg hover:bg-gray-50 disabled:opacity-50">Đặt lại</button>
+          <button disabled={busy || locked || selected.size > MAX_BULK} onClick={() => setShowMove(true)} className="px-3 py-1 border bg-white rounded-lg hover:bg-gray-50 disabled:opacity-50">Chuyển / Gỡ</button>
           <button onClick={() => setSelected(new Set())} className="px-2 py-1 text-gray-500 hover:text-gray-800">Bỏ chọn</button>
         </div>
       )}

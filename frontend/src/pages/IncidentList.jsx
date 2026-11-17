@@ -31,7 +31,11 @@ export default function IncidentList() {
 
   const load = useCallback(async () => {
     try {
-      const res = await listIncidents({ page, page_size: 15, q: search, ...filters, ...sort })
+      const range = {
+        date_from: filters.date_from ? new Date(`${filters.date_from}T00:00:00`).toISOString() : '',
+        date_to: filters.date_to ? new Date(`${filters.date_to}T23:59:59.999`).toISOString() : '',
+      }
+      const res = await listIncidents({ page, page_size: 15, q: search, ...filters, ...range, ...sort })
       setData(res.data)
     } catch (err) {
       toast.error(errMsg(err))
@@ -89,7 +93,7 @@ export default function IncidentList() {
       </div>
 
       {!data ? <LoadingSpinner /> : (
-        <div className="bg-white border rounded-lg overflow-hidden">
+        <div className="bg-white border rounded-lg overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-600 text-left">
               <tr>
