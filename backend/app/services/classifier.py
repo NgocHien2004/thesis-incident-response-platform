@@ -27,6 +27,13 @@ def _call(method: str, path: str, timeout: int, **kw):
     except ValueError:
         raise AIError("Dịch vụ AI trả dữ liệu không đọc được")
 
+def is_online() -> bool:
+    # Chỉ kiểm tra dịch vụ AI có đang trả lời không (không đổi gì trong CSDL)
+    try:
+        return requests.get(AI_SERVICE_URL + "/", timeout=3).status_code == 200
+    except requests.RequestException:
+        return False
+
 def fetch_info() -> dict:
     return _call("GET", "/info", 15)
 
