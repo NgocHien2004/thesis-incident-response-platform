@@ -11,7 +11,22 @@ from pydantic import BaseModel
 from email_features import URL_RE, to_text
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MODEL_DIR = os.path.join(HERE, "models")
+_md = os.getenv("MODEL_DIR", "models")      # đổi bộ mô hình: MODEL_DIR=models_fake (tương đối so với thư mục ml, hoặc đường dẫn tuyệt đối)
+MODEL_DIR = _md if os.path.isabs(_md) else os.path.join(HERE, _md)
+
+# Tên hiển thị, tiền tố phiên bản và tên file của từng mô hình; ghi đè từng khóa bằng MODEL_DIR/model_info.json
+INFO = {
+    "network": {"name": "Random Forest nhiều lớp", "prefix": "rf_multiclass", "file": "rf_multiclass.pkl"},
+    "email": {"name": "TF-IDF + Linear SVM", "prefix": "email_svm", "file": "email_svm.pkl"},
+}
+_info_path = os.path.join(MODEL_DIR, "model_info.json")
+if os.path.isfile(_info_path):
+    with open(_info_path, encoding="utf-8") as _f:
+        _extra = json.load(_f)
+    for _task, _conf in INFO.items():
+        for _k, _v in (_extra.get(_task) or {}).items():
+            if _k in _conf and isinstance(_v, str) and _v.strip():
+                _conf[_k] = _v.strip()
 DATA_DIR = os.path.join(HERE, "data", "ids", "processed")
 MAX_BATCH = 5000
 
@@ -33,7 +48,7 @@ def version_of(prefix: str, path: str) -> str:
 
 # ── Mô hình luồng mạng: bắt buộc, thiếu file nào thì dừng hẳn ──
 print("Loading network model...")
-_multi_path = require(os.path.join(MODEL_DIR, "rf_multiclass.pkl"), "Chạy python train_multiclass.py")
+_multi_path = require(os.path.join(MODEL_DIR, INFO["network"]["file"]), "Chạy python train_multiclass.py")
 _labels_path = require(os.path.join(MODEL_DIR, "network_labels.json"), "File này do train_multiclass.py tạo")
 _scaler_path = require(os.path.join(DATA_DIR, "scaler.pkl"), "Chạy python preprocess.py")
 _features_path = require(os.path.join(DATA_DIR, "feature_cols.pkl"), "Chạy python preprocess.py")
@@ -45,18 +60,19 @@ with open(_labels_path, encoding="utf-8") as _f:
     network_labels = json.load(_f)
 if int(max(network_model.classes_)) >= len(network_labels):
     raise SystemExit("network_labels.json có ít nhãn hơn số lớp của mô hình; huấn luyện lại bằng train_multiclass.py")
-NETWORK_VERSION = version_of("rf_multiclass", _multi_path)
+NETWORK_VERSION = version_of(INFO["network"]["prefix"], _multi_path)
 
 # ── Mô hình email: thiếu thì /predict/batch cho email trả 503, /info báo loaded = false ──
-_email_path = os.path.join(MODEL_DIR, "email_svm.pkl")
-email_model, EMAIL_VERSION = None, "email_svm_none"
+_email_path = os.path.join(MODEL_DIR, INFO["email"]["file"])
+email_model, EMAIL_VERSION = None, INFO["email"]["prefix"] + "_none"
 if os.path.isfile(_email_path):
     print("Loading email model...")
     email_model = joblib.load(_email_path)
-    EMAIL_VERSION = version_of("email_svm", _email_path)
+    EMAIL_VERSION = version_of(INFO["email"]["prefix"], _email_path)
 else:
-    print("Không thấy models/email_svm.pkl: nguồn email sẽ không dùng được (chạy python train_email.py)")
+    print(f"Không thấy {os.path.relpath(_email_path, HERE)}: nguồn email sẽ không dùng được (chạy python train_email.py)")
 
+print(f"Thư mục mô hình: {os.path.relpath(MODEL_DIR, HERE)}")
 print(f"Network {NETWORK_VERSION} ({len(network_labels)} nhãn) | Email {EMAIL_VERSION}")
 
 _feature_names = [str(c) for c in feature_cols]
@@ -115,10 +131,10 @@ def root():
 @app.get("/info")
 def info():
     return {"models": [
-        {"task_type": "network", "name": "Random Forest nhiều lớp", "version": NETWORK_VERSION, "loaded": True,
+        {"task_type": "network", "name": INFO["network"]["name"], "version": NETWORK_VERSION, "loaded": True,
          "labels": network_labels, "features": _feature_names,
          "file_path": os.path.relpath(_multi_path, HERE), "preprocessor_path": os.path.relpath(_scaler_path, HERE)},
-        {"task_type": "email", "name": "TF-IDF + Linear SVM", "version": EMAIL_VERSION,
+        {"task_type": "email", "name": INFO["email"]["name"], "version": EMAIL_VERSION,
          "loaded": email_model is not None, "labels": ["NON_SPAM", "SPAM"],
          "file_path": os.path.relpath(_email_path, HERE)},
     ]}
@@ -134,6 +150,6 @@ def predict_batch(payload: BatchRequest):
         return {"task_type": "network", "model_version": NETWORK_VERSION, "results": predict_network(payload.rows)}
     if payload.task_type == "email":
         if email_model is None:
-            raise HTTPException(503, "Chưa có mô hình email (models/email_svm.pkl)")
+            raise HTTPException(503, f"Chưa có mô hình email ({os.path.relpath(_email_path, HERE)})")
         return {"task_type": "email", "model_version": EMAIL_VERSION, "results": predict_email(payload.rows)}
     raise HTTPException(400, "task_type phải là network hoặc email")
