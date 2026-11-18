@@ -2,12 +2,15 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
+import { useI18n } from '../i18n'
+import LangSwitch from '../components/LangSwitch'
 import { errMsg } from '../utils/format'
 
 export default function Login() {
   const [form, setForm] = useState({ username: '', password: '' })
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
+  const { t } = useI18n()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -24,18 +27,19 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+    <div className="relative min-h-screen bg-gray-900 flex items-center justify-center">
+      <LangSwitch className="absolute top-4 right-4" />
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="text-4xl mb-3">🛡️</div>
-          <h1 className="text-white text-2xl font-bold">Quản lý sự cố an ninh mạng</h1>
-          <p className="text-gray-400 text-sm mt-1">Tích hợp AI phân loại cảnh báo</p>
+          <h1 className="text-white text-2xl font-bold">{t('Quản lý sự cố an ninh mạng')}</h1>
+          <p className="text-gray-400 text-sm mt-1">{t('Tích hợp AI phân loại cảnh báo')}</p>
         </div>
         <div className="bg-gray-800 rounded-xl p-8 shadow-xl border border-gray-700">
-          <h2 className="text-white text-lg font-semibold mb-6">Đăng nhập</h2>
+          <h2 className="text-white text-lg font-semibold mb-6">{t('Đăng nhập')}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm text-gray-400 mb-1">Tên đăng nhập</label>
+              <label htmlFor="username" className="block text-sm text-gray-400 mb-1">{t('Tên đăng nhập')}</label>
               <input
                 id="username"
                 type="text"
@@ -47,7 +51,7 @@ export default function Login() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm text-gray-400 mb-1">Mật khẩu</label>
+              <label htmlFor="password" className="block text-sm text-gray-400 mb-1">{t('Mật khẩu')}</label>
               <input
                 id="password"
                 type="password"
@@ -62,7 +66,7 @@ export default function Login() {
               disabled={loading}
               className="w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg py-2.5 text-sm font-medium mt-2"
             >
-              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              {loading ? t('Đang đăng nhập...') : t('Đăng nhập')}
             </button>
           </form>
         </div>

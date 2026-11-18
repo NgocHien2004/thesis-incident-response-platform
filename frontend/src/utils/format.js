@@ -1,3 +1,5 @@
+import { tr, locale } from '../i18n'
+
 export const STATUS = {
   new:         { label: 'Mới',        cls: 'bg-gray-100 text-gray-700' },
   in_progress: { label: 'Đang xử lý', cls: 'bg-blue-100 text-blue-700' },
@@ -20,10 +22,10 @@ export const VERIFICATION = {
 }
 
 export const UPLOAD_STATUS = {
-  pending:    { label: 'Chờ xử lý',  cls: 'bg-gray-100 text-gray-600' },
-  processing: { label: 'Đang xử lý', cls: 'bg-blue-100 text-blue-700' },
-  completed:  { label: 'Hoàn tất',   cls: 'bg-green-100 text-green-700' },
-  failed:     { label: 'Lỗi',        cls: 'bg-red-100 text-red-700' },
+  pending:    { label: 'Chờ xử lý',  cls: 'bg-gray-100 text-gray-600', ctx: 'upload' },
+  processing: { label: 'Đang xử lý', cls: 'bg-blue-100 text-blue-700', ctx: 'upload' },
+  completed:  { label: 'Hoàn tất',   cls: 'bg-green-100 text-green-700', ctx: 'upload' },
+  failed:     { label: 'Lỗi',        cls: 'bg-red-100 text-red-700', ctx: 'upload' },
 }
 
 export const DATA_TYPES = { network: 'Luồng mạng', email: 'Email' }
@@ -43,6 +45,7 @@ export const TRANSITION_LABEL = {
   cancelled:   { any: 'Hủy sự cố' },
 }
 
+// Trả về nhãn tiếng Việt (khóa dịch); nơi hiển thị gọi t() để đổi sang ngôn ngữ đang chọn
 export function transitionLabel(from, to) {
   const t = TRANSITION_LABEL[to] || {}
   return t[from] || t.any || to
@@ -57,7 +60,14 @@ export const canUpload = (status) => status === 'new' || status === 'in_progress
 export function formatDateTime(v) {
   if (!v) return '—'
   const d = new Date(v)
-  return isNaN(d) ? '—' : d.toLocaleString('vi-VN')
+  return isNaN(d) ? '—' : d.toLocaleString(locale())
+}
+
+// Chỉ ngày (không giờ), dùng ở danh sách; giờ xem ở trang chi tiết
+export function formatDate(v) {
+  if (!v) return '—'
+  const d = new Date(v)
+  return isNaN(d) ? '—' : d.toLocaleDateString(locale())
 }
 
 // Chuyển ISO sang giá trị cho <input type="datetime-local"> theo giờ máy
@@ -78,15 +88,15 @@ export function formatBytes(n) {
 
 export const pct = (x, digits = 1) => (x == null ? '—' : `${(x * 100).toFixed(digits)}%`)
 
-// Rút gọn thông báo lỗi của backend (chuỗi, danh sách lỗi của FastAPI, hoặc {message, items})
+// Rút gọn thông báo lỗi của backend (chuỗi, danh sách lỗi của FastAPI, hoặc {message, items}) và dịch nếu có bản dịch
 export function errMsg(err, fallback = 'Có lỗi xảy ra') {
   const d = err?.response?.data?.detail
-  if (!err?.response) return 'Không kết nối được máy chủ'
-  if (typeof d === 'string') return d
+  if (!err?.response) return tr('Không kết nối được máy chủ')
+  if (typeof d === 'string') return tr(d)
   if (Array.isArray(d)) return d.map(x => x.msg).join('; ')
   if (d && d.message) {
-    const first = (d.items || []).slice(0, 3).map(i => `#${i.id}: ${i.reason}`).join('; ')
-    return first ? `${d.message}. ${first}` : d.message
+    const first = (d.items || []).slice(0, 3).map(i => `#${i.id}: ${tr(i.reason)}`).join('; ')
+    return first ? `${tr(d.message)}. ${first}` : tr(d.message)
   }
-  return fallback
+  return tr(fallback)
 }

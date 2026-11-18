@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useI18n } from '../i18n'
+import LangSwitch from './LangSwitch'
 
 const navItems = [
   { path: '/',          label: 'Dashboard', icon: '📊' },
@@ -11,6 +13,7 @@ const navItems = [
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth()
+  const { t } = useI18n()
   const location = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -23,8 +26,8 @@ export default function Layout({ children }) {
       {menuOpen && <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setMenuOpen(false)} />}
       <aside className={`fixed inset-y-0 left-0 z-40 w-56 bg-gray-900 flex flex-col transform transition-transform md:static md:translate-x-0 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="px-5 py-4 border-b border-gray-700">
-          <div className="text-white font-bold text-sm">🛡️ Quản lý sự cố</div>
-          <div className="text-gray-400 text-xs mt-0.5">AI phân loại cảnh báo</div>
+          <div className="text-white font-bold text-sm">🛡️ {t('Quản lý sự cố')}</div>
+          <div className="text-gray-400 text-xs mt-0.5">{t('AI phân loại cảnh báo')}</div>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navItems.map(item => (
@@ -37,25 +40,26 @@ export default function Layout({ children }) {
               }`}
             >
               <span>{item.icon}</span>
-              <span>{item.label}</span>
+              <span>{t(item.label)}</span>
             </Link>
           ))}
         </nav>
         <div className="px-4 py-4 border-t border-gray-700">
+          <LangSwitch className="mb-3" />
           <div className="text-sm text-gray-200">{user?.full_name}</div>
           <div className="text-xs text-gray-400">{user?.username}</div>
           <button
             onClick={() => { logout(); navigate('/login') }}
             className="mt-3 w-full text-xs text-gray-400 hover:text-white text-left"
           >
-            Đăng xuất →
+            {t('Đăng xuất →')}
           </button>
         </div>
       </aside>
       <div className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center gap-3 bg-gray-900 text-white px-4 py-3">
-          <button onClick={() => setMenuOpen(true)} aria-label="Mở menu" className="text-xl leading-none">☰</button>
-          <span className="font-bold text-sm">🛡️ Quản lý sự cố</span>
+          <button onClick={() => setMenuOpen(true)} aria-label={t('Mở menu')} className="text-xl leading-none">☰</button>
+          <span className="font-bold text-sm">🛡️ {t('Quản lý sự cố')}</span>
         </header>
         <main className="flex-1 overflow-auto">{children}</main>
       </div>

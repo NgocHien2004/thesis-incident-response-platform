@@ -6,7 +6,8 @@ import Badge from '../components/Badge'
 import Pagination from '../components/Pagination'
 import LoadingSpinner from '../components/LoadingSpinner'
 import IncidentFormModal from '../components/IncidentFormModal'
-import { STATUS, SEVERITY, formatDateTime, errMsg } from '../utils/format'
+import { useI18n } from '../i18n'
+import { STATUS, SEVERITY, formatDate, errMsg } from '../utils/format'
 
 const SORTS = [
   { value: 'created_at', label: 'Ngày tạo' },
@@ -19,6 +20,7 @@ const SORTS = [
 const ctl = 'border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-primary-500'
 
 export default function IncidentList() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [data, setData] = useState(null)
   const [types, setTypes] = useState([])
@@ -43,47 +45,50 @@ export default function IncidentList() {
   }, [page, search, filters, sort])
 
   useEffect(() => { load() }, [load])
+
+  // Tìm khi gõ: đợi 300ms sau lần gõ cuối rồi mới gọi API
+  useEffect(() => {
+    const timer = setTimeout(() => { setPage(1); setSearch(q.trim()) }, 300)
+    return () => clearTimeout(timer)
+  }, [q])
   useEffect(() => { getAttackTypes().then(r => setTypes(r.data)).catch(() => {}) }, [])
 
   const setFilter = (k) => (e) => { setPage(1); setFilters({ ...filters, [k]: e.target.value }) }
-  const typeName = (code) => types.find(t => t.code === code)?.name_vi || code
+  const typeName = (code) => t(types.find(a => a.code === code)?.name_vi || code)
 
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-gray-900">Sự cố</h1>
+        <h1 className="text-xl font-bold text-gray-900">{t('Sự cố')}</h1>
         <button onClick={() => setShowForm(true)} className="px-4 py-2 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded-lg">
-          + Tạo sự cố
+          {t('+ Tạo sự cố')}
         </button>
       </div>
 
       <div className="bg-white border rounded-lg p-4 mb-4 flex flex-wrap gap-3 items-end">
-        <form onSubmit={(e) => { e.preventDefault(); setPage(1); setSearch(q) }} className="flex gap-2">
-          <input className={`${ctl} w-64`} placeholder="Tìm theo mã hoặc tiêu đề" value={q} onChange={e => setQ(e.target.value)} />
-          <button className="px-3 py-2 text-sm border rounded-lg hover:bg-gray-50">Tìm</button>
-        </form>
+        <input className={`${ctl} w-64`} placeholder={t('Tìm theo mã hoặc tiêu đề')} value={q} onChange={e => setQ(e.target.value)} />
         <select className={ctl} value={filters.status} onChange={setFilter('status')}>
-          <option value="">Mọi trạng thái</option>
-          {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          <option value="">{t('Mọi trạng thái')}</option>
+          {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{t(v.label)}</option>)}
         </select>
         <select className={ctl} value={filters.attack_type} onChange={setFilter('attack_type')}>
-          <option value="">Mọi loại tấn công</option>
-          {types.map(t => <option key={t.code} value={t.code}>{t.name_vi}</option>)}
+          <option value="">{t('Mọi loại tấn công')}</option>
+          {types.map(a => <option key={a.code} value={a.code}>{t(a.name_vi)}</option>)}
         </select>
-        <label className="text-xs text-gray-500">Từ ngày
+        <label className="text-xs text-gray-500">{t('Từ ngày')}
           <input type="date" className={`${ctl} block`} value={filters.date_from} onChange={setFilter('date_from')} />
         </label>
-        <label className="text-xs text-gray-500">Đến ngày
+        <label className="text-xs text-gray-500">{t('Đến ngày')}
           <input type="date" className={`${ctl} block`} value={filters.date_to} onChange={setFilter('date_to')} />
         </label>
-        <label className="text-xs text-gray-500">Sắp xếp
+        <label className="text-xs text-gray-500">{t('Sắp xếp')}
           <div className="flex gap-1">
             <select className={ctl} value={sort.sort_by} onChange={e => setSort({ ...sort, sort_by: e.target.value })}>
-              {SORTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              {SORTS.map(s => <option key={s.value} value={s.value}>{t(s.label)}</option>)}
             </select>
             <button
               className="px-3 border rounded-lg bg-white hover:bg-gray-50 text-sm"
-              title={sort.order === 'asc' ? 'Tăng dần' : 'Giảm dần'}
+              title={sort.order === 'asc' ? t('Tăng dần') : t('Giảm dần')}
               onClick={() => setSort({ ...sort, order: sort.order === 'asc' ? 'desc' : 'asc' })}
             >
               {sort.order === 'asc' ? '↑' : '↓'}
@@ -97,18 +102,19 @@ export default function IncidentList() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-600 text-left">
               <tr>
-                <th className="px-4 py-2">Mã</th>
-                <th className="px-4 py-2">Tiêu đề</th>
-                <th className="px-4 py-2">Loại tấn công</th>
-                <th className="px-4 py-2">Mức độ</th>
-                <th className="px-4 py-2">Trạng thái</th>
-                <th className="px-4 py-2 text-right">Cảnh báo</th>
-                <th className="px-4 py-2">Xảy ra lúc</th>
+                <th className="px-4 py-2">{t('Mã')}</th>
+                <th className="px-4 py-2">{t('Tiêu đề')}</th>
+                <th className="px-4 py-2">{t('Loại tấn công')}</th>
+                <th className="px-4 py-2">{t('Mức độ')}</th>
+                <th className="px-4 py-2">{t('Trạng thái')}</th>
+                <th className="px-4 py-2 text-right">{t('Cảnh báo')}</th>
+                <th className="px-4 py-2">{t('Xảy ra lúc')}</th>
+                <th className="px-4 py-2">{t('Tạo lúc')}</th>
               </tr>
             </thead>
             <tbody>
               {data.items.length === 0 && (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Không có sự cố nào</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">{t('Không có sự cố nào')}</td></tr>
               )}
               {data.items.map(i => (
                 <tr key={i.id} className="border-t hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/incidents/${i.id}`)}>
@@ -118,7 +124,8 @@ export default function IncidentList() {
                   <td className="px-4 py-2"><Badge info={SEVERITY[i.severity]} /></td>
                   <td className="px-4 py-2"><Badge info={STATUS[i.status]} /></td>
                   <td className="px-4 py-2 text-right">{i.alert_count}</td>
-                  <td className="px-4 py-2 text-gray-600">{formatDateTime(i.occurred_at)}</td>
+                  <td className="px-4 py-2 text-gray-600">{formatDate(i.occurred_at)}</td>
+                  <td className="px-4 py-2 text-gray-600">{formatDate(i.created_at)}</td>
                 </tr>
               ))}
             </tbody>
