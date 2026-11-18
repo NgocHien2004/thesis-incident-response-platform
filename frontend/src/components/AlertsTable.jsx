@@ -27,6 +27,7 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
   const [showMove, setShowMove] = useState(false)
   const [detailId, setDetailId] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [unassignedCount, setUnassignedCount] = useState(0)
 
   const params = useCallback(() => ({
     label: filters.label,
@@ -46,13 +47,15 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
     try {
       const res = await fetchPage(page, PAGE_SIZE)
       setData(res.data)
+      // Ô lọc "Chưa gắn sự cố" chỉ hiện khi thật sự có cảnh báo đã gỡ khỏi sự cố
+      if (global) listAlerts({ unassigned: 'true', page_size: 1 }).then(r => setUnassignedCount(r.data.total)).catch(() => {})
     } catch (err) {
       toast.error(errMsg(err))
     }
-  }, [fetchPage, page])
+  }, [fetchPage, page, global])
 
   useEffect(() => { load() }, [load, refreshKey])
-  useEffect(() => { getLabels().then(r => setLabels([...new Set(r.data.map(l => l.code))])).catch(() => {}) }, [])
+  useEffect(() => { getLabels().then(r => setLabels([...new Set(r.data.map(l => l.code))].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' })))).catch(() => {}) }, [])
 
   const changeFilter = (k) => (e) => { setPage(1); setSelected(new Set()); setFilters({ ...filters, [k]: e.target.value }) }
 
@@ -111,7 +114,7 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
   return (
     <div>
       <div className="flex flex-wrap gap-2 items-center mb-3">
-        {global && (
+        {global && (unassignedCount > 0 || filters.scope === 'unassigned') && (
           <select className={ctl} value={filters.scope} onChange={changeFilter('scope')}>
             <option value="">{t('Mọi cảnh báo')}</option>
             <option value="unassigned">{t('Chưa gắn sự cố')}</option>
@@ -136,10 +139,10 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
           </select>
         )}
         <select className={ctl} value={`${sort.sort_by}:${sort.order}`} onChange={e => { const [s, o] = e.target.value.split(':'); setSort({ sort_by: s, order: o }) }}>
-          <option value="row_index:asc">{t('Theo dòng trong file')}</option>
+          <option value="created_at:desc">{t('Mới nhất')}</option>
           <option value="confidence:desc">{t('Confidence giảm dần')}</option>
           <option value="confidence:asc">{t('Confidence tăng dần')}</option>
-          <option value="created_at:desc">{t('Mới nhất')}</option>
+          <option value="row_index:asc">{t('Theo dòng trong file')}</option>
           <option value="predicted_label:asc">{t('Theo nhãn')}</option>
         </select>
       </div>

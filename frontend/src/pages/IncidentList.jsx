@@ -7,7 +7,7 @@ import Pagination from '../components/Pagination'
 import LoadingSpinner from '../components/LoadingSpinner'
 import IncidentFormModal from '../components/IncidentFormModal'
 import { useI18n } from '../i18n'
-import { STATUS, SEVERITY, formatDate, errMsg } from '../utils/format'
+import { STATUS, SEVERITY, formatDate, sortAttackTypes, errMsg } from '../utils/format'
 
 const SORTS = [
   { value: 'created_at', label: 'Ngày tạo' },
@@ -73,7 +73,7 @@ export default function IncidentList() {
         </select>
         <select className={ctl} value={filters.attack_type} onChange={setFilter('attack_type')}>
           <option value="">{t('Mọi loại tấn công')}</option>
-          {types.map(a => <option key={a.code} value={a.code}>{t(a.name_vi)}</option>)}
+          {sortAttackTypes(types).map(a => <option key={a.code} value={a.code}>{t(a.name_vi)}</option>)}
         </select>
         <label className="text-xs text-gray-500">{t('Từ ngày')}
           <input type="date" className={`${ctl} block`} value={filters.date_from} onChange={setFilter('date_from')} />

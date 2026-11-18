@@ -63,6 +63,15 @@ export function formatDateTime(v) {
   return isNaN(d) ? '—' : d.toLocaleString(locale())
 }
 
+// Xếp loại tấn công theo tên đang hiển thị (đúng thứ tự chữ cái của ngôn ngữ), "Khác" luôn ở cuối
+export function sortAttackTypes(types) {
+  return [...types].sort((a, b) => {
+    if (a.code === 'other') return 1
+    if (b.code === 'other') return -1
+    return tr(a.name_vi).localeCompare(tr(b.name_vi), locale())
+  })
+}
+
 // Chỉ ngày (không giờ), dùng ở danh sách; giờ xem ở trang chi tiết
 export function formatDate(v) {
   if (!v) return '—'

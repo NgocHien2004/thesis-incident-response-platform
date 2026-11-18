@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 import Modal from './Modal'
 import { useI18n } from '../i18n'
 import { createIncident, updateIncident, getAttackTypes } from '../api'
-import { SEVERITY, SOURCES, errMsg, toLocalInput, fromLocalInput } from '../utils/format'
+import { SEVERITY, SOURCES, errMsg, toLocalInput, fromLocalInput, sortAttackTypes } from '../utils/format'
 
 const empty = () => ({
   title: '', description: '', attack_type: 'ddos', severity: 'medium',
@@ -61,7 +61,7 @@ export default function IncidentFormModal({ open, incident, onClose, onSaved }) 
           <div>
             <label className="block text-sm text-gray-600 mb-1">{t('Loại tấn công *')}</label>
             <select className={field} value={form.attack_type} onChange={set('attack_type')}>
-              {types.map(a => <option key={a.code} value={a.code}>{t(a.name_vi)}</option>)}
+              {sortAttackTypes(types).map(a => <option key={a.code} value={a.code}>{t(a.name_vi)}</option>)}
             </select>
           </div>
           <div>

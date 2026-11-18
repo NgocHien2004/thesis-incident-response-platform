@@ -286,8 +286,7 @@ const EN = {
   '= Bỏ qua / (Đã xác minh + Bỏ qua)': '= Dismissed / (Verified + Dismissed)',
   'Chưa có cảnh báo nào được xác minh hoặc bỏ qua.': 'No alert has been verified or dismissed yet.',
   'Có {n} cảnh báo chưa gắn sự cố.': '{n} alert(s) are not assigned to an incident.',
-  'Toàn bộ cảnh báo từ các file đã upload. Chọn “Chưa gắn sự cố” để xem các cảnh báo đã gỡ và gắn lại vào một sự cố.':
-    'All alerts from uploaded files. Choose “Not assigned to an incident” to see removed alerts and reassign them to an incident.',
+  'Toàn bộ cảnh báo từ các file đã upload.': 'All alerts from uploaded files.',
 
   // Thông báo lỗi từ backend (chuỗi tĩnh)
   'Token không hợp lệ': 'Invalid token',
