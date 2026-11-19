@@ -81,6 +81,11 @@ def model_dict(m: MLModel) -> dict:
 def models(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return [model_dict(m) for m in db.query(MLModel).order_by(MLModel.task_type, MLModel.id.desc()).all()]
 
+@router.get("/ai/health")
+def ai_health(user: User = Depends(get_current_user)):
+    # Giao diện hỏi định kỳ để biết dịch vụ AI còn trả lời không (không đổi gì trong CSDL)
+    return {"online": classifier.is_online()}
+
 @router.post("/models/sync")
 def sync_models(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     try:

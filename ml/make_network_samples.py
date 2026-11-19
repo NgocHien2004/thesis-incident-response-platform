@@ -6,66 +6,68 @@ import joblib
 import numpy as np
 import pandas as pd
 
-THRESHOLD = 0.80          # ngưỡng sinh cảnh báo mặc định (threshold_network); đổi nếu bạn đã chỉnh ở trang Cấu hình
-CANDIDATES = 300          # số luồng thử mỗi loại nhãn, mỗi file CSV gốc
-MAX_ALERT_PER_LABEL = 30  # tối đa số luồng "chắc chắn ra cảnh báo" cho mỗi nhãn
-N_BENIGN, N_BELOW = 40, 30
+THRESHOLD = 0.80                          # trùng threshold_network mặc định
+N_ALERT, N_BENIGN, N_BELOW = 150, 140, 10 # 150 cảnh báo | 140 bình thường + 10 dưới ngưỡng = 150
+CANDIDATES = 2000                         # số luồng thử mỗi nhãn, mỗi file CSV gốc
+SEED = 7
+OUT = "mau_demo_300"
 
-# ---- nạp mô hình y như serve.py ----
 for p in ("data/ids/processed/scaler.pkl", "data/ids/processed/feature_cols.pkl",
           "models/rf_multiclass.pkl", "models/network_labels.json"):
     if not os.path.isfile(p):
-        raise SystemExit(f"Thiếu {p}. Chạy preprocess.py rồi train_multiclass.py (trong thư mục ml)")
+        raise SystemExit(f"Thiếu {p}. Chạy preprocess.py rồi train_multiclass.py")
+
 scaler = joblib.load("data/ids/processed/scaler.pkl")
 features = [str(c) for c in joblib.load("data/ids/processed/feature_cols.pkl")]
 model = joblib.load("models/rf_multiclass.pkl")
 model.set_params(verbose=0)
 labels = json.load(open("models/network_labels.json", encoding="utf-8"))
 classes = [labels[int(c)] for c in model.classes_]
-print("Mô hình: nhiều lớp -", len(classes), "nhãn")
 
-# ---- lấy ứng viên từ dữ liệu gốc ----
+
+def clean(name):  # giống train_multiclass.py
+    name = str(name).replace("\ufffd", "-").replace("\u2013", "-")
+    return " ".join(name.split())
+
+
 frames = []
 for f in sorted(glob.glob("data/ids/raw/*.csv")):
     d = pd.read_csv(f, low_memory=False)
-    d.columns = d.columns.str.strip()              # giống preprocess.py (cột trùng tên thành ".1")
+    d.columns = d.columns.str.strip()
     for _, g in d.groupby("Label"):
-        frames.append(g.sample(min(len(g), CANDIDATES), random_state=1))
+        frames.append(g.sample(min(len(g), CANDIDATES), random_state=SEED))
 cand = pd.concat(frames, ignore_index=True)
-missing = [c for c in features if c not in cand.columns]
-assert not missing, f"Thiếu cột so với feature_cols.pkl: {missing[:5]}"
-cand[features] = cand[features].replace([np.inf, -np.inf], np.nan).fillna(0)   # giống cách hệ thống xử lý Infinity/NaN
+cand["Label"] = cand["Label"].map(clean)
+cand[features] = cand[features].replace([np.inf, -np.inf], np.nan).fillna(0)
 
-# ---- chạy mô hình, ghi nhãn và confidence dự đoán ----
 proba = model.predict_proba(scaler.transform(cand[features].to_numpy(dtype=float)))
 best = proba.argmax(axis=1)
 cand["pred"] = [classes[b] for b in best]
 cand["conf"] = proba.max(axis=1).round(4)
-dangerous = cand["pred"] != "BENIGN"                # mặc định mọi nhãn khác BENIGN là lớp nguy hiểm
 
-alerts = pd.concat([g.sort_values("conf", ascending=False).head(MAX_ALERT_PER_LABEL)
-                    for _, g in cand[dangerous & (cand["conf"] >= THRESHOLD)].groupby("pred")])
-benign = cand[(cand["pred"] == "BENIGN") & (cand["Label"] == "BENIGN")].sample(frac=1, random_state=1).head(N_BENIGN)
-below = cand[dangerous & (cand["conf"] < THRESHOLD)].sample(frac=1, random_state=1).head(N_BELOW)
+# Cảnh báo "thật": dự đoán đúng nhãn tấn công và đạt ngưỡng
+pool = cand[(cand["pred"] != "BENIGN") & (cand["pred"] == cand["Label"]) & (cand["conf"] >= THRESHOLD)]
+groups = {l: g.sample(frac=1, random_state=SEED) for l, g in pool.groupby("pred")}
 
-def save(df, name, as_json=False):
-    out = df[features + ["Label"]].sample(frac=1, random_state=2).reset_index(drop=True)
-    if as_json:
-        out.to_json(name, orient="records", force_ascii=False, indent=1)
-    else:
-        out.to_csv(name, index=False)
+# Lấy luân phiên giữa các loại tấn công để dữ liệu đa dạng
+picked, i = [], 0
+while len(picked) < N_ALERT and any(len(g) > i for g in groups.values()):
+    for g in groups.values():
+        if i < len(g) and len(picked) < N_ALERT:
+            picked.append(g.iloc[i])
+    i += 1
+alerts = pd.DataFrame(picked)
 
-# 1) nhiều cảnh báo: để thử phân trang, lọc, xác minh hàng loạt, chuyển/gỡ
-save(pd.concat([alerts, benign]), "mau_nhieu_canh_bao.csv")
-# 2) nhỏ: mỗi nhãn một luồng cảnh báo (tối đa 6) cộng 6 luồng bình thường, để thử nhanh
-small = pd.concat([alerts.groupby("pred").head(1).head(6), benign.head(6)])
-save(small, "mau_nho.json", as_json=True)
-# 3) dưới ngưỡng: được phân loại nguy hiểm nhưng confidence < ngưỡng, nên không ra cảnh báo
-save(below, "mau_duoi_nguong.csv")
+benign = (cand[(cand["pred"] == "BENIGN") & (cand["Label"] == "BENIGN")]
+          .sample(N_BENIGN, random_state=SEED))
+below = (cand[(cand["pred"] != "BENIGN") & (cand["conf"] < THRESHOLD)]
+         .sample(N_BELOW, random_state=SEED))
 
-print(f"\nKỳ vọng khi tải lên (ngưỡng {THRESHOLD}, mô hình hiện tại):")
-print(f"  mau_nhieu_canh_bao.csv : {len(alerts) + len(benign)} dòng -> {len(alerts)} cảnh báo")
-print(f"  mau_nho.json           : {len(small)} dòng -> {int(small['pred'].ne('BENIGN').sum())} cảnh báo")
-print(f"  mau_duoi_nguong.csv    : {len(below)} dòng -> 0 cảnh báo (hạ ngưỡng xuống {'<= ' + str(below['conf'].min()) if len(below) else 'n/a'} thì cả {len(below)} dòng đều ra cảnh báo)")
-print("\nCảnh báo mong đợi theo nhãn trong mau_nhieu_canh_bao.csv:")
+demo = pd.concat([alerts, benign, below]).sample(frac=1, random_state=SEED).reset_index(drop=True)
+out = demo[features + ["Label"]]
+out.to_csv(OUT + ".csv", index=False)
+out.to_json(OUT + ".json", orient="records", force_ascii=False, indent=1)
+
+print(f"Đã tạo {OUT}.csv và {OUT}.json: {len(demo)} dòng")
+print(f"Kỳ vọng với ngưỡng {THRESHOLD}: {len(alerts)} cảnh báo / {len(demo)} dòng")
 print(alerts["pred"].value_counts().to_string())

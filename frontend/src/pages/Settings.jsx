@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { getSettings, updateSetting, getLabels, updateLabel, getModels, syncModels, getAiHealth } from '../api'
 import Card from '../components/Card'
@@ -67,6 +67,24 @@ export default function Settings() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // Hỏi định kỳ xem dịch vụ AI còn trả lời không; khi nó nối lại sau lúc mất kết nối thì tự đồng bộ mô hình
+  useEffect(() => {
+    const timer = setInterval(() => {
+      getAiHealth().then(r => setAiOnline(r.data.online)).catch(() => {})
+    }, 5000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const prevOnline = useRef(null)
+  useEffect(() => {
+    const reconnected = prevOnline.current === false && aiOnline === true
+    prevOnline.current = aiOnline
+    if (!reconnected) return
+    syncModels()
+      .then(() => { toast.success(t('Dịch vụ AI đã kết nối lại, đã đồng bộ mô hình')); load() })
+      .catch(err => toast.error(errMsg(err)))
+  }, [aiOnline, load, t])
 
   const toggleLabel = async (l, field) => {
     try {
