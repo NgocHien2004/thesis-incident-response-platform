@@ -106,15 +106,17 @@ def create_upload(incident_id: int, background: BackgroundTasks, data_type: str 
         raise HTTPException(422, "File rỗng")
     digest = sha.hexdigest()
 
-    dup = db.query(Upload).filter(Upload.incident_id == inc.id, Upload.file_hash == digest,
-                                  Upload.status != "failed").first()
+    # Mỗi file (theo nội dung) chỉ được upload một lần trong toàn hệ thống, kể cả ở sự cố khác.
+    # File đã lỗi (failed) không tính, nên upload lại được.
+    dup = (db.query(Upload, Incident.code).join(Incident, Incident.id == Upload.incident_id)
+           .filter(Upload.file_hash == digest, Upload.status != "failed")
+           .order_by(Upload.id).first())
     if dup:
         _remove(path)
-        raise HTTPException(409, f"File này đã được upload vào sự cố (upload #{dup.id}, {dup.original_filename})")
-    others = (db.query(Incident.code).join(Upload, Upload.incident_id == Incident.id)
-              .filter(Upload.file_hash == digest, Upload.incident_id != inc.id, Upload.status != "failed")
-              .distinct().all())
-    warnings = [f"File giống hệt file đã upload ở sự cố {c}" for (c,) in others]
+        d, code = dup
+        if d.incident_id == inc.id:
+            raise HTTPException(409, f"File này đã được upload vào sự cố (upload #{d.id}, {d.original_filename})")
+        raise HTTPException(409, f"File này đã được upload vào sự cố {code} (upload #{d.id}, {d.original_filename})")
 
     try:
         model = classifier.get_active_model(db, data_type)
@@ -139,7 +141,7 @@ def create_upload(incident_id: int, background: BackgroundTasks, data_type: str 
     db.commit()
     db.refresh(up)
     background.add_task(process_upload, up.id)
-    return upload_out(db, up, warnings)
+    return upload_out(db, up)
 
 @router.get("/incidents/{incident_id}/uploads", response_model=list[UploadOut])
 def list_uploads(incident_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
