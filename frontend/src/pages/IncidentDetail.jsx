@@ -194,6 +194,11 @@ export default function IncidentDetail() {
             canUpload={canUpload(inc.status)}
             onUploaded={(u) => { prevStatus.current[u.id] = u.status; refreshUploads(); loadIncident() }}
             onViewAlerts={(uid) => { setFilterUpload(uid); setTab('alerts') }}
+            onDeleted={(u) => {
+              delete prevStatus.current[u.id]
+              if (filterUpload === u.id) setFilterUpload(null)
+              refreshUploads(); loadIncident(); setRefreshKey(k => k + 1)
+            }}
           />
         )}
         {tab === 'history' && (

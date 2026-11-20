@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import Badge from './Badge'
-import { createUpload, getModels } from '../api'
+import ConfirmModal from './ConfirmModal'
+import { createUpload, deleteUpload, getModels } from '../api'
 import { useI18n, num, rich } from '../i18n'
 import { UPLOAD_STATUS, DATA_TYPES, formatBytes, formatDateTime, pct, errMsg } from '../utils/format'
 
@@ -56,12 +57,13 @@ function LabelBars({ dist }) {
   )
 }
 
-export default function UploadPanel({ incident, uploads, canUpload, onUploaded, onViewAlerts }) {
+export default function UploadPanel({ incident, uploads, canUpload, onUploaded, onViewAlerts, onDeleted }) {
   const { t } = useI18n()
   const [dataType, setDataType] = useState('network')
   const [file, setFile] = useState(null)
   const [busy, setBusy] = useState(false)
   const [models, setModels] = useState([])
+  const [toDelete, setToDelete] = useState(null)
   const inputRef = useRef(null)
 
   useEffect(() => { getModels().then(r => setModels(r.data)).catch(() => {}) }, [])
@@ -88,6 +90,20 @@ export default function UploadPanel({ incident, uploads, canUpload, onUploaded, 
       toast.error(errMsg(err, 'Upload thất bại'))
     } finally {
       setBusy(false)
+    }
+  }
+
+  // Xóa file upload nhầm cùng các cảnh báo sinh từ nó; xong thì upload lại được (kể cả vào sự cố khác)
+  const doDelete = async () => {
+    const u = toDelete
+    try {
+      await deleteUpload(u.id)
+      toast.success(t('Đã xóa file {name}', { name: u.original_filename }))
+      onDeleted(u)
+    } catch (err) {
+      toast.error(errMsg(err))
+    } finally {
+      setToDelete(null)
     }
   }
 
@@ -125,7 +141,12 @@ export default function UploadPanel({ incident, uploads, canUpload, onUploaded, 
                 <span className="font-medium text-gray-900">{u.original_filename}</span>
                 <span className="text-xs text-gray-500 ml-2">{t(DATA_TYPES[u.data_type])} · {formatBytes(u.file_size_bytes)} · {t('{n} dòng', { n: num(u.row_count ?? 0) })}</span>
               </div>
-              <Badge info={UPLOAD_STATUS[u.status]} />
+              <div className="flex items-center gap-3">
+                <Badge info={UPLOAD_STATUS[u.status]} />
+                {canUpload && !active && (
+                  <button onClick={() => setToDelete(u)} className="text-xs text-red-600 hover:underline">{t('Xóa file')}</button>
+                )}
+              </div>
             </div>
             {active && (
               <div>
@@ -165,6 +186,16 @@ export default function UploadPanel({ incident, uploads, canUpload, onUploaded, 
           </div>
         )
       })}
+
+      <ConfirmModal
+        open={!!toDelete}
+        title={t('Xóa file')}
+        message={toDelete ? t('Xóa file “{name}”? {n} cảnh báo sinh từ file này cũng bị xóa (kể cả đã xác minh). Sau đó có thể upload lại file này, kể cả vào sự cố khác. Không hoàn tác được.', { name: toDelete.original_filename, n: toDelete.alert_count }) : ''}
+        confirmText="Xóa"
+        danger
+        onConfirm={doDelete}
+        onClose={() => setToDelete(null)}
+      />
     </div>
   )
 }

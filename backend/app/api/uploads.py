@@ -9,11 +9,13 @@ from sqlalchemy.orm import Session
 from database import get_db
 from app.core.dependencies import get_current_user
 from app.core.constants import DATA_TYPES, EMAIL_ONLY_FORMATS, FILE_FORMATS, UPLOADABLE_STATUSES
+from app.core.paging import chunks
 from app.core.storage import UPLOAD_STORAGE_DIR
 from app.core.timeutils import utcnow
 from app.models.user import User
 from app.models.incident import Incident
 from app.models.upload import Upload
+from app.models.alert import Alert, AlertMoveHistory
 from app.models.ml_model import MLModel
 from app.schemas.upload import UploadOut
 from app.services import classifier
@@ -107,7 +109,7 @@ def create_upload(incident_id: int, background: BackgroundTasks, data_type: str 
     digest = sha.hexdigest()
 
     # Mỗi file (theo nội dung) chỉ được upload một lần trong toàn hệ thống, kể cả ở sự cố khác.
-    # File đã lỗi (failed) không tính, nên upload lại được.
+    # File đã lỗi (failed) không tính, nên upload lại được. File upload nhầm thì xóa đi (DELETE /uploads/{id}) rồi upload lại.
     dup = (db.query(Upload, Incident.code).join(Incident, Incident.id == Upload.incident_id)
            .filter(Upload.file_hash == digest, Upload.status != "failed")
            .order_by(Upload.id).first())
@@ -155,3 +157,31 @@ def get_upload(upload_id: int, db: Session = Depends(get_db), user: User = Depen
     if not up:
         raise HTTPException(404, "Không tìm thấy upload")
     return upload_out(db, up)
+
+@router.delete("/uploads/{upload_id}", status_code=204)
+def delete_upload(upload_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    # Xóa file upload nhầm cùng mọi cảnh báo sinh từ nó (kể cả đã xác minh); hash được giải phóng nên upload lại được.
+    # Chỉ khi sự cố còn Mới hoặc Đang xử lý và file không đang xử lý.
+    up = db.get(Upload, upload_id)
+    if not up:
+        raise HTTPException(404, "Không tìm thấy upload")
+    inc = db.get(Incident, up.incident_id)
+    if inc.status not in UPLOADABLE_STATUSES:
+        raise HTTPException(409, "Chỉ xóa được file khi sự cố ở trạng thái Mới hoặc Đang xử lý")
+    if up.status in ("pending", "processing"):
+        raise HTTPException(409, "File đang xử lý, hãy đợi xong rồi mới xóa")
+    # Cảnh báo của file đã được chuyển sang sự cố khác thì sự cố đó đang dùng: bắt chuyển về trước
+    elsewhere = (db.query(Alert).filter(Alert.upload_id == up.id, Alert.incident_id.isnot(None),
+                                        Alert.incident_id != up.incident_id).count())
+    if elsewhere:
+        raise HTTPException(409, f"{elsewhere} cảnh báo của file này đã được chuyển sang sự cố khác; "
+                                 "hãy chuyển chúng về sự cố này trước khi xóa file")
+    alert_ids = [r[0] for r in db.query(Alert.id).filter(Alert.upload_id == up.id).all()]
+    # Thứ tự theo khóa ngoại: lịch sử chuyển, cảnh báo, rồi upload; chia khối để không vượt giới hạn tham số của SQL Server
+    for part in chunks(alert_ids, 500):
+        db.query(AlertMoveHistory).filter(AlertMoveHistory.alert_id.in_(part)).delete(synchronize_session=False)
+        db.query(Alert).filter(Alert.id.in_(part)).delete(synchronize_session=False)
+    path = up.stored_path
+    db.delete(up)
+    db.commit()
+    _remove(path)   # xóa file sau khi giao dịch thành công; lỗi xóa file không làm hỏng dữ liệu
