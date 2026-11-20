@@ -1,6 +1,7 @@
 import json
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from database import get_db
 from app.core.dependencies import get_current_user
@@ -34,8 +35,19 @@ def base_query(db: Session):
             .outerjoin(Incident, Incident.id == Alert.incident_id)
             .outerjoin(User, User.id == Alert.verified_by))
 
+def search_filter(text: str):
+    # Số: khớp mã cảnh báo hoặc số dòng trong file gốc. Chữ: khớp nhãn, ghi chú hoặc nội dung dòng gốc
+    # (với email là người gửi, tiêu đề, nội dung)
+    text = text.strip().lstrip("#")
+    if text.isdigit() and len(text) <= 9:
+        n = int(text)
+        return or_(Alert.id == n, Alert.row_index == n)
+    return or_(Alert.predicted_label.contains(text, autoescape=True),
+               Alert.note.contains(text, autoescape=True),
+               Alert.row_data.contains(text, autoescape=True))
+
 def list_alerts(db, incident_id, unassigned, page, page_size, sort_by, order, label, verification_status,
-                source_type, upload_id, min_confidence):
+                source_type, upload_id, min_confidence, search=None):
     if sort_by not in SORTABLE:
         raise HTTPException(422, "sort_by không hợp lệ")
     if verification_status and verification_status not in VERIFICATION_STATUSES:
@@ -57,6 +69,8 @@ def list_alerts(db, incident_id, unassigned, page, page_size, sort_by, order, la
         q = q.filter(Alert.upload_id == upload_id)
     if min_confidence is not None:
         q = q.filter(Alert.confidence >= min_confidence)
+    if search and search.strip():
+        q = q.filter(search_filter(search))
     col = getattr(Alert, sort_by)
     direction = col.asc() if order == "asc" else col.desc()
     order_by = [direction] if sort_by == "id" else [direction, Alert.id.asc()]
@@ -70,11 +84,12 @@ def incident_alerts(
     sort_by: str = "row_index", order: str = Query("asc", pattern="^(asc|desc)$"),
     label: Optional[str] = None, verification_status: Optional[str] = None, source_type: Optional[str] = None,
     upload_id: Optional[int] = None, min_confidence: Optional[float] = Query(None, ge=0, le=1),
+    q: Optional[str] = None,
     db: Session = Depends(get_db), user: User = Depends(get_current_user),
 ):
     get_incident_or_404(db, incident_id)
     return list_alerts(db, incident_id, False, page, page_size, sort_by, order, label, verification_status,
-                       source_type, upload_id, min_confidence)
+                       source_type, upload_id, min_confidence, q)
 
 @router.get("/alerts")
 def all_alerts(
@@ -83,10 +98,11 @@ def all_alerts(
     sort_by: str = "created_at", order: str = Query("desc", pattern="^(asc|desc)$"),
     label: Optional[str] = None, verification_status: Optional[str] = None, source_type: Optional[str] = None,
     upload_id: Optional[int] = None, min_confidence: Optional[float] = Query(None, ge=0, le=1),
+    q: Optional[str] = None,
     db: Session = Depends(get_db), user: User = Depends(get_current_user),
 ):
     return list_alerts(db, incident_id, unassigned, page, page_size, sort_by, order, label, verification_status,
-                       source_type, upload_id, min_confidence)
+                       source_type, upload_id, min_confidence, q)
 
 @router.get("/alerts/{alert_id}")
 def get_alert(alert_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):

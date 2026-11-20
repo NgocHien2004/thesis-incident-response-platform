@@ -9,6 +9,8 @@ import LoadingSpinner from './components/LoadingSpinner'
 import IncidentList from './pages/IncidentList'
 import IncidentDetail from './pages/IncidentDetail'
 import AlertList from './pages/AlertList'
+import AlertFile from './pages/AlertFile'
+import AlertUnassigned from './pages/AlertUnassigned'
 import Settings from './pages/Settings'
 
 // Dashboard chứa recharts (nặng), chỉ nạp khi cần
@@ -32,6 +34,8 @@ export default function App() {
             <Route path="/incidents" element={<PrivateRoute><IncidentList /></PrivateRoute>} />
             <Route path="/incidents/:id" element={<PrivateRoute><IncidentDetail /></PrivateRoute>} />
             <Route path="/alerts" element={<PrivateRoute><AlertList /></PrivateRoute>} />
+            <Route path="/alerts/unassigned" element={<PrivateRoute><AlertUnassigned /></PrivateRoute>} />
+            <Route path="/alerts/files/:uploadId" element={<PrivateRoute><AlertFile /></PrivateRoute>} />
             <Route path="/settings" element={<PrivateRoute><Settings /></PrivateRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

@@ -142,9 +142,44 @@ const EN = {
   'Xóa sự cố': 'Delete incident',
   'Sự cố chưa có cảnh báo nào nên có thể xóa hẳn, kể cả các file đã upload. Không hoàn tác được.':
     'This incident has no alerts, so it can be deleted permanently, including its uploaded files. This cannot be undone.',
+  'Xóa file': 'Delete file',
+  'Đã xóa file {name}': 'Deleted file {name}',
+  'Xóa file “{name}”? {n} cảnh báo sinh từ file này cũng bị xóa (kể cả đã xác minh). Sau đó có thể upload lại file này, kể cả vào sự cố khác. Không hoàn tác được.':
+    'Delete file “{name}”? The {n} alert(s) generated from this file will also be deleted (including verified ones). You can upload this file again afterwards, even to a different incident. This cannot be undone.',
   'Không tải được sự cố': 'Could not load the incident',
   '{name}: hoàn tất, sinh {n} cảnh báo': '{name}: completed, {n} alert(s) generated',
   '{name}: lỗi. {msg}': '{name}: failed. {msg}',
+
+  // Danh sách file và cảnh báo của file
+  'Chọn một file đã upload để xem cảnh báo sinh ra từ file đó.': 'Select an uploaded file to see the alerts generated from it.',
+  'Tìm theo tên file, mã #, mã sự cố…': 'Search by file name, # id or incident code…',
+  'Cũ nhất': 'Oldest',
+  'Tên file A → Z': 'File name A → Z',
+  'Nhiều cảnh báo nhất': 'Most alerts',
+  'Xóa bộ lọc': 'Clear filters',
+  'Số dòng': 'Rows',
+  'Bình thường': 'Benign',
+  'Dưới ngưỡng': 'Below threshold',
+  'Không có file nào khớp bộ lọc': 'No files match the filters',
+  'Chưa có file nào được upload': 'No files have been uploaded yet',
+  'Có {n} file cùng tên này; phân biệt bằng mã #, sự cố và thời gian upload':
+    '{n} files share this name; tell them apart by the # id, incident and upload time',
+  'Trùng tên ×{n}': 'Same name ×{n}',
+  '{n} chưa xác minh': '{n} unverified',
+  '{n} đã xác minh': '{n} verified',
+  '{n} bỏ qua': '{n} dismissed',
+  '← Danh sách file': '← File list',
+  'Dòng bình thường và dòng dưới ngưỡng không được lưu thành cảnh báo; chỉ có số lượng của chúng ở trên.':
+    'Benign rows and rows below the threshold are not stored as alerts; only their counts are shown above.',
+  'File này không sinh cảnh báo nào.': 'This file generated no alerts.',
+  'Cảnh báo chưa gắn sự cố': 'Alerts not linked to an incident',
+  'Các cảnh báo đã gỡ khỏi sự cố, từ mọi file. Chuyển chúng vào một sự cố để xác minh.':
+    'Alerts removed from their incident, across all files. Move them into an incident to verify them.',
+  'Tìm theo ID, số dòng, nhãn, ghi chú…': 'Search by ID, row number, label or note…',
+  'Tìm theo ID, nhãn, ghi chú, nội dung…': 'Search by ID, label, note or content…',
+  'Mọi confidence': 'Any confidence',
+  'Dòng trong file': 'Row in file',
+  'Không có cảnh báo nào khớp bộ lọc': 'No alerts match the filters',
 
   // Bảng cảnh báo
   'Mọi cảnh báo': 'All alerts',

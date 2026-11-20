@@ -22,6 +22,8 @@ export const createUpload = (incidentId, dataType, file) => {
   return api.post(`/incidents/${incidentId}/uploads`, form)
 }
 export const deleteUpload = (id) => api.delete(`/uploads/${id}`)
+export const listAllUploads = (params) => api.get('/uploads', { params: clean(params) })
+export const getUpload = (id) => api.get(`/uploads/${id}`)
 
 export const listAlerts = (params) => api.get('/alerts', { params: clean(params) })
 export const listIncidentAlerts = (incidentId, params) =>

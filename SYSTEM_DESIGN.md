@@ -179,7 +179,7 @@ Chỉ các dòng thành cảnh báo mới được lưu kết quả từng dòng
 
 ### 5.5 Xem và lọc
 
-Phân trang (`page_size` ≤ 500); lọc theo `label`, `verification_status`, `source_type`, `upload_id`, `min_confidence`, `unassigned`, `incident_id`; sắp xếp theo `id, row_index, confidence, created_at, predicted_label, verification_status, source_type`. Giao diện có "Chọn tất cả N cảnh báo khớp bộ lọc" (lặp qua các trang 500); khi N lớn hơn 10.000 thì thao tác hàng loạt bị API từ chối (xem mục 13).
+Phân trang (`page_size` ≤ 500); lọc theo `label`, `verification_status`, `source_type`, `upload_id`, `min_confidence`, `unassigned`, `incident_id`, và tìm kiếm `q` (số: khớp mã cảnh báo hoặc số dòng trong file; chữ: khớp nhãn, ghi chú hoặc nội dung dòng gốc, như người gửi và tiêu đề của email); sắp xếp theo `id, row_index, confidence, created_at, predicted_label, verification_status, source_type`. Trang **Cảnh báo** của giao diện là danh sách file đã upload (`GET /uploads`); chọn một file để xem, tìm kiếm, lọc và xác minh cảnh báo của file đó (`GET /alerts?upload_id=...`). Cảnh báo đã gỡ khỏi sự cố có trang riêng `/alerts/unassigned`. Dòng BENIGN và dòng dưới ngưỡng **không** được lưu thành cảnh báo (tránh hàng trăm nghìn bản ghi mỗi file); số lượng của chúng nằm trong `label_distribution` và hiển thị ở đầu trang của từng file. Hai file có thể trùng tên (chống trùng theo nội dung, không theo tên), nên danh sách ghi kèm mã `#id`, sự cố, thời gian upload và nhãn "Trùng tên". Giao diện có "Chọn tất cả N cảnh báo khớp bộ lọc" (lặp qua các trang 500); khi N lớn hơn 10.000 thì thao tác hàng loạt bị API từ chối (xem mục 13).
 
 ## 6. Cấu hình
 
@@ -315,6 +315,7 @@ Nigerian Fraud và Nazario chỉ có thư spam/phishing nên chỉ đo được 
 | | `DELETE /incidents/{id}` | Xóa (chỉ khi chưa có cảnh báo) |
 | Upload | `POST /incidents/{id}/uploads` | Upload (form: `data_type`, `file`); trả 202 |
 | | `GET /incidents/{id}/uploads` | Danh sách file của sự cố |
+| | `GET /uploads` | Mọi file đã upload (kể cả file chỉ có dòng bình thường): phân trang, lọc `q` (tên file, `#id`, mã sự cố), `data_type`, `status`, `incident_id`, sắp xếp `sort` (`newest`, `oldest`, `name`, `alerts`); mỗi file kèm số cảnh báo theo trạng thái xác minh, `benign_count` và `name_count` (số file cùng tên) |
 | | `GET /uploads/{id}` | Chi tiết và kết quả phân loại của một file |
 | Cảnh báo | `GET /incidents/{id}/alerts` | Cảnh báo của sự cố |
 | | `GET /alerts` | Mọi cảnh báo; `unassigned=true` cho cảnh báo chưa gắn |

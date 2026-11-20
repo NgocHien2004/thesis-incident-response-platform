@@ -4,12 +4,15 @@ import os
 import re
 import shutil
 import uuid
-from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, UploadFile
+from typing import Optional
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from database import get_db
 from app.core.dependencies import get_current_user
-from app.core.constants import DATA_TYPES, EMAIL_ONLY_FORMATS, FILE_FORMATS, UPLOADABLE_STATUSES
-from app.core.paging import chunks
+from app.core.constants import (BENIGN_LABELS, DATA_TYPES, EMAIL_ONLY_FORMATS, FILE_FORMATS, UPLOAD_STATUSES,
+                                UPLOADABLE_STATUSES)
+from app.core.paging import apply_page, chunks, page_response
 from app.core.storage import UPLOAD_STORAGE_DIR
 from app.core.timeutils import utcnow
 from app.models.user import User
@@ -34,11 +37,19 @@ def clean_filename(name: str) -> str:
     name = re.sub(r"[\x00-\x1f\x7f]", "", name).strip()
     return name[:255] or "upload"
 
+def benign_count(distribution: dict) -> int:
+    # Số dòng được phân loại bình thường (BENIGN, NON_SPAM, HAM): các dòng này không sinh cảnh báo nên không có
+    # bản ghi trong bảng alerts, chỉ còn con số trong phân bố nhãn của file
+    return sum(int(n) for label, n in distribution.items() if str(label).strip().upper() in BENIGN_LABELS)
+
 def upload_out(db: Session, up: Upload, warnings: list = None) -> dict:
     model = db.get(MLModel, up.model_id) if up.model_id else None
     user = db.get(User, up.uploaded_by)
+    inc = db.get(Incident, up.incident_id)
+    distribution = json.loads(up.label_distribution) if up.label_distribution else {}
     return {
-        "id": up.id, "incident_id": up.incident_id, "original_filename": up.original_filename,
+        "id": up.id, "incident_id": up.incident_id, "incident_code": inc.code if inc else None,
+        "original_filename": up.original_filename,
         "data_type": up.data_type, "file_hash": up.file_hash, "file_size_bytes": up.file_size_bytes,
         "row_count": up.row_count, "processed_rows": up.processed_rows, "status": up.status,
         "error_message": up.error_message, "model_id": up.model_id,
@@ -46,7 +57,7 @@ def upload_out(db: Session, up: Upload, warnings: list = None) -> dict:
         "threshold_used": up.threshold_used,
         "dangerous_labels_used": json.loads(up.dangerous_labels_used) if up.dangerous_labels_used else [],
         "alert_count": up.alert_count, "avg_confidence": up.avg_confidence,
-        "label_distribution": json.loads(up.label_distribution) if up.label_distribution else {},
+        "label_distribution": distribution, "benign_count": benign_count(distribution),
         "uploaded_by": up.uploaded_by, "uploaded_by_name": user.full_name if user else None,
         "uploaded_at": up.uploaded_at, "processed_at": up.processed_at, "warnings": warnings or [],
     }
@@ -150,6 +161,79 @@ def list_uploads(incident_id: int, db: Session = Depends(get_db), user: User = D
     get_incident_or_404(db, incident_id)
     rows = db.query(Upload).filter(Upload.incident_id == incident_id).order_by(Upload.uploaded_at.desc(), Upload.id.desc()).all()
     return [upload_out(db, u) for u in rows]
+
+# Thứ tự sắp xếp danh sách file; mỗi khóa dùng các cột khác nhau (SQL Server không cho lặp cột trong ORDER BY)
+UPLOAD_SORTS = {
+    "newest": lambda: [Upload.uploaded_at.desc(), Upload.id.desc()],
+    "oldest": lambda: [Upload.uploaded_at.asc(), Upload.id.asc()],
+    "name":   lambda: [Upload.original_filename.asc(), Upload.id.desc()],
+    "alerts": lambda: [Upload.alert_count.desc(), Upload.id.desc()],
+}
+
+@router.get("/uploads")
+def list_all_uploads(
+    page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=200),
+    q: Optional[str] = None, data_type: Optional[str] = None, status: Optional[str] = None,
+    incident_id: Optional[int] = None, sort: str = "newest",
+    db: Session = Depends(get_db), user: User = Depends(get_current_user),
+):
+    # Danh sách mọi file đã upload (kể cả file chỉ có dòng bình thường, không sinh cảnh báo nào).
+    # Hai file có thể trùng tên (chống trùng theo nội dung, không theo tên): name_count cho biết, còn id,
+    # sự cố và thời gian upload để phân biệt.
+    if sort not in UPLOAD_SORTS:
+        raise HTTPException(422, "sort không hợp lệ")
+    if data_type and data_type not in DATA_TYPES:
+        raise HTTPException(422, "Nguồn không hợp lệ")
+    if status and status not in UPLOAD_STATUSES:
+        raise HTTPException(422, "Trạng thái file không hợp lệ")
+    query = (db.query(Upload, Incident.code, User.full_name)
+             .join(Incident, Incident.id == Upload.incident_id)
+             .outerjoin(User, User.id == Upload.uploaded_by))
+    text = (q or "").strip()
+    if text:
+        digits = text.lstrip("#")
+        match = [Upload.original_filename.contains(text, autoescape=True),
+                 Incident.code.contains(text, autoescape=True)]
+        if digits.isdigit() and len(digits) <= 9:
+            match.append(Upload.id == int(digits))
+        query = query.filter(or_(*match))
+    if data_type:
+        query = query.filter(Upload.data_type == data_type)
+    if status:
+        query = query.filter(Upload.status == status)
+    if incident_id is not None:
+        query = query.filter(Upload.incident_id == incident_id)
+    rows, total = apply_page(query, UPLOAD_SORTS[sort](), page, page_size)
+
+    ids = [u.id for u, _, _ in rows]
+    verification = {}
+    if ids:
+        for uid, st, n in (db.query(Alert.upload_id, Alert.verification_status, func.count(Alert.id))
+                           .filter(Alert.upload_id.in_(ids)).group_by(Alert.upload_id, Alert.verification_status)):
+            verification.setdefault(uid, {})[st] = n
+    same_name = {}
+    if rows:
+        for name, n in (db.query(Upload.original_filename, func.count(Upload.id))
+                        .filter(Upload.original_filename.in_([u.original_filename for u, _, _ in rows]))
+                        .group_by(Upload.original_filename)):
+            same_name[name.lower()] = same_name.get(name.lower(), 0) + n
+
+    items = []
+    for u, code, uploader in rows:
+        distribution = json.loads(u.label_distribution) if u.label_distribution else {}
+        v = verification.get(u.id, {})
+        items.append({
+            "id": u.id, "incident_id": u.incident_id, "incident_code": code,
+            "original_filename": u.original_filename, "name_count": same_name.get(u.original_filename.lower(), 1),
+            "data_type": u.data_type, "file_size_bytes": u.file_size_bytes, "row_count": u.row_count,
+            "status": u.status, "error_message": u.error_message, "alert_count": u.alert_count,
+            "benign_count": benign_count(distribution),
+            "unverified_count": v.get("unverified", 0), "verified_count": v.get("verified", 0),
+            "dismissed_count": v.get("dismissed", 0),
+            "avg_confidence": u.avg_confidence, "uploaded_by_name": uploader,
+            "uploaded_at": u.uploaded_at, "processed_at": u.processed_at,
+        })
+    return page_response(items, total, page, page_size)
 
 @router.get("/uploads/{upload_id}", response_model=UploadOut)
 def get_upload(upload_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):

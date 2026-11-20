@@ -5,6 +5,7 @@ from pydantic import BaseModel
 class UploadOut(BaseModel):
     id: int
     incident_id: int
+    incident_code: Optional[str] = None
     original_filename: str
     data_type: str
     file_hash: str
@@ -21,6 +22,7 @@ class UploadOut(BaseModel):
     alert_count: int = 0
     avg_confidence: Optional[float] = None
     label_distribution: Dict[str, int] = {}
+    benign_count: int = 0
     uploaded_by: int
     uploaded_by_name: Optional[str] = None
     uploaded_at: datetime

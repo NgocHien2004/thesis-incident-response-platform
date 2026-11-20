@@ -276,6 +276,16 @@ def run(args):
     check("Cùng file ở sự cố khác vẫn nhận nhưng cảnh báo", s == 202 and up_o["warnings"], str(up_o.get("warnings")))
     wait_upload(api, up_o["id"])
 
+    print("\n── 7b. Danh sách file đã upload ──")
+    s, ul = api.get("/uploads", q="luong_mang")
+    same = [x for x in (ul or {}).get("items", []) if x["original_filename"] == "luong_mang.csv"]
+    check("Danh sách file liệt kê cả hai file trùng tên", s == 200 and len(same) == 2 and all(x["name_count"] == 2 for x in same), str(s))
+    check("Hai file trùng tên phân biệt bằng mã và sự cố", len({x["id"] for x in same}) == 2 and {x["incident_id"] for x in same} == {inc_id, other["id"]})
+    mine = next((x for x in same if x["incident_id"] == inc_id), {})
+    check("File có số dòng bình thường và số cảnh báo", mine.get("benign_count") == 10 and mine.get("alert_count") == 6, str(mine))
+    s, found = api.get("/alerts", upload_id=mine.get("id"), q=str(ddos_rows[0]))
+    check("Tìm cảnh báo theo số dòng trong file", s == 200 and ddos_rows[0] in [a["row_index"] for a in found["items"]])
+
     print("\n── 8. Ngưỡng và lớp nguy hiểm cấu hình được ──")
     set_setting(api, "threshold_network", "0.5")
     s, i2 = new_incident(api, "Sự cố ngưỡng thấp")

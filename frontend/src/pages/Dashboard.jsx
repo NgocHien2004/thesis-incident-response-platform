@@ -100,7 +100,7 @@ export default function Dashboard() {
           </div>
           {d.alerts_unassigned > 0 && (
             <div className="text-sm bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 mt-2">
-              {t('Có {n} cảnh báo chưa gắn sự cố.', { n: d.alerts_unassigned })} <Link to="/alerts" className="text-primary-600">{t('Xem')}</Link>
+              {t('Có {n} cảnh báo chưa gắn sự cố.', { n: d.alerts_unassigned })} <Link to="/alerts/unassigned" className="text-primary-600">{t('Xem')}</Link>
             </div>
           )}
         </Card>

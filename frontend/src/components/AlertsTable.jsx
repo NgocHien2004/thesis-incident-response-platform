@@ -14,15 +14,18 @@ const ctl = 'border rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none f
 const PAGE_SIZE = 50
 const MAX_BULK = 10000 // API chỉ nhận tối đa 10.000 id mỗi lần
 
-// Dùng cho trang chi tiết sự cố (có incidentId) và trang danh sách cảnh báo chung (không có)
-export default function AlertsTable({ incidentId, locked, uploads = [], filterUploadId, onFilterUploadChange, refreshKey, onChanged }) {
+const CONFIDENCE_STEPS = [0.8, 0.9, 0.95, 0.99]
+
+// Dùng cho trang chi tiết sự cố (có incidentId) và trang cảnh báo của một file (không có incidentId, hideFile = true)
+export default function AlertsTable({ incidentId, locked, uploads = [], filterUploadId, onFilterUploadChange, hideFile, defaultScope = '', refreshKey, onChanged }) {
   const { t } = useI18n()
   const global = !incidentId
   const [data, setData] = useState(null)
   const [labels, setLabels] = useState([])
   const [page, setPage] = useState(1)
-  const [sort, setSort] = useState(global ? { sort_by: 'created_at', order: 'desc' } : { sort_by: 'row_index', order: 'asc' })
-  const [filters, setFilters] = useState({ label: '', verification_status: '', source_type: '', scope: '' })
+  const [sort, setSort] = useState(global && !hideFile ? { sort_by: 'created_at', order: 'desc' } : { sort_by: 'row_index', order: 'asc' })
+  const [filters, setFilters] = useState({ label: '', verification_status: '', source_type: '', scope: defaultScope, search: '', min_confidence: '' })
+  const [searchText, setSearchText] = useState('')
   const [selected, setSelected] = useState(new Set())
   const [showMove, setShowMove] = useState(false)
   const [detailId, setDetailId] = useState(null)
@@ -34,6 +37,8 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
     verification_status: filters.verification_status,
     source_type: filters.source_type,
     upload_id: filterUploadId || undefined,
+    q: filters.search,
+    min_confidence: filters.min_confidence,
     unassigned: global && filters.scope === 'unassigned' ? 'true' : undefined,
     ...sort,
   }), [filters, sort, filterUploadId, global])
@@ -48,16 +53,24 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
       const res = await fetchPage(page, PAGE_SIZE)
       setData(res.data)
       // Ô lọc "Chưa gắn sự cố" chỉ hiện khi thật sự có cảnh báo đã gỡ khỏi sự cố
-      if (global) listAlerts({ unassigned: 'true', page_size: 1 }).then(r => setUnassignedCount(r.data.total)).catch(() => {})
+      if (global) listAlerts({ unassigned: 'true', upload_id: filterUploadId, page_size: 1 }).then(r => setUnassignedCount(r.data.total)).catch(() => {})
     } catch (err) {
       toast.error(errMsg(err))
     }
-  }, [fetchPage, page, global])
+  }, [fetchPage, page, global, filterUploadId])
 
   useEffect(() => { load() }, [load, refreshKey])
   useEffect(() => { getLabels().then(r => setLabels([...new Set(r.data.map(l => l.code))].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' })))).catch(() => {}) }, [])
 
   const changeFilter = (k) => (e) => { setPage(1); setSelected(new Set()); setFilters({ ...filters, [k]: e.target.value }) }
+
+  // Ô tìm kiếm chờ người dùng ngừng gõ rồi mới gọi API
+  useEffect(() => {
+    const value = searchText.trim()
+    if (value === filters.search) return undefined
+    const id = setTimeout(() => { setPage(1); setSelected(new Set()); setFilters(f => ({ ...f, search: value })) }, 300)
+    return () => clearTimeout(id)
+  }, [searchText, filters.search])
 
   const toggle = (id) => {
     const next = new Set(selected)
@@ -110,10 +123,18 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
     }
   }
 
-  const colSpan = global ? 9 : 8
+  // Cột cố định: chọn, ID, nhãn, confidence, file/dòng, xác minh, thao tác; thêm cột nguồn và cột sự cố tùy chế độ
+  const colSpan = 7 + (hideFile ? 0 : 1) + (global ? 1 : 0)
+  const filtered = !!(filters.label || filters.verification_status || filters.source_type || filters.search || filters.min_confidence)
   return (
     <div>
       <div className="flex flex-wrap gap-2 items-center mb-3">
+        <input
+          value={searchText}
+          onChange={e => setSearchText(e.target.value)}
+          placeholder={hideFile ? t('Tìm theo ID, số dòng, nhãn, ghi chú…') : t('Tìm theo ID, nhãn, ghi chú, nội dung…')}
+          className={`${ctl} w-64`}
+        />
         {global && (unassignedCount > 0 || filters.scope === 'unassigned') && (
           <select className={ctl} value={filters.scope} onChange={changeFilter('scope')}>
             <option value="">{t('Mọi cảnh báo')}</option>
@@ -128,9 +149,15 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
           <option value="">{t('Mọi trạng thái xác minh')}</option>
           {Object.entries(VERIFICATION).map(([k, v]) => <option key={k} value={k}>{t(v.label)}</option>)}
         </select>
-        <select className={ctl} value={filters.source_type} onChange={changeFilter('source_type')}>
-          <option value="">{t('Mọi nguồn')}</option>
-          {Object.entries(DATA_TYPES).map(([k, v]) => <option key={k} value={k}>{t(v)}</option>)}
+        {!hideFile && (
+          <select className={ctl} value={filters.source_type} onChange={changeFilter('source_type')}>
+            <option value="">{t('Mọi nguồn')}</option>
+            {Object.entries(DATA_TYPES).map(([k, v]) => <option key={k} value={k}>{t(v)}</option>)}
+          </select>
+        )}
+        <select className={ctl} value={filters.min_confidence} onChange={changeFilter('min_confidence')}>
+          <option value="">{t('Mọi confidence')}</option>
+          {CONFIDENCE_STEPS.map(c => <option key={c} value={c}>{t('Confidence ≥ {p}%', { p: Math.round(c * 100) })}</option>)}
         </select>
         {!global && uploads.length > 0 && (
           <select className={ctl} value={filterUploadId || ''} onChange={e => { setPage(1); setSelected(new Set()); onFilterUploadChange(e.target.value ? Number(e.target.value) : null) }}>
@@ -145,6 +172,14 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
           <option value="row_index:asc">{t('Theo dòng trong file')}</option>
           <option value="predicted_label:asc">{t('Theo nhãn')}</option>
         </select>
+        {filtered && (
+          <button
+            onClick={() => { setSearchText(''); setPage(1); setSelected(new Set()); setFilters({ ...filters, label: '', verification_status: '', source_type: '', search: '', min_confidence: '' }) }}
+            className="text-sm text-gray-500 hover:text-gray-800"
+          >
+            {t('Xóa bộ lọc')}
+          </button>
+        )}
       </div>
 
       {selected.size > 0 && (
@@ -180,8 +215,8 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
                 <th className="px-3 py-2">ID</th>
                 <th className="px-3 py-2">{t('Nhãn')}</th>
                 <th className="px-3 py-2">Confidence</th>
-                <th className="px-3 py-2">{t('Nguồn')}</th>
-                <th className="px-3 py-2">{t('File · dòng')}</th>
+                {!hideFile && <th className="px-3 py-2">{t('Nguồn')}</th>}
+                <th className="px-3 py-2">{hideFile ? t('Dòng trong file') : t('File · dòng')}</th>
                 {global && <th className="px-3 py-2">{t('Sự cố', { ctx: 'col' })}</th>}
                 <th className="px-3 py-2">{t('Trạng thái xác minh')}</th>
                 <th className="px-3 py-2"></th>
@@ -189,7 +224,7 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
             </thead>
             <tbody>
               {data.items.length === 0 && (
-                <tr><td colSpan={colSpan} className="px-4 py-8 text-center text-gray-500">{t('Không có cảnh báo nào')}</td></tr>
+                <tr><td colSpan={colSpan} className="px-4 py-8 text-center text-gray-500">{filtered ? t('Không có cảnh báo nào khớp bộ lọc') : t('Không có cảnh báo nào')}</td></tr>
               )}
               {data.items.map(a => (
                 <tr key={a.id} className={`border-t hover:bg-gray-50 ${selected.has(a.id) ? 'bg-primary-50' : ''}`}>
@@ -202,9 +237,9 @@ export default function AlertsTable({ incidentId, locked, uploads = [], filterUp
                       <span className="text-xs text-gray-600">{pct(a.confidence)}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-2">{t(DATA_TYPES[a.source_type])}</td>
+                  {!hideFile && <td className="px-3 py-2">{t(DATA_TYPES[a.source_type])}</td>}
                   <td className="px-3 py-2 text-gray-600" title={t('Dòng dữ liệu thứ {n} trong file gốc', { n: a.row_index })}>
-                    {a.upload_filename} · <span className="font-mono">#{a.row_index}</span>
+                    {hideFile ? <span className="font-mono">#{a.row_index}</span> : <>{a.upload_filename} · <span className="font-mono">#{a.row_index}</span></>}
                   </td>
                   {global && (
                     <td className="px-3 py-2">
