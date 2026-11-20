@@ -1,6 +1,6 @@
 # Thiết kế hệ thống
 
-Hệ thống quản lý sự cố an ninh mạng tích hợp AI phân loại cảnh báo từ dữ liệu đa nguồn (luồng mạng và email), dành cho tổ chức vừa và nhỏ. Cấu trúc cơ sở dữ liệu ở `DATABASE.md`. Cập nhật 16/11/2026.
+Hệ thống quản lý sự cố an ninh mạng tích hợp AI phân loại cảnh báo từ dữ liệu đa nguồn (luồng mạng và email), dành cho tổ chức vừa và nhỏ. Cấu trúc cơ sở dữ liệu ở `DATABASE.md`. Cập nhật 20/11/2026.
 
 ## 1. Tổng quan
 
@@ -90,7 +90,7 @@ Lưu ý: "nguồn" của sự cố khác với "nguồn dữ liệu" của file 
 - Lý do tối thiểu 3 ký tự.
 - Khi còn file đang xử lý (`pending`/`processing`), không chuyển sang `resolved`, `closed`, `cancelled` và không xóa sự cố (409); giao diện cũng ẩn các nút này.
 - Sự cố đã đóng hoặc đã hủy không sửa được. Mỗi lần chuyển ghi một dòng `incident_status_history` kèm người đổi, thời điểm, lý do. Mở lại từ `resolved` xóa `resolved_at`.
-- **Xóa:** chỉ khi không có cảnh báo nào thuộc sự cố và không có cảnh báo nào truy vết về file của sự cố (kể cả cảnh báo đã được chuyển đi nơi khác). Xóa thì xóa luôn file đã upload. Ngược lại dùng Hủy hoặc Đóng.
+- **Xóa:** chỉ khi không có cảnh báo nào thuộc sự cố và không có cảnh báo nào truy vết về file của sự cố (kể cả cảnh báo đã được chuyển đi nơi khác). Xóa thì xóa luôn file đã upload; hash của các file đó được giải phóng nên upload lại được. Ngược lại dùng Hủy hoặc Đóng.
 
 ### 3.3 Danh sách và lọc
 
@@ -118,7 +118,7 @@ Toàn bộ file được quét một lần trước khi tạo bản ghi `uploads
 1. Sự cố phải ở trạng thái Mới hoặc Đang xử lý (409).
 2. Nguồn dữ liệu hợp lệ; đuôi file thuộc `.csv, .json, .eml, .zip` (422).
 3. Kích thước tối đa `max_upload_mb` (413, kiểm tra khi đọc từng khối 1 MB, không cần đọc hết file); file rỗng bị từ chối.
-4. Trùng hash SHA-256 với file không lỗi trong cùng sự cố → 409 nêu số upload bị trùng. Cùng file ở sự cố khác vẫn nhận kèm `warnings`. File đã lỗi (`failed`) không tính là trùng, nên upload lại được.
+4. Trùng hash SHA-256 với một file không lỗi ở **bất kỳ sự cố nào** (kể cả sự cố đang upload) → 409, nêu số upload đã có và tên file; nếu file trước nằm ở sự cố khác thì nêu thêm mã sự cố đó. Mục đích: một file chỉ sinh cảnh báo một lần, tránh nhân đôi cảnh báo giữa các sự cố. Các trạng thái `pending`, `processing`, `completed` đều tính là trùng; file đã lỗi (`failed`) không tính nên upload lại được. Xóa sự cố (xóa luôn bản ghi upload) giải phóng hash. So sánh theo nội dung byte: đổi tên file không qua mặt được, nhưng cùng dữ liệu xuất lại ở định dạng khác (CSV và JSON) hoặc khác một byte thì được coi là file khác. Muốn đưa cảnh báo của một file sang sự cố khác, dùng chức năng chuyển cảnh báo (mục 5.4) thay vì upload lại.
 5. Phải có mô hình đang dùng cho nguồn đó; thiếu thì 503. Với luồng mạng, nếu mô hình chưa có danh sách cột thì tự đồng bộ từ dịch vụ AI.
 6. Cấu trúc và giá trị: CSV/JSON phải UTF-8, số cột mỗi dòng khớp tiêu đề; đủ cột bắt buộc (báo rõ cột thiếu); ô luồng mạng phải là số (báo dòng và cột sai); `Infinity`/`NaN` quy về 0; hai cột trùng tên (`Fwd Header Length`) được đặt `.1`; số dòng không vượt `max_rows`; email phải có `subject` hoặc `body`.
 
@@ -175,6 +175,7 @@ Chỉ các dòng thành cảnh báo mới được lưu kết quả từng dòng
 - Gỡ khỏi sự cố (gắn nhầm): đặt `to_incident_id` rỗng; cảnh báo vào danh sách "Chưa gắn sự cố" và gắn lại được sau.
 - Cảnh báo thuộc sự cố đã đóng/hủy không chuyển đi được.
 - Mỗi lần chuyển hoặc gỡ ghi `alert_move_history` (từ đâu, đến đâu, ai, khi nào, lý do).
+- Vì một file chỉ upload được một lần (mục 4.2), chuyển cảnh báo là cách duy nhất để dùng kết quả của cùng một file cho sự cố khác.
 
 ### 5.5 Xem và lọc
 
@@ -326,6 +327,7 @@ Nigerian Fraud và Nazario chỉ có thư spam/phishing nên chỉ đo được 
 | | `GET /labels`, `PUT /labels/{id}` | Nhãn đầu ra mô hình; sửa cờ nguy hiểm, đang dùng, tên |
 | | `GET /settings`, `PUT /settings/{key}` | Cấu hình |
 | | `GET /models`, `POST /models/sync` | Mô hình; đồng bộ từ dịch vụ AI |
+| | `GET /ai/health` | Dịch vụ AI còn trả lời không (giao diện hỏi định kỳ) |
 | Dashboard | `GET /dashboard` | Số liệu tổng quan |
 | Hệ thống | `GET /`, `GET /health/db` | Kiểm tra backend và kết nối cơ sở dữ liệu |
 
@@ -333,12 +335,12 @@ Mã lỗi chính: 401 chưa đăng nhập; 404 không tìm thấy; 409 xung đ�
 
 ## 10. Giao diện
 
-Các trang: Đăng nhập; Dashboard; Danh sách sự cố; Chi tiết sự cố (ba tab: Cảnh báo, Dữ liệu tải lên, Lịch sử trạng thái); Danh sách cảnh báo chung; Cấu hình.
+Các trang: Đăng nhập; Dashboard; Danh sách sự cố; Chi tiết sự cố (ba tab: Cảnh báo, Dữ liệu tải lên, Lịch sử trạng thái); Danh sách cảnh báo chung; Cấu hình. Giao diện có hai ngôn ngữ Việt và Anh (nút VI/EN; khóa dịch là câu tiếng Việt gốc, thiếu bản dịch thì hiện tiếng Việt).
 
-- Tab Dữ liệu tải lên: chọn nguồn, chọn file (hộp chọn file chỉ cho `.eml`/`.zip` khi nguồn là Email), hướng dẫn định dạng, thẻ kết quả cho từng file (tổng mẫu, confidence trung bình, phân bố nhãn, ngưỡng và lớp nguy hiểm đã áp dụng, số cảnh báo).
+- Tab Dữ liệu tải lên: chọn nguồn, chọn file (hộp chọn file chỉ cho `.eml`/`.zip` khi nguồn là Email), hướng dẫn định dạng, thẻ kết quả cho từng file (tổng mẫu, confidence trung bình, phân bố nhãn, ngưỡng và lớp nguy hiểm đã áp dụng, số cảnh báo). File trùng hash bị từ chối với thông báo lỗi (mục 4.2).
 - Khi có file đang xử lý, giao diện thăm dò mỗi 1,5 giây, hiện thanh tiến độ và thông báo (toast) khi xong hoặc lỗi.
+- Trang Cấu hình hỏi `/ai/health` mỗi 5 giây; khi dịch vụ AI nối lại sau lúc mất kết nối thì tự đồng bộ mô hình.
 - Thời gian lưu UTC không múi giờ; frontend thêm hậu tố `Z` để trình duyệt hiển thị theo giờ máy.
-- `AlertDetailModal` chưa hiển thị `attachments` và `source_file` của thư.
 
 ## 11. Cách chạy
 
@@ -359,30 +361,32 @@ npm install
 npm run dev
 ```
 
-- `backend/.env`: `DB_SERVER`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SECRET_KEY`; tùy chọn `AI_SERVICE_URL`, `UPLOAD_STORAGE_DIR`, `ACCESS_TOKEN_EXPIRE_MINUTES`.
+- `backend/.env`: `DB_SERVER`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `SECRET_KEY`; tùy chọn `AI_SERVICE_URL`, `UPLOAD_STORAGE_DIR`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `AI_RETRY_DELAYS`.
 - `seed.py --demo` tạo bảng, danh mục, nhãn, cấu hình, hai tài khoản và 8 sự cố mẫu (chưa có cảnh báo; cảnh báo sinh khi upload file). Ứng dụng cũng tự tạo bảng khi khởi động; `create_all` không sửa bảng đã có, nên khi đổi cấu trúc phải dùng database mới hoặc `reset_table.sql` (cẩn thận: file này cứng `USE thesis_db;` và xóa **toàn bộ** bảng).
 - Sau khi dịch vụ AI chạy: Cấu hình → **Đồng bộ từ dịch vụ AI**.
-- Dùng `127.0.0.1` thay cho `localhost` khi backend gọi dịch vụ AI trên Windows. CORS của backend chỉ cho `http://localhost:5173`; địa chỉ backend ở frontend cố định `http://localhost:8000` (`frontend/src/api/client.js`).
+- Dùng `127.0.0.1` thay cho `localhost` khi backend gọi dịch vụ AI trên Windows. CORS của backend chỉ cho `http://localhost:5173`; địa chỉ backend ở frontend mặc định `http://localhost:8000` (đổi bằng `VITE_API_URL`, xem `frontend/src/api/client.js`).
+- Khi backend mất kết nối tới dịch vụ AI giữa lúc xử lý, mỗi lô được thử lại theo khoảng chờ 1, 2, 4, 8, 15 giây (tổng khoảng 30 giây) trước khi file bị đánh `failed`.
 - Thứ tự huấn luyện trong `ml/`: `preprocess.py` → `train_multiclass.py` → `train_email.py` → `serve.py`. Dữ liệu CIC-IDS2017 để ở `ml/data/ids/raw`; CSV email Kaggle ở `ml/data/email/kaggle`. Trước khi chạy lại `preprocess.py`, xóa thư mục `ml/data/ids/processed` để không lẫn file cũ.
-- `ml/make_network_samples.py` tạo các file mẫu `mau_nhieu_canh_bao.csv`, `mau_nho.json`, `mau_duoi_nguong.csv` bằng mô hình hiện tại và quy tắc A; phải chạy lại sau mỗi lần huấn luyện hoặc đổi quy tắc.
+- `ml/make_network_samples.py` tạo các file mẫu `mau_demo_300.csv` và `mau_demo_300.json` (150 cảnh báo kỳ vọng trên 300 dòng, ngưỡng 0,8) bằng mô hình hiện tại và quy tắc A; phải chạy lại sau mỗi lần huấn luyện hoặc đổi quy tắc. Vì chống trùng hash, mỗi file mẫu chỉ upload được một lần cho đến khi sự cố chứa nó bị xóa hoặc upload đó bị `failed`.
+- `ml/make_fake_models.py` tạo bộ mô hình giả (`models_fake/`) để thử luồng mà không cần mô hình thật: chạy dịch vụ AI với `MODEL_DIR=models_fake`.
 
 ## 12. Kiểm thử
 
 | Bộ kiểm thử | Phạm vi | Cách chạy |
 |---|---|---|
-| `tests/test_incident_alert_flow.py` | 146 kiểm tra toàn luồng: đăng nhập, cấu hình, sự cố, upload, cảnh báo, xác minh, chuyển/gỡ, dashboard, trạng thái | Backend chạy cổng 8000 cùng `tests/fake_ai_service.py` ở cổng 8001 (tắt dịch vụ AI thật); **cần database trống mỗi lần** |
+| `tests/test_incident_alert_flow.py` | Toàn luồng: đăng nhập, cấu hình, sự cố, upload, cảnh báo, xác minh, chuyển/gỡ, dashboard, trạng thái | Backend chạy cổng 8000 cùng `tests/fake_ai_service.py` ở cổng 8001 (tắt dịch vụ AI thật); **cần database trống mỗi lần** |
 | `tests/test_eml_parsing.py` | 33 kiểm tra đọc `.eml`, `.zip`, CSV/JSON email | `python tests\test_eml_parsing.py`, không cần backend |
 
 Dịch vụ AI giả trả kết quả xác định và có "bẫy" để thử lỗi giữa chừng (một giá trị `Flow Duration` đặc biệt làm lô lỗi, một giá trị làm chậm 2 giây, chuỗi `boom-crash` trong email làm lỗi). Sau khi chạy test, bật lại dịch vụ AI thật và đồng bộ mô hình.
 
 Bộ test luồng **không idempotent**: mỗi lần chạy để lại sự cố (ví dụ 5 sự cố "Sự cố phân trang") nên chạy lại trên database không sạch sẽ làm hỏng kiểm tra tìm theo tiêu đề. Quy trình: tạo database thử (ví dụ `thesis_test`), đổi `DB_NAME` trong `backend/.env`, chạy `python seed.py`, chạy test, rồi đổi lại.
 
-**Mức độ kiểm chứng:** bộ test luồng đã chạy trên **SQL Server thật** (cùng dịch vụ AI giả). Lần chạy đầu trên SQL Server lộ hai lỗi mà SQLite không bắt được và đã sửa: cột lặp trong `ORDER BY` khi sắp theo `id`, và thiếu `flush()` đúng thứ tự khóa ngoại khi xóa sự cố cùng file upload. Chưa có test tích hợp riêng cho upload `.eml`/`.zip` qua backend (chỉ có test của bộ đọc thư), chưa kiểm thử tự động giao diện, chưa đo hiệu năng với file hàng trăm nghìn dòng.
+**Mức độ kiểm chứng:** bộ test luồng đã từng đạt 146/146 trên **SQL Server thật** (cùng dịch vụ AI giả), nhưng **trước khi đổi chống trùng hash sang toàn hệ thống**. Kiểm tra "Cùng file ở sự cố khác vẫn nhận nhưng cảnh báo" (mục 7 của bộ test) mô tả hành vi cũ và phải đổi thành kỳ vọng 409 trước khi chạy lại; kết quả trong `tests/results/` chưa phản ánh hành vi hiện tại. Lần chạy đầu trên SQL Server lộ hai lỗi mà SQLite không bắt được và đã sửa: cột lặp trong `ORDER BY` khi sắp theo `id`, và thiếu `flush()` đúng thứ tự khóa ngoại khi xóa sự cố cùng file upload. Chưa có test tích hợp riêng cho upload `.eml`/`.zip` qua backend (chỉ có test của bộ đọc thư), chưa kiểm thử tự động giao diện, chưa đo hiệu năng với file hàng trăm nghìn dòng.
 
 ## 13. Hạn chế đã biết
 
-- **Hệ thống:** một vai trò; không khóa tài khoản sau đăng nhập sai; không có làm mới token; không có nhật ký kiểm toán chống sửa; chống trùng chỉ theo hash trong cùng sự cố; chỉ giữ người xác minh gần nhất (không có lịch sử xác minh).
+- **Hệ thống:** một vai trò; không khóa tài khoản sau đăng nhập sai; không có làm mới token; không có nhật ký kiểm toán chống sửa; chống trùng chỉ theo hash nguyên văn của file trên toàn hệ thống (không nhận ra cùng dữ liệu ở định dạng khác hoặc file đã sửa nhẹ; ràng buộc do ứng dụng kiểm tra, không có `UNIQUE` trong cơ sở dữ liệu, và hai upload cùng nội dung gửi gần như đồng thời có thể cùng lọt qua); chỉ giữ người xác minh gần nhất (không có lịch sử xác minh).
 - **Xử lý nền:** chạy trong tiến trình backend, không có hàng đợi; khởi động lại làm mất tác vụ đang chạy (được đánh `failed`, phải upload lại); ứng viên cảnh báo giữ trong bộ nhớ nên bị giới hạn bởi `max_rows`; ZIP email được đọc đồng bộ trong request.
 - **Dữ liệu:** không lưu dự đoán của dòng không thành cảnh báo; không tải lại được file gốc từ giao diện; CSV/JSON bắt buộc UTF-8 (chưa có chế độ Latin-1).
-- **Giao diện:** nút "Chọn tất cả N cảnh báo khớp bộ lọc" không dùng được khi N > 10.000 (API giới hạn 10.000 id mỗi lần, trong khi một file có thể sinh tới `max_rows` cảnh báo); lọc theo ngày hiểu ngày không kèm múi giờ là UTC trong khi giao diện hiển thị giờ máy; chưa kiểm thử tự động; `Table.jsx` còn rỗng.
+- **Giao diện:** nút "Chọn tất cả N cảnh báo khớp bộ lọc" không dùng được khi N > 10.000 (API giới hạn 10.000 id mỗi lần, trong khi một file có thể sinh tới `max_rows` cảnh báo); lọc theo ngày hiểu ngày không kèm múi giờ là UTC trong khi giao diện hiển thị giờ máy; chưa kiểm thử tự động.
 - **Mô hình:** xem 8.1 đến 8.3; đặc biệt là các lớp web attack và Bot của luồng mạng (với quy tắc A, XSS chỉ đạt recall 0,03 ở ngưỡng 0,8), phishing mới trong email, và việc mô hình chỉ được kiểm chứng trên CIC-IDS2017.

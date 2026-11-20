@@ -19,10 +19,10 @@ Luồng: tạo sự cố, upload file luồng mạng/email vào sự cố, mô h
 
 ## Quy ước
 
-- `alerts.row_index`: số thứ tự dòng dữ liệu trong file gốc, tính từ 1 (không tính dòng tiêu đề; với file CSV, dòng trong trình soạn thảo là `row_index + 1`; với JSON là vị trí trong mảng).
+- `alerts.row_index`: số thứ tự dòng dữ liệu trong file gốc, tính từ 1 (không tính dòng tiêu đề; với file CSV, dòng trong trình soạn thảo là `row_index + 1`; với JSON là vị trí trong mảng; với ZIP email là thứ tự tên file trong ZIP).
 - `confidence`: xác suất của nhãn được dự đoán (0 đến 1). Cảnh báo chỉ sinh khi nhãn nguy hiểm **và** `confidence >= ngưỡng`.
 - Sinh cảnh báo nguyên tử: kết quả của các lô được gom trong bộ nhớ, chỉ ghi vào `alerts` bằng một giao dịch khi cả file xử lý xong. File lỗi để lại `uploads.status = failed` và không có cảnh báo nào.
-- Chống trùng: cùng `file_hash` trong cùng sự cố bị chặn (trừ bản đã lỗi). Cùng file ở sự cố khác vẫn nhận kèm cảnh báo.
+- Chống trùng: cùng `file_hash` (SHA-256 nội dung file) với một upload không lỗi ở **bất kỳ sự cố nào** thì bị chặn (409). Các trạng thái `pending`, `processing`, `completed` đều tính là trùng; `failed` không tính nên upload lại được. Xóa sự cố xóa luôn bản ghi upload nên giải phóng hash. Muốn đưa cảnh báo của một file sang sự cố khác thì dùng chuyển cảnh báo, không upload lại. Ràng buộc này do ứng dụng kiểm tra, không có `UNIQUE` trong cơ sở dữ liệu (vì file `failed` được phép trùng).
 - Xóa sự cố chỉ khi không có cảnh báo nào thuộc về nó hoặc truy vết về file của nó; nếu không thì dùng Hủy/Đóng.
 - Thời gian lưu theo UTC, không kèm múi giờ.
 - `schema_mssql.sql` sinh từ model, chỉ để tham khảo; ứng dụng tự tạo bảng khi khởi động. Dùng **một database mới** (ví dụ `thesis_incident_v2`), vì tên các bảng `users`, `incidents`, `alerts` trùng bản cũ nhưng khác cấu trúc.
