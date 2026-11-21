@@ -5,10 +5,10 @@ import { useI18n } from '../i18n'
 import LangSwitch from './LangSwitch'
 
 const navItems = [
-  { path: '/',          label: 'Dashboard', icon: '📊' },
-  { path: '/incidents', label: 'Sự cố',     icon: '🔥' },
-  { path: '/alerts',    label: 'Cảnh báo',  icon: '🚨' },
-  { path: '/settings',  label: 'Cấu hình',  icon: '⚙️' },
+  { path: '/',          label: 'Dashboard' },
+  { path: '/incidents', label: 'Sự cố' },
+  { path: '/alerts',    label: 'Cảnh báo' },
+  { path: '/settings',  label: 'Cấu hình' },
 ]
 
 export default function Layout({ children }) {
